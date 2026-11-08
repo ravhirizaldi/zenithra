@@ -82,7 +82,7 @@ export function registerSystemMiddleware(
       req.path === '/' ||
       req.path === '/InputReport' ||
       req.path.startsWith('/InputReport/') ||
-      req.path === '/Common/LabelListView';
+      ['/Common/LabelListView', '/Common/TaskList', '/Common/RegistTask'].includes(req.path);
     if (
       !req.path.startsWith('/System') &&
       req.path !== '/SystemGoogleAuthCallback/IndexAsync' &&

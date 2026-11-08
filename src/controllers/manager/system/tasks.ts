@@ -3,6 +3,7 @@ import type pg from 'pg';
 import { hostname } from 'node:os';
 import { hasSystemPermission } from '../../../middleware/manager/system/permissions.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
+import { taskList } from '../../../models/manager/common/tasks.js';
 
 type TaskPageSize = { value: number; text: string };
 type TaskRecord = Record<string, unknown> & {
@@ -125,26 +126,9 @@ export function registerTasks(
     const requestedPageIndex = integer(query.pageIndex);
     const pageIndexInput =
       requestedPageIndex !== null && requestedPageIndex >= 0 ? Math.min(requestedPageIndex, 10000) : 0;
-    const namePattern = searchName.trim() ? `%${searchName}%` : null;
-    const remarkPattern = searchRemark.trim() ? `%${searchRemark}%` : null;
-    const where = '($1::text IS NULL OR task_name LIKE $1) AND ($2::text IS NULL OR task_remark LIKE $2)';
-    const total = Number(
-      (
-        await db.query<{ total: string }>(`SELECT count(*) AS total FROM mst_task WHERE ${where}`, [
-          namePattern,
-          remarkPattern,
-        ])
-      ).rows[0]?.total ?? 0,
-    );
-    const pages = Math.ceil(total / pageSize);
     const pageIndex = pageIndexInput;
-    const rows = (
-      await db.query<TaskRecord>(
-        `SELECT task_id, task_name, coalesce(task_remark,'') AS task_remark, coalesce(display_number,0) AS display_number
-       FROM mst_task WHERE ${where} ORDER BY display_number, task_name, task_id LIMIT $3 OFFSET $4`,
-        [namePattern, remarkPattern, pageSize, pageIndex * pageSize],
-      )
-    ).rows;
+    const { rows, total } = await taskList(db, { searchName, searchRemark, pageIndex, pageSize });
+    const pages = Math.ceil(total / pageSize);
     return show(status === 403 ? res.status(status) : res, {
       mode: 'list',
       canRead: true,

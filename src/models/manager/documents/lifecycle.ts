@@ -84,24 +84,27 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
       EXISTS (SELECT 1 FROM rep_lock l WHERE l.rep_top_id=a.rep_top_id AND l.user_id<>$2) AS locked,
       EXISTS (SELECT 1 FROM rep_current c WHERE c.rep_top_id=a.rep_top_id) AS current FROM rep_top a`;
     const selected = (
-      await client.query<Report>(`${fields} WHERE a.rep_top_id=ANY($1::int[]) ORDER BY a.rep_top_id FOR UPDATE OF a`, [
-        ids,
-        user,
-      ])
+      await client.query<Report>(
+        `${fields} WHERE a.rep_top_id=ANY($1::int[]) ORDER BY array_position($1::int[],a.rep_top_id) FOR UPDATE OF a`,
+        [ids, user],
+      )
     ).rows;
     if (selected.length !== ids.length || selected.some((row) => !row.readable || !row.deletable))
       throw new LabelValidationError('ChkRepTopID', 'A selected report is unavailable or cannot be deleted.');
     if (selected.some((row) => Number(row.deleted) !== (restore || physical ? 1 : 0)))
       throw new LabelValidationError('ChkRepTopID', 'A selected report is no longer in the requested list.');
+    // Delete skips another user's selected lock; restore does not run the source lock check.
+    const eligible = action === 'DELETE_REPORT' ? selected.filter((row) => !row.locked) : selected;
     const reports = all
       ? (
           await client.query<Report>(
-            `${fields} WHERE a.rep_top_org=ANY($1::int[]) ORDER BY a.rep_top_id FOR UPDATE OF a`,
-            [[...new Set(selected.map((row) => row.rep_top_org))], user],
+            `${fields} WHERE a.rep_top_org=ANY($1::int[])
+            ORDER BY array_position($1::int[],a.rep_top_org),a.rev_no,a.rep_top_id FOR UPDATE OF a`,
+            [[...new Set(eligible.map((row) => row.rep_top_org))], user],
           )
         ).rows
-      : selected;
-    if (reports.some((row) => !row.readable || !row.deletable || row.locked))
+      : eligible;
+    if (physical && reports.some((row) => row.locked))
       throw new LabelValidationError('ChkRepTopID', 'A selected report revision is locked or cannot be deleted.');
     const autoMode = (
       await client.query(
@@ -120,9 +123,10 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
           WHERE rep_top_id=$1`,
           [report.rep_top_id, restore ? 0 : 1, hostname(), user],
         );
-        await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1', [report.rep_top_id]);
+        if (physical) await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1', [report.rep_top_id]);
         if (physical) await client.query('DELETE FROM rep_top WHERE rep_top_id=$1 AND deleted=1', [report.rep_top_id]);
         if (cleanup) await removeEmptyLabels(client, labels);
+        if (!physical) await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1', [report.rep_top_id]);
         if (!all && (report.current || restore)) await updateCurrent(client, report.rep_top_org);
         if (physical) await client.query('RELEASE SAVEPOINT report_delete');
       } catch (error) {
@@ -133,6 +137,14 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
       }
     }
     await client.query('COMMIT');
+    if (!physical && !all) {
+      // Delete performs a second unlock transaction after committing, including on restore.
+      await client.query('BEGIN');
+      await client.query('DELETE FROM rep_lock WHERE rep_top_id=ANY($1::int[])', [
+        eligible.map((row) => row.rep_top_id),
+      ]);
+      await client.query('COMMIT');
+    }
     return failed;
   } catch (error) {
     await client.query('ROLLBACK');

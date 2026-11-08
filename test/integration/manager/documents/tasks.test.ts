@@ -8,6 +8,8 @@ import express from 'express';
 import session from 'express-session';
 import { documentRegistTask, documentTaskState } from '../../../../src/models/manager/documents/tasks.js';
 import { registerDocumentController } from '../../../../src/controllers/manager/documents/index.js';
+import { registerSystemMiddleware } from '../../../../src/middleware/manager/system.js';
+import { requireSession } from '../../../../src/middleware/manager/session.js';
 
 test(
   'Documents task dialog, workers, validation, conflict confirmation and atomic persistence use private tables/sequence',
@@ -159,11 +161,16 @@ test(
       app.set('view engine', 'ejs');
       app.use(express.urlencoded({ extended: false }));
       app.use(session({ secret: 'documents-task-fixture', resave: false, saveUninitialized: true }));
+      let authenticated = true;
       app.use((req, _res, next) => {
-        req.session.userId = 'fixture';
+        req.session.userId = authenticated ? 'fixture' : '';
+        req.session.userStart = '2000-01-01';
+        req.session.userEnd = '2100-01-01';
         req.session.csrfToken = 'fixture-token';
         next();
       });
+      const requireAuth = requireSession(true);
+      registerSystemMiddleware(app, db, true, requireAuth);
       registerDocumentController(
         app,
         db,
@@ -171,7 +178,7 @@ test(
         () => {
           throw new Error('Unexpected page render');
         },
-        (_req, _res, next) => next(),
+        requireAuth,
       );
       app.use((_error: unknown, _req: express.Request, res: express.Response, _next: express.NextFunction) => {
         res.status(500).send('Fixture handler failed.');
@@ -209,6 +216,41 @@ test(
       new Script(script);
       assert.match(html, /<option value="fixture" selected="selected">Fixture<\/option>/);
       assert.doesNotMatch(html, /<option value="expired"|<option value="conmasadmin"/);
+      const taskListUrl = url.replace(/RegistTask$/, 'TaskList');
+      const taskList = await fetch(taskListUrl, { headers: { cookie } });
+      assert.equal(taskList.status, 200);
+      assert.match(await taskList.text(), /id="selectTaskButton"[^>]+value="1"/);
+      for (const token of ['fixture-token', 'invalid']) {
+        const filtered = await fetch(taskListUrl, {
+          method: 'POST',
+          headers: { cookie },
+          body: new URLSearchParams({ __RequestVerificationToken: token, searchName: 'Task', pageSize: '1' }),
+        });
+        assert.equal(filtered.status, token === 'fixture-token' ? 200 : 403);
+        if (token === 'fixture-token') assert.match(await filtered.text(), /id="selectTaskButton"[^>]+value="1"/);
+      }
+      for (const blocked of [
+        'Common/TaskListExtra',
+        'Common/TaskList/Extra',
+        'Common/RegistTaskExtra',
+        'Common/RegistTask/Extra',
+        'Schedule',
+        'DefReport',
+        'CustomMenu',
+        'CustomMaster',
+        'Binder',
+        'AutoGenerate',
+      ]) {
+        const response: Response = await fetch(`http://127.0.0.1:${address.port}/ConMasManager/${blocked}`, {
+          headers: { cookie },
+        });
+        assert.equal(response.status, 503);
+      }
+      authenticated = false;
+      const anonymous = await fetch(taskListUrl, { headers: { cookie }, redirect: 'manual' });
+      assert.equal(anonymous.status, 302);
+      assert.match(anonymous.headers.get('location') ?? '', /\/Account\/LogOn$/);
+      authenticated = true;
       assert.equal((await request({ ...input, SchAction: 'Submit', __RequestVerificationToken: 'bad' })).status, 403);
       assert.equal((await request({ ...input, SchAction: 'Delete' })).status, 501);
       assert.equal((await request(undefined, '?requestKbn=3')).status, 501);
@@ -242,6 +284,9 @@ test(
       assert.equal((await client.query('SELECT COUNT(*) FROM rep_schedule WHERE rep_top_id=4')).rows[0].count, '0');
       await client.query('UPDATE mst_group SET role_schedule_create=0 WHERE group_id=10');
       assert.equal((await request()).status, 403);
+      assert.equal((await fetch(taskListUrl, { headers: { cookie } })).status, 200);
+      await client.query('UPDATE mst_group SET role_rep_read_manager=0 WHERE group_id=10');
+      assert.equal((await fetch(taskListUrl, { headers: { cookie } })).status, 403);
     } finally {
       if (server)
         await new Promise<void>((resolve, reject) => server!.close((error) => (error ? reject(error) : resolve())));

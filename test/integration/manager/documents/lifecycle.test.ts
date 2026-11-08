@@ -10,6 +10,163 @@ import { registerDocumentController } from '../../../../src/controllers/manager/
 import { legacyPassword } from '../../../../src/shared/legacy-auth.js';
 
 test(
+  'Documents lifecycle preserves source selection-lock, history and post-commit unlock behavior',
+  { skip: !process.env.DATABASE_URL },
+  async (t) => {
+    const pool = new pg.Pool({ connectionString: process.env.DATABASE_URL });
+    const client = await pool.connect();
+    const updateOrder: number[] = [];
+    const db = {
+      connect: async () => ({
+        query: async (sql: string, values?: unknown[]) => {
+          if (sql.startsWith('UPDATE rep_top SET deleted=')) updateOrder.push(Number(values?.[0]));
+          return client.query(sql, values);
+        },
+        release() {},
+      }),
+    } as unknown as pg.Pool;
+    try {
+      for (const table of [
+        'rep_top',
+        'rep_current',
+        'rep_role',
+        'rep_lock',
+        'rep_label',
+        'mst_label_rep',
+        'mst_user',
+        'mst_group_affiation',
+        'mst_common',
+      ])
+        await client.query(`CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING ALL)`);
+      await client.query(
+        "INSERT INTO pg_temp.mst_user (user_id,user_name) VALUES ('fixture','Fixture user'); INSERT INTO pg_temp.mst_group_affiation (group_id,user_id) VALUES (10,'fixture')",
+      );
+      await client.query(
+        `INSERT INTO pg_temp.rep_top
+        (rep_top_id,rep_top_org,rev_no,rep_top_name,deleted,xml_data,def_file,sys_regist_user,sys_regist_time,sys_update_time)
+        VALUES (901,901,1,'Locked selection',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (902,902,1,'Own lock',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (903,903,1,'Free selection',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (904,904,1,'Locked trash',1,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1001,1001,3,'Historical revision',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1002,1001,2,'Selected revision',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1003,1001,1,'Deleted history',1,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1101,1101,1,'Skipped group',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1102,1101,2,'Skipped history',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1301,1301,1,'Zero user lock',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1302,1302,1,'Null user lock',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01'),
+        (1401,1401,1,'Post-commit failure',0,$1,$2,'original',TIMESTAMP '2026-01-01',TIMESTAMP '2026-01-01')`,
+        ['<conmas><top/></conmas>', Buffer.from('private lifecycle binary')],
+      );
+      await client.query(
+        `INSERT INTO pg_temp.rep_role (rep_top_id,group_id,role_rep_read,role_rep_delete)
+        SELECT rep_top_id,10,1,1 FROM pg_temp.rep_top WHERE rep_top_id NOT IN (1001,1003,1102);
+        INSERT INTO pg_temp.rep_current (rep_top_org,rep_top_id)
+        SELECT rep_top_org,max(rep_top_id) FROM pg_temp.rep_top GROUP BY rep_top_org;
+        INSERT INTO pg_temp.rep_lock (rep_top_id,user_id)
+        VALUES (901,'other'),(902,'fixture'),(904,'other'),(1001,'other'),(1003,'other'),(1101,'other'),(1301,'0'),(1302,NULL)`,
+      );
+      const top = async (id: number) =>
+        (await client.query('SELECT * FROM pg_temp.rep_top WHERE rep_top_id=$1', [id])).rows[0];
+      const locks = async () =>
+        (await client.query('SELECT rep_top_id FROM pg_temp.rep_lock ORDER BY rep_top_id')).rows.map(
+          (row) => row.rep_top_id,
+        );
+      await t.test('mixed revision deletion skips only other-user locks without changing skipped data', async () => {
+        const skipped = await top(901),
+          saved = await top(902);
+        assert.deepEqual(await documentDelete(db, '903,901,902', 'DELETE_REPORT', 'REV', 'fixture'), []);
+        assert.deepEqual(updateOrder, [903, 902]);
+        assert.deepEqual(await top(901), skipped);
+        for (const id of [902, 903]) {
+          const deleted = await top(id);
+          assert.equal(Number(deleted.deleted), 1);
+          assert.equal(deleted.sys_update_user, 'fixture');
+          for (const field of ['xml_data', 'def_file', 'sys_regist_user', 'sys_regist_time'])
+            assert.deepEqual(deleted[field], saved[field]);
+        }
+        assert.deepEqual((await top(902)).sys_update_time, (await top(903)).sys_update_time);
+        assert((await locks()).includes(901));
+        assert(!(await locks()).includes(902));
+      });
+      await t.test('Trash restore ignores other-user locks and clears them', async () => {
+        const trash = await top(904);
+        await documentDelete(db, '904', 'DELETE_RETURN_REPORT', '', 'fixture');
+        const restored = await top(904);
+        assert.equal(Number(restored.deleted), 0);
+        assert.equal(restored.sys_update_user, 'fixture');
+        assert.deepEqual(restored.xml_data, trash.xml_data);
+        assert.deepEqual(restored.def_file, trash.def_file);
+        assert(!(await locks()).includes(904));
+      });
+      await t.test(
+        'ALL checks the selected lock only, includes deleted history and retains the current pointer',
+        async () => {
+          const skipped = [await top(1101), await top(1102)];
+          const current = (
+            await client.query(
+              'SELECT * FROM pg_temp.rep_current WHERE rep_top_org IN (1001,1101) ORDER BY rep_top_org',
+            )
+          ).rows;
+          updateOrder.length = 0;
+          await documentDelete(db, '1101,1002', 'DELETE_REPORT', 'ALL', 'fixture');
+          assert.deepEqual(updateOrder, [1003, 1002, 1001]);
+          for (const id of updateOrder) {
+            const deleted = await top(id);
+            assert.equal(Number(deleted.deleted), 1);
+            assert.equal(deleted.sys_update_user, 'fixture');
+          }
+          assert.deepEqual([await top(1101), await top(1102)], skipped);
+          assert.deepEqual(
+            (
+              await client.query(
+                'SELECT * FROM pg_temp.rep_current WHERE rep_top_org IN (1001,1101) ORDER BY rep_top_org',
+              )
+            ).rows,
+            current,
+          );
+          assert.deepEqual(await locks(), [901, 1101, 1301, 1302]);
+        },
+      );
+      await t.test('source SQL distinguishes null and zero lock users', async () => {
+        const zero = await top(1301);
+        await documentDelete(db, '1301,1302', 'DELETE_REPORT', '', 'fixture');
+        assert.deepEqual(await top(1301), zero);
+        assert.equal(Number((await top(1302)).deleted), 1);
+        assert.deepEqual(await locks(), [901, 1101, 1301]);
+      });
+      await t.test('the final unlock runs after commit; its failure cannot roll back the saved deletion', async () => {
+        const statements: string[] = [];
+        const failingDb = {
+          connect: async () => ({
+            query: async (sql: string, values?: unknown[]) => {
+              statements.push(sql);
+              if (sql === 'DELETE FROM rep_lock WHERE rep_top_id=ANY($1::int[])')
+                throw new Error('Private final unlock failure');
+              return client.query(sql, values);
+            },
+            release() {},
+          }),
+        } as unknown as pg.Pool;
+        await assert.rejects(documentDelete(failingDb, '1401', 'DELETE_REPORT', 'REV', 'fixture'));
+        assert.equal(Number((await top(1401)).deleted), 1);
+        const committed = statements.indexOf('COMMIT');
+        assert(committed > 0);
+        assert.deepEqual(statements.slice(committed), [
+          'COMMIT',
+          'BEGIN',
+          'DELETE FROM rep_lock WHERE rep_top_id=ANY($1::int[])',
+          'ROLLBACK',
+        ]);
+      });
+    } finally {
+      client.release();
+      await pool.end();
+    }
+  },
+);
+
+test(
   'Documents deletion, revision recovery, automatic labels and permanent-delete rollback use private tables only',
   { skip: !process.env.DATABASE_URL },
   async () => {
@@ -93,14 +250,14 @@ test(
         await assert.rejects(documentDelete(db, input, 'DELETE_REPORT', 'REV', 'fixture'));
       await assert.rejects(documentDelete(db, '101', 'DELETE_REPORT', 'invalid', 'fixture'));
       await assert.rejects(documentDelete(db, '101', 'DELETE_RETURN_REPORT', '', 'fixture'));
-      await client.query('UPDATE pg_temp.rep_role SET role_rep_delete=0 WHERE rep_top_id=101');
+      await client.query('UPDATE pg_temp.rep_role SET role_rep_delete=0 WHERE rep_top_id=102');
       await assert.rejects(documentDelete(db, '102', 'DELETE_REPORT', 'ALL', 'fixture'));
-      await client.query('UPDATE pg_temp.rep_role SET role_rep_delete=1 WHERE rep_top_id=101');
-      await client.query("INSERT INTO pg_temp.rep_lock (rep_top_id,user_id) VALUES (103,'other')");
-      await assert.rejects(documentDelete(db, '102', 'DELETE_REPORT', 'ALL', 'fixture'));
+      await client.query('UPDATE pg_temp.rep_role SET role_rep_delete=1 WHERE rep_top_id=102');
+      await client.query("INSERT INTO pg_temp.rep_lock (rep_top_id,user_id) VALUES (102,'other')");
+      assert.deepEqual(await documentDelete(db, '102', 'DELETE_REPORT', 'ALL', 'fixture'), []);
       assert.equal(Number((await top(102)).deleted), 0);
       await client.query(
-        "DELETE FROM pg_temp.rep_lock WHERE rep_top_id=103; INSERT INTO pg_temp.rep_lock (rep_top_id,user_id) VALUES (102,'fixture')",
+        "DELETE FROM pg_temp.rep_lock WHERE rep_top_id=102; INSERT INTO pg_temp.rep_lock (rep_top_id,user_id) VALUES (102,'fixture')",
       );
       await client.query(
         "INSERT INTO pg_temp.mst_common (com_id,com_key,com_name,com_value) VALUES (1,'LABEL_SETTING','LABEL_AUTO_DELETE_MODE','0')",
@@ -185,11 +342,11 @@ test(
       await new Promise<void>((resolve) => server!.once('listening', resolve));
       const address = server.address();
       assert(address && typeof address !== 'string');
-      const post = (Act: string, token = 'fixture-token') =>
+      const post = (Act: string, token = 'fixture-token', ChkRepTopID = '102') =>
         fetch(`http://127.0.0.1:${address.port}/ConMasManager/InputReport/IndexList`, {
           method: 'POST',
           headers: { 'X-Requested-With': 'XMLHttpRequest' },
-          body: new URLSearchParams({ Act, ChkRepTopID: '102', __RequestVerificationToken: token }),
+          body: new URLSearchParams({ Act, ChkRepTopID, __RequestVerificationToken: token }),
         });
       assert.equal((await post('DELETE_REPORT', 'invalid')).status, 403);
       await client.query('UPDATE pg_temp.mst_group SET role_rep_delete_manager=0');
@@ -201,6 +358,32 @@ test(
       assert.equal(Number((await top(102)).deleted), 1);
       assert.equal((await post('DELETE_RETURN_REPORT')).status, 200);
       assert.equal(Number((await top(102)).deleted), 0);
+      await client.query(
+        `INSERT INTO pg_temp.rep_top
+        (rep_top_id,rep_top_org,rev_no,rep_top_name,deleted,public_status,report_type,edit_refer_status)
+        VALUES (401,401,1,'HTTP unlocked',0,2,1,0),(402,402,1,'HTTP locked',0,2,1,0);
+        INSERT INTO pg_temp.rep_current (rep_top_org,rep_top_id) VALUES (401,401),(402,402);
+        INSERT INTO pg_temp.rep_role (rep_top_id,group_id,role_rep_read,role_rep_delete) VALUES (401,10,1,1),(402,10,1,1);
+        INSERT INTO pg_temp.rep_lock (rep_top_id,user_id) VALUES (402,'other')`,
+      );
+      const lockedSelection = await top(402);
+      const mixed = await post('DELETE_REPORT', 'fixture-token', '402,401');
+      assert.equal(mixed.status, 200);
+      const mixedList = await mixed.text();
+      assert.match(mixedList, /HTTP locked/);
+      assert.doesNotMatch(mixedList, /HTTP unlocked/);
+      assert.match(mixedList, /name="Cbx" value="402"/);
+      assert.deepEqual(await top(402), lockedSelection);
+      assert.equal(Number((await top(401)).deleted), 1);
+      await client.query("INSERT INTO pg_temp.rep_lock (rep_top_id,user_id) VALUES (401,'other')");
+      const restoreLocked = await post('DELETE_RETURN_REPORT', 'fixture-token', '401');
+      assert.equal(restoreLocked.status, 200);
+      assert.match(await restoreLocked.text(), /HTTP unlocked/);
+      assert.equal(Number((await top(401)).deleted), 0);
+      assert.equal(
+        (await client.query('SELECT count(*) FROM pg_temp.rep_lock WHERE rep_top_id=401')).rows[0].count,
+        '0',
+      );
       await client.query(
         "INSERT INTO pg_temp.mst_common (com_id,com_key,com_name,com_value) VALUES (2,'IDENTIFICATION_SETTING','ENABLE_IDENTIFICATION','-1'),(3,'PAGE_SIZE','1','1'),(4,'PAGE_SIZE','2','2'); UPDATE pg_temp.rep_top SET use_identification=1 WHERE rep_top_id=102; UPDATE pg_temp.mst_user SET identification_code='private-code' WHERE user_id='fixture'",
       );

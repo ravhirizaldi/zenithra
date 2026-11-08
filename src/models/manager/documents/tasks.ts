@@ -2,6 +2,7 @@ import type pg from 'pg';
 import { hostname } from 'node:os';
 import { labelChecked, labelInteger, labelString, LabelValidationError } from '../labels/index.js';
 import { documentDate, type DocumentSettings } from './index.js';
+import { taskList } from '../common/tasks.js';
 
 const taskFields = [
   'start_date',
@@ -248,19 +249,7 @@ export async function documentTaskList(
   if (pageIndex < 0 || pageSize <= 0) throw new LabelValidationError('pageIndex', 'Invalid task page.');
   const searchName = labelString(input.searchName),
     searchRemark = labelString(input.searchRemark);
-  const values = [
-    searchName.trim() ? '%' + searchName + '%' : null,
-    searchRemark.trim() ? '%' + searchRemark + '%' : null,
-  ];
-  const where = '($1::text IS NULL OR task_name LIKE $1) AND ($2::text IS NULL OR task_remark LIKE $2)';
-  const total = Number((await db.query(`SELECT COUNT(*) AS total FROM mst_task WHERE ${where}`, values)).rows[0].total);
-  const rows = (
-    await db.query(
-      `SELECT task_id,task_name,COALESCE(task_remark,'') AS task_remark,COALESCE(display_number,0) AS display_number
-    FROM mst_task WHERE ${where} ORDER BY display_number,task_name,task_id LIMIT $3 OFFSET $4`,
-      [...values, pageSize, pageIndex * pageSize],
-    )
-  ).rows;
+  const { rows, total } = await taskList(db, { searchName, searchRemark, pageIndex, pageSize });
   return {
     rows,
     total,

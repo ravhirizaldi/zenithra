@@ -1,0 +1,10 @@
+<% const childIds = new Set(labels.flatMap(label => (label.children || []).map(child => child.mst_label_id))); %>
+<div id="sidetreecontrol" class="collapseBox"><a href="#">Close all</a> | <a href="#">Open all</a></div>
+<ul id="Labels" class="treeview">
+  <% for (const [id,title] of [['All','All'],['NoLabel','No Label']]) { %><li><a class="<%= selectedLabel === id ? 'current' : '' %>" href="<%= labelHref %><%= id %>"><%= title %></a></li><% } %>
+  <% const renderNodes = nodes => { for (const label of nodes) { %>
+    <li><a class="<%= selectedLabel === String(label.mst_label_id) ? 'current' : '' %>" href="<%= labelHref %><%= label.mst_label_id %>"><% if (label.label_icon_id) { %><img class="labelPictureSize" src="<%= base %>/Content/ConMas/images/function/label_icon_<%= label.label_icon_id %>.png" alt=""> <% } %><%= label.label_name %></a>
+      <% if (label.children?.length) { %><ul class="rank0"><% renderNodes(label.children); %></ul><% } %>
+    </li>
+  <% } }; renderNodes(labels.filter(label => !childIds.has(label.mst_label_id))); %>
+</ul>

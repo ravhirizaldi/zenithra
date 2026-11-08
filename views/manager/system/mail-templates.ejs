@@ -1,0 +1,138 @@
+<% const page=mailTemplatePage;const root=`${base}/System`;const labels=page.labels;const model=page.model??{};const details=page.mode==='DetailsMailTemplate';const editing=page.mode==='EditMailTemplate';const creating=page.mode==='CreateMailTemplate';const rows=field=>Array.isArray(model[field])?model[field]:[];const addresses=[['tos','TO','SendTo'],['ccs','CC','SendCc'],['bccs','BCC','SendBcc']]; %>
+<script>
+  function mailTemplateToggle(id) {
+    const section=document.getElementById(id);
+    const button=document.querySelector('[aria-controls="'+id+'"]');
+    if(!section)return;
+    section.hidden=!section.hidden;
+    if(button)button.setAttribute('aria-expanded',String(!section.hidden));
+  }
+  function mailTemplateKey(event,id) {
+    if(event.key!=='Enter'&&event.key!==' ')return;
+    event.preventDefault();
+    mailTemplateToggle(id);
+  }
+  function mailTemplateDelete() {
+    return confirm(<%- JSON.stringify(labels.deleteMailMessage) %>);
+  }
+  function mailTemplateTestSend() {
+    const address=document.forms[0]?.elements.namedItem('testMailAddress');
+    if(address&&!address.value) {
+      alert(<%- JSON.stringify(labels.testMailAddressRequired + (creating?')':'')) %>);
+      return false;
+    }
+    const form=document.forms[0];
+    if(form?.elements.namedItem('act'))form.elements.namedItem('act').value='testSend';
+    return true;
+  }
+  function mailTemplateSubmit() {
+    const form=document.forms[0];
+    if(form?.elements.namedItem('act'))form.elements.namedItem('act').value='';
+  }
+  function mailTemplateRecipient(select) {
+    const input=select.nextElementSibling;
+    if(input)input.hidden=select.value!=='direct';
+  }
+  function mailTemplateInit() {
+    document.querySelectorAll('.mail-recipient-type').forEach(select=>{
+      mailTemplateRecipient(select);
+      select.addEventListener('change',()=>mailTemplateRecipient(select));
+    });
+  }
+</script>
+<% if(page.mode==='denied') { %>
+  <div class="PartialViewMessage" role="alert"><% for(const error of page.errors??[]) { %><p><%= error %></p><% } %></div>
+<% } else if(details) { %>
+  <div class="PartialViewMessage" role="alert"><% for(const error of page.errors??[]) { %><p><%= error %></p><% } %></div>
+  <div id="DetailTop">
+    <span id="infoTitle"><%= page.typeTitle??'' %><%= labels.detailsTemplate %></span>
+    <span id="functionBar">
+      <% if(page.canEdit) { %><a href="<%= root %>/EditMailTemplate?type=<%= encodeURIComponent(page.type) %>&amp;id=<%= encodeURIComponent(model.id) %>" class="img_edit" title="<%= labels.edit %>"> </a><% } %>
+      <span></span>
+      <% if(page.canDelete) { %><form method="post" action="<%= root %>/DetailsMailTemplate?id=<%= encodeURIComponent(`${page.type},${model.id}`) %>" style="display:inline">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <input type="hidden" name="act" value="delete"><input type="hidden" name="id" value="<%= page.type %>,<%= model.id %>">
+        <button type="submit" class="img_delete" title="<%= labels.delete %>" onclick="return mailTemplateDelete();"> </button>
+      </form><% } %>
+    </span>
+  </div>
+  <div id="DetailSection"><div class="info">
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <tr><th scope="row"><%= labels.templateName %></th><td><%= model.name??'' %></td></tr>
+      <tr><th scope="row"><%= labels.subject %></th><td><%= model.subject??'' %></td></tr>
+      <tr><th scope="row"><%= labels.body %></th><td><div style="white-space:pre-line"><%= model.body??'' %></div></td></tr>
+      <tr><th scope="row"><%= labels.defaultTemp %></th><td><%= model.defaultTemp?'○':'' %></td></tr>
+      <tr><th scope="row"><%= labels.priority %></th><td><%= model.priority??'' %></td></tr>
+    </table>
+    <% for(const [field,title,id] of addresses) { %>
+      <div class="toggle" onclick="mailTemplateToggle('<%= id %>')" onkeydown="mailTemplateKey(event,'<%= id %>')" role="button" tabindex="0" aria-controls="<%= id %>" aria-expanded="true"><h2>▼<%= title %></h2></div>
+      <table id="<%= id %>" cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <% for(let index=0;index<rows(field).length;index++) { const address=rows(field)[index]; %>
+          <tr><th scope="row"><%= labels.detailsSend %><%= index+1 %></th><td><%= address.name??'' %><% if(address.value) { %>&nbsp;&nbsp;<%= address.value %><% } %></td></tr>
+        <% } %>
+      </table>
+    <% } %>
+  </div></div>
+<% } else if(creating||editing) { %>
+  <div class="PartialViewMessage" role="alert"><% for(const error of page.errors??[]) { %><p><%= error %></p><% } %></div>
+  <form method="post" action="<%= page.action??`${root}/${page.mode}` %>">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <div id="DetailTop">
+      <span id="infoTitle"><%= page.typeTitle??'' %><%= creating?labels.createTemplate:labels.editTemplate %></span>
+      <span id="functionBar">
+        <label for="testMailAddress"><%= labels.testMailAddress %></label>
+        <input id="testMailAddress" name="testMailAddress" style="width:300px;" value="<%= page.testMailAddress??'' %>">
+        <button type="submit" class="image-ok_btn" onclick="return mailTemplateTestSend();"><%= creating?labels.createTestSend:labels.editTestSend %></button>
+      </span>
+    </div>
+    <input type="hidden" name="targetMailType" value="<%= page.type %>">
+    <input type="hidden" name="mailTemp.id" value="<%= model.id??'' %>">
+    <input type="hidden" name="mailTemp.formQuery" value="<%= model.formQuery??'' %>">
+    <input type="hidden" name="act" value="">
+    <div id="DetailSection"><div class="info">
+      <% if(editing) { %><p><button type="submit" class="image-ok_btn" onclick="mailTemplateSubmit();"><%= labels.fix %></button> <a id="image-cancel_btn" class="image-cancel_label" href="<%= root %>/DetailsMailTemplate?id=<%= encodeURIComponent(`${page.type},${model.id}`) %>"><%= labels.cancel %></a></p><% } %>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row"><label for="mailTemp_name"><%= labels.templateName %></label></th><td>
+          <input class="EditValue1" id="mailTemp_name" name="mailTemp.name" value="<%= model.name??'' %>" required>
+          <% if(page.fieldErrors?.['mailTemp.name']) { %><span class="field-validation-error"><%= page.fieldErrors['mailTemp.name'] %></span><% } %>
+        </td></tr>
+        <tr><th scope="row"><label for="mailTemp_subject"><%= labels.subject %></label></th><td>
+          <input class="EditValue1" id="mailTemp_subject" name="mailTemp.subject" value="<%= model.subject??'' %>" required>
+          <% if(page.fieldErrors?.['mailTemp.subject']) { %><span class="field-validation-error"><%= page.fieldErrors['mailTemp.subject'] %></span><% } %>
+        </td></tr>
+        <tr><th scope="row"><label for="mailTemp_body"><%= labels.body %></label></th><td>
+          <textarea class="EditValue3" id="mailTemp_body" name="mailTemp.body" required><%= model.body??'' %></textarea>
+          <% if(page.fieldErrors?.['mailTemp.body']) { %><span class="field-validation-error"><%= page.fieldErrors['mailTemp.body'] %></span><% } %>
+          <div>
+            <div class="toggle" onclick="mailTemplateToggle('Legend')" onkeydown="mailTemplateKey(event,'Legend')" role="button" tabindex="0" aria-controls="Legend" aria-expanded="true"><h2>▼<%= labels.replaceList %></h2></div>
+            <table id="Legend" cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th><%= labels.replaceCode %></th><th><%= labels.replaceName %></th></tr>
+              <% for(const legend of page.legends??[]) { %><tr><td><%= legend.column %></td><td><%= legend.legend %></td></tr><% } %>
+            </table>
+          </div>
+        </td></tr>
+        <tr><th scope="row"><label for="mailTemp_defaultTemp"><%= labels.defaultTemp %></label></th><td>
+          <input type="checkbox" id="mailTemp_defaultTemp" name="mailTemp.defaultTemp" value="true" <%= model.defaultTemp?'checked':'' %>><%= editing?labels.editDefaultTempNote:labels.defaultTempNote %>
+        </td></tr>
+        <tr><th scope="row"><label for="mailTemp_priority"><%= labels.priority %></label></th><td>
+          <select id="mailTemp_priority" name="mailTemp.priority"><% for(const value of ['Normal','Low','High']) { %><option value="<%= value %>" <%= value===model.priority?'selected':'' %>><%= value %></option><% } %></select>
+        </td></tr>
+      </table>
+      <% for(const [field,title,id] of addresses) { %>
+        <div class="toggle" onclick="mailTemplateToggle('<%= id %>')" onkeydown="mailTemplateKey(event,'<%= id %>')" role="button" tabindex="0" aria-controls="<%= id %>" aria-expanded="true"><h2>▼<%= title %></h2></div>
+        <table id="<%= id %>" cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <% for(let index=0;index<10;index++) { const address=rows(field)[index]??{type:'',value:'',name:''}; %>
+            <tr><th scope="row"><%= labels.send %><%= index+1 %></th><td>
+              <select class="mail-recipient-type" name="mailTemp.<%= field %>[<%= index %>].type" aria-label="<%= title %> <%= labels.send %><%= index+1 %>">
+                <% for(const option of page.sendTypes??[]) { %><option value="<%= option.value %>" <%= address.type===option.value?'selected':'' %>><%= option.text %></option><% } %>
+              </select>
+              <input class="EditValue1" name="mailTemp.<%= field %>[<%= index %>].value" value="<%= address.value??'' %>" aria-label="<%= title %> <%= labels.send %><%= index+1 %> value">
+            </td><input type="hidden" name="mailTemp.<%= field %>[<%= index %>].name" value="<%= address.name??'' %>"></tr>
+          <% } %>
+        </table>
+      <% } %>
+      <% if(creating) { %><p><button type="submit" class="image-ok_btn" onclick="mailTemplateSubmit();"><%= labels.fix %></button> <a id="image-cancel_btn" class="image-cancel_label" href="<%= root %>/Details?mode=mail"><%= labels.cancel %></a></p>
+      <% } else { %><p><button type="submit" class="image-ok_btn" onclick="mailTemplateSubmit();"><%= labels.fix %></button> <a id="image-cancel_btn" class="image-cancel_label" href="<%= root %>/DetailsMailTemplate?id=<%= encodeURIComponent(`${page.type},${model.id}`) %>"><%= labels.cancel %></a></p><% } %>
+    </div></div>
+  </form>
+  <script>mailTemplateInit();</script>
+<% } %>

@@ -1,0 +1,69 @@
+<script type="text/javascript">
+  $(function () {
+    $('#MessageWrap .PartialViewMessage').empty(); $('.PartialViewMessage').appendTo('#MessageWrap');
+    $('#formLabelView').trigger('submit');
+    $('#lean_overlay').remove(); $('a[rel*=leanModal]').leanModal({ top: 200, closeButton: '.modal_close' });
+    if ($('#IsLabelError').val() === '1') $('#go')[0].click();
+  });
+  function fConMasInit() { labelViewChange('0'); $('#LabelMaster li a').filter(function () { return this.name === $('#LabelSelectID').val(); }).addClass('current'); }
+  function labelViewChange(mode) { $('#labelGridView, #controlButtonOld').toggle(mode !== '0'); $('#labelTreeView, #controlButton').toggle(mode === '0'); }
+  function addConMasLabel(mode) { $('#LabelAct').val('LABEL_MANAGEMENT_ADD'); $('#LabelCreateMode').val(mode); return true; }
+  function deleteConMasLabel() {
+    if (!$('#LabelSelectID').val()) { alert('Please select Label.'); return false; }
+    if (!confirm('Delete labels under the hierarchy of selected one.')) return false;
+    $('#LabelAct').val('LABEL_MANAGEMENT_DELETE'); $('#labelManagementAction').trigger('submit'); return false;
+  }
+  function editConMasLabel() {
+    if (!$('#LabelSelectID').val()) { alert('Please select Label.'); return false; }
+    location.href = '<%= base %>/Label/Details?id=' + encodeURIComponent($('#LabelSelectID').val()) + '&mode=<%= mode %>&act=edit&LabelPageIndex=' + encodeURIComponent($('#LabelPageIndexBackup').val()) + '&SearchLabelName=' + encodeURIComponent($('#SearchNameLabelViewBackup').val()); return false;
+  }
+</script>
+<div class="PartialViewMessage"><% if (error) { %><div class="validation-summary-errors"><ul><li><%= error %></li></ul></div><% } %></div>
+<input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+<div id="DetailTop"><span id="infoTitle"><%= modeTitle %>: </span></div>
+<div id="DetailSection"><div class="info">
+  <div class="toggle" onclick="fConMasToggle('label');"><h2 style="margin-bottom:5px; margin-top:5px;">▼Label</h2></div>
+  <div id="label">
+    <% if (settings.grid) { %><div style="float:left; margin:2px 2px 2px 2px; font-size:10pt;"><a href="javascript:void(0)" onclick="labelViewChange('0');" class="button_custom" style="padding:3px 3px 3px 3px;">Tree display</a> <a href="javascript:void(0)" onclick="labelViewChange('1');" class="button_custom" style="padding:3px 3px 3px 3px;">List display</a></div><% } %>
+    <div id="controlButtonOld" style="text-align:right; margin-bottom:5px; font-size:8pt;"><% if (permissions.create && settings.grid) { %><a href="<%= base %>/Label/Details?mode=<%= mode %>&amp;id=0&amp;act=create"><img alt="add" class="img_add" title="Add" src="<%= base %>/Content/ConMas/images/function/add.png"></a><% } %></div>
+    <div id="controlButton" style="text-align:right; margin-bottom:5px; font-size:8pt;">
+      <% if (permissions.create) { %><a id="go" rel="leanModal" name="labelManagementForm" href="#labelManagementForm" class="img_add"></a><% } %>
+      <% if (permissions.edit) { %><a href="javascript:void(0);" onclick="return editConMasLabel();" class="img_edit2"></a><% } %>
+      <% if (permissions.delete) { %><a href="javascript:void(0);" onclick="return deleteConMasLabel();" class="img_delete2"></a><% } %>
+    </div>
+    <table id="labelGridView" cellpadding="0" cellspacing="0" class="table_information verticality"<% if (!settings.grid) { %> style="display:none;"<% } %>>
+      <tr><th scope="col">Label Name</th><th scope="col">Remarks</th></tr>
+      <% if (settings.grid) for (const item of rows.filter(row => !row.auto_creation || !row.auto_label_name)) { %><tr><td><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id || 0 %>.png" alt="[Label<%= item.label_icon_id || 0 %>]" class="labelPictureSize"><a href="<%= base %>/Label/Details?mode=<%= mode %>&amp;id=<%= item.mst_label_id %>&amp;act=edit&amp;LabelPageIndex=<%= source.LabelPageIndex ?? 1 %>&amp;SearchLabelName=<%= encodeURIComponent(source.SearchLabelName ?? '') %>"><%= item.label_name_path || '..' %></a></td><td><%= item.label_remarks %></td></tr><% } %>
+    </table>
+    <div id="labelTreeView"<% if (settings.grid) { %> style="display:none;"<% } %>>
+      <form method="post" action="<%= base %>/Common/LabelManagerListView?reportMode=<%= mode %>&amp;LabelPageIndex=<%= source.LabelPageIndex ?? source.LabelPageIndexBackup ?? 1 %>&amp;SearchNameLabelView=<%= encodeURIComponent(source.SearchLabelName ?? source.SearchNameLabelViewBackup ?? '') %>" data-ajax="true" data-ajax-mode="replace" data-ajax-update="#conmasLabelContent" id="formLabelView">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <div id="conmasLabelContent"></div>
+      </form>
+    </div>
+  </div>
+  <% if (mode === 'Rep') { %>
+    <div class="toggle" onclick="fConMasToggle('autoLabel');"><h2 style="margin-bottom:5px;">▼Auto. Labeling</h2></div>
+    <div id="autoLabel"><div style="text-align:right; margin-bottom:5px;"><% if (permissions.create) { %><a href="<%= base %>/Label/Details?mode=Rep&amp;id=0&amp;act=autoCreate"><img alt="add" class="img_add" title="Add" src="<%= base %>/Content/ConMas/images/function/add.png"></a><% } %></div>
+      <table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col">Name of Auto. Labeling</th><th scope="col">Naming rule of label name</th><th scope="col">Remarks</th></tr>
+        <% for (const item of rows.filter(row => row.auto_creation && row.auto_label_name)) { %><tr><td><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id || 0 %>.png" alt="[Label<%= item.label_icon_id || 0 %>]" class="labelPictureSize"><a href="<%= base %>/Label/Details?mode=Rep&amp;id=<%= item.mst_label_id %>&amp;act=autoEdit"><%= item.label_name_path || '..' %></a></td><td><%= item.auto_label_name %></td><td><%= item.label_remarks %></td></tr><% } %>
+      </table>
+    </div>
+  <% } %>
+</div></div>
+<form method="post" action="<%= base %>/Label/IndexList" data-ajax="true" data-ajax-mode="replace" data-ajax-update="#content" id="labelManagementAction">
+  <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+  <% for (const [name, value] of Object.entries({ LabelAct: '', LabelSelectID: source.LabelSelectID ?? '', IsLabelError: error ? '1' : '', LabelCreateMode: '', mode, LabelPageIndexBackup: source.LabelPageIndex ?? source.LabelPageIndexBackup ?? 1, SearchNameLabelViewBackup: source.SearchLabelName ?? source.SearchNameLabelViewBackup ?? '' })) { %><input type="hidden" id="<%= name %>" name="<%= name %>" value="<%= value %>"><% } %>
+  <div id="labelManagementForm">
+    <div style="text-align:right; margin-bottom:2px;"><a id="dialogCloseButton" class="modal_close" href="#"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]"></a></div>
+    <div style="width:100%; padding:0xp;" class="label_create_label">Label Create</div>
+    <div class="DialogLabel"><label for="mst_label_label_name">Label name</label></div><div class="DialogField"><input class="EditValue1" id="mst_label_label_name" name="mst_label.label_name" value="<%= source['mst_label.label_name'] ?? '' %>"></div>
+    <div class="DialogLabel"><label for="mst_label_label_remarks">Remarks</label></div><div class="DialogField"><input class="EditValue1" id="mst_label_label_remarks" name="mst_label.label_remarks" value="<%= source['mst_label.label_remarks'] ?? '' %>"></div>
+    <% if (['Def', 'Rep'].includes(mode)) { %><div class="DialogLabel"><input type="checkbox" id="mst_label_IsAutoDelete" name="mst_label.IsAutoDelete" value="true"><input type="hidden" name="mst_label.IsAutoDelete" value="false"><label for="mst_label_IsAutoDelete">Automatic deletion</label><div>*If it's checked, when <%= mode === 'Def' ? 'Form' : 'Document' %> is deleted, it is automatically deleted in case there is no <%= mode === 'Def' ? 'Form' : 'Document' %> belonging to this label.</div></div><% } %>
+    <% if (mode === 'Def') { %><div class="DialogLabel"><input type="checkbox" id="mst_label_IsRepCopy" name="mst_label.IsRepCopy" value="true" checked><input type="hidden" name="mst_label.IsRepCopy" value="false">Copy to label of documents.</div><% } %>
+    <br style="line-height:2px;">
+    <div class="DialogField"><ul class="Side"><% for (let icon = 1; icon <= 10; icon++) { %><li><input type="radio" id="label_icon_id<%= icon %>" name="mst_label.label_icon_id" value="<%= icon %>"<% if (Number(source['mst_label.label_icon_id'] ?? 1) === icon) { %> checked<% } %>><label for="label_icon_id<%= icon %>"><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= icon %>.png" alt="[Icon<%= icon %>]"></label></li><% } %></ul></div>
+    <br style="line-height:5px;">
+    <p style="margin-bottom:1px;"><input type="submit" value="Create label as the same hierarchy of selected one." class="button_custom" onclick="return addConMasLabel('0');"> <input type="submit" value="Create label under the hierarchy of selected one." class="button_custom" onclick="return addConMasLabel('1');"> <a href="<%= base %>/Label/IndexList?mode=<%= mode %>" data-ajax="true" data-ajax-mode="replace" data-ajax-update="#content" class="button_cancel_custom">Cancel</a></p>
+  </div>
+</form>

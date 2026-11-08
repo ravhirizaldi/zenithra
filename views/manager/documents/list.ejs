@@ -1,0 +1,45 @@
+<% const launch = typeof appLaunch === 'undefined' ? null : appLaunch; %>
+<script type="text/javascript">
+  $(function () {
+    $('#MessageWrap .PartialViewMessage').empty();
+    if ($('.PartialViewMessage li').length === 1 && $('.PartialViewMessage li').css('display') === 'none') $('.PartialViewMessage').css('display','none');
+    else $('.PartialViewMessage').appendTo('#MessageWrap');
+    if ($('#ApprovalStatus').val() === '1' && $('#LabelID').val() !== 'Trash') { $('#approveButton').show(); $('#ApproveDialog').hide(); }
+    else { $('#approveButton').hide(); $('#ApproveDialog').hide(); }
+    if ($('#Act').val() === 'APPROVE') $('#approveComment').val('');
+    <% if (typeof wrongIds !== 'undefined' && wrongIds.length) { %>alert(<%- JSON.stringify([...wrongIds,r.InputReportResource_WrongPhysicalDeleteMessage].join('\n')).replace(/</g,'\\u003c') %>);<% } %>
+    $("[name^='details']").on('click',function () { localStorage.setItem('repListScrollTop',$('#GridSection').scrollTop()); });
+  });
+</script>
+<div class="PartialViewMessage"><div class="validation-summary-valid"><ul><li style="display:none"></li></ul></div></div>
+<input type="hidden" id="NewDisplayTime" name="NewDisplayTime" value="<%= settings.newDisplayTime %>"><input type="hidden" id="NewInterval" name="NewInterval" value="<%= settings.newInterval %>">
+<div id="MessageWrapDisableBulkApproval"></div>
+<% const pageSection = bottom => { %>
+  <div class="PageSection"><%= r.DisplayCount %>&nbsp;<select id="PageSize" name="PageSize" onchange="return <%= bottom ? 'pageSizeFilter(this)' : 'filter()' %>;"><% for (const size of settings.pageSizes.length ? settings.pageSizes : [state.PageSize]) { %><option value="<%= size %>"<% if (size === state.PageSize) { %> selected="selected"<% } %>><%= size %></option><% } %></select>&nbsp;
+    <% if (state.PageIndex > 0) { %><a href="<%= base %>/InputReport" onclick="return page(0);" style="padding-right:5px;"><%= r.FirstPage %></a><a href="<%= base %>/InputReport" onclick="return page(<%= state.PageIndex-1 %>);" class="img_page_prev_e"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+    &nbsp;<%= state.PageIndex+1 %><% if (!settings.noCount) { %>&nbsp;/&nbsp;<%= pages %> (<%= total %>)<% } %>&nbsp;
+    <% if (settings.noCount ? rows.length > 0 && rows.length === state.PageSize : state.PageIndex+1 < pages) { %><a href="<%= base %>/InputReport" onclick="return page(<%= state.PageIndex+1 %>);" class="img_page_next_e"> </a><% if (!settings.noCount) { %><a href="<%= base %>/InputReport" onclick="return page(<%= pages-1 %>);" style="padding-left:5px;"><%= r.LastPage %></a><% } %><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+  </div>
+<% }; pageSection(false); %>
+<input type="hidden" id="PageIndex" name="PageIndex" value="<%= state.PageIndex %>"><input type="hidden" id="SortColumn" name="SortColumn" value="<%= state.SortColumn %>"><input type="hidden" id="SortDirection" name="SortDirection" value="<%= state.SortDirection %>"><input type="hidden" id="ChkRepTopID" name="ChkRepTopID">
+<table class="GridCommon" border="0" cellspacing="1" id="RepReportList">
+  <tr><th scope="col" class="checkCol"><input type="checkbox" id="HeadCbx" name="HeadCbx" onclick="checkAll(this,'RepReportList');"></th>
+    <% for (const [column,name,width] of [['REP_TOP_ID',r.Id,45],['REP_TOP_NAME',settings.reportHeading || r.rep_top_name,0],['REP_TOP_ORG',r.OrgId,45],['REV_NO',r.Rev,45],['EDIT_REFER_STATUS',v.status,0],['SYS_REGIST_TIME',v.entryDate,0],['SYS_REGIST_USER',v.entryUser,0],['SYS_UPDATE_TIME',v.updateDate,0],['SYS_UPDATE_USER',v.updateUser,0]]) { %>
+      <th scope="col" class="<%= state.SortColumn === column ? 'sorting' : '' %>"<% if (width) { %> style="width:<%= width %>px;"<% } %>><span><%= name %></span><a href="<%= base %>/InputReport" class="sort<%= state.SortColumn === column ? ' '+state.SortDirection.toLowerCase() : '' %>" onclick="return sort('<%= column %>');">sort</a></th>
+      <% if (column === 'REP_TOP_ID' && launch) { %><th scope="col" style="width:45px;"><span><%= r.Edit %></span></th><% } %>
+    <% } %>
+  </tr>
+  <% const statusNames = [r.BeforeEditing,r.InEditing,r.WaitingForApproval,r.Rejected,r['BizDataOutputResource-Completed']]; for (const [index,item] of rows.entries()) { %>
+    <tr class="<%= index%2 === 0 ? 'odd' : 'even' %>">
+      <td class="checkCol"><% if (item.locked && state.LabelID !== 'Trash') { %><img id="Cbx2" name="Cbx2" height="15px" width="15px" src="<%= base %>/Content/ConMas/images/function/locked.png" alt="[locked]"><input type="hidden" name="Cbx" value="<%= item.rep_top_id %>"><% } else { %><input type="checkbox" id="Cbx" name="Cbx" value="<%= item.rep_top_id %>"><input type="hidden" id="lockedFlg" name="lockedFlg" value="<%= item.locked ? 1 : 0 %>"><input type="hidden" id="updateRoleFlg" name="updateRoleFlg" value="<%= item.role_update %>"><input type="hidden" id="deleteRoleFlg" name="deleteRoleFlg" value="<%= item.role_delete %>"><input type="hidden" id="approveFlg" name="approveFlg" value="<%= item.approve ? 1 : 0 %>"><% } %></td>
+      <td class="CenterCol"><%= item.rep_top_id %></td>
+      <% if (launch) { %><td class="CenterCol"><a href="<%= launch.template.replace('{rep_top_id}',String(item.rep_top_id)) %>" title="<%= r.AppEditReport %>"><img src="<%= base %>/Content/ConMas/images/<%= launch.icon %>" alt="[image]" style="border-style:none; width:20px; height:20px;"></a></td><% } %>
+      <td><span class="docTitle"><% if (state.LabelID === 'Trash') { %><%= item.rep_top_name %><% } else { %><a href="<%= base %>/InputReport/Details?repTopId=<%= item.rep_top_id %>" name="details_<%= item.rep_top_id %>"><%= item.rep_top_name %></a><% } %></span><br><%= item.top_remarks1 %><ul style="list-style:none"><% for (const label of item.labels) { %><li style="float:left;"><%= label %>&nbsp;</li><% } %></ul>
+        <% if (item.auto_numbering_value) { %><div><%= r.NumberingColon %> <%= item.auto_numbering_value %></div><% } else if (item.auto_numbering_message) { %><div class="error-message"><%= r.NumberingErrorColon %> <%= item.auto_numbering_message %></div><% } %></td>
+      <td class="CenterCol"><%= item.rep_top_org %></td><td class="CenterCol"><%= item.rev_no %></td>
+      <td class="CenterCol"><% if (item.edit_refer_status >= 0 && item.edit_refer_status <= 4) { %><img src="<%= base %>/Content/ConMas/images/grid/grid_status_<%= item.edit_refer_status+1 %>.png" alt="[]"> <% } %><% if (String(item.role_update) === '1' && item.approve && item.edit_refer_status === 2) { %><label class="approve_enable"><%= statusNames[item.edit_refer_status] %></label><% } else { %><%= statusNames[item.edit_refer_status] || '' %><% } %></td>
+      <td class="CenterCol"><%= item.registered %></td><td class="CenterCol"><%= item.created_by %></td><td class="CenterCol"><%= item.updated %><input type="hidden" name="item.sys_update_time" id="item_sys_update_time" value="<%= item.update_time %>"></td><td class="CenterCol"><%= item.updated_by %></td>
+    </tr>
+  <% } %>
+</table>
+<% pageSection(true); %>

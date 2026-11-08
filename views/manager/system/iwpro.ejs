@@ -1,0 +1,241 @@
+<% const route = `${base}/System`; %>
+<% if (iwproPage.error && iwproPage.mode !== 'roleError') { %><ul class="PartialViewMessage" role="alert"><li><%= iwproPage.error %></li></ul><% } %>
+<% if (iwproPage.mode === 'roleError') { %>
+  <div role="alert"><%= iwproPage.error %></div>
+<% } else if (iwproPage.mode === 'settings') { %>
+  <div id="DetailTop"><span id="infoTitle">FUJIFILM IWpro linkage setting</span></div>
+  <div id="DetailSection"><div class="info">
+    <div id="IWproSetting">
+      <form method="post" action="<%= route %>/IWproSetting" id="IWproSettingForm">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <input type="hidden" name="act" id="act" value="">
+        <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+          <tr><th scope="row">Status</th><td><%= iwproPage.authenticated ? 'Authenticated' : 'Unauthenticated' %></td></tr>
+          <tr><th scope="row">User</th><td><%= iwproPage.user %></td></tr>
+        </table>
+        <% if (iwproPage.canEdit) { %>
+          <p>
+            <% if (iwproPage.authenticated) { %>
+              <button type="button" id="delete" class="conmas_link_button_custom" style="margin-left:14px;cursor:pointer;">Unlink</button>
+            <% } else { %>
+              <button type="button" id="auth" class="conmas_link_button_blue" style="margin-left:14px;cursor:pointer;">certification</button>
+            <% } %>
+          </p>
+        <% } %>
+      </form>
+    </div>
+  </div></div>
+  <div id="domMessage" style="display:none;"><h1>In process</h1></div>
+  <script>
+    (() => {
+      const form = document.getElementById('IWproSettingForm');
+      const action = form?.elements.namedItem('act');
+      document.getElementById('auth')?.addEventListener('click', () => {
+        if (!window.confirm('Are you sure to authenticate?')) return;
+        if (action) action.value = 'auth';
+        window.fConMasLockView();
+        form?.requestSubmit();
+      });
+      document.getElementById('delete')?.addEventListener('click', () => {
+        if (!window.confirm('Release the linkage. Continue?')) return;
+        if (action) action.value = 'delete';
+        window.fConMasLockView();
+        form?.requestSubmit();
+      });
+    })();
+  </script>
+<% } else { %>
+  <div id="DetailTop"><span id="infoTitle">FUJIFILM IWpro linkage log</span></div>
+  <div id="DetailSection"><div class="info">
+    <form method="post" action="<%= route %>/IWproUploadLog" enctype="multipart/form-data" id="IWproUploadLogForm">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" name="act" id="act" value="">
+      <input type="hidden" name="TargetId" id="TargetId" value="">
+      <div class="toggle" data-toggle="SearchLogBox" role="button" tabindex="0" aria-expanded="true"><h2 style="margin-top:5px;">▼SearchConditions</h2></div>
+      <div id="SearchLogBox">
+        <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+          <tr>
+            <th scope="row" style="width:340px;">Execution date and time</th>
+            <td>
+              <div class="datetime" style="float:left; padding:3px;"><input id="WhereData_ExecTimeFrom" name="WhereData.ExecTimeFrom" type="text" style="width:90px;" value="<%= iwproPage.filters.execTimeFrom %>"></div>
+              <div style="float:left; padding:3px;"><input id="WhereData_ExecTimeFromHour" name="WhereData.ExecTimeFromHour" type="text" style="width:70px;" value="<%= iwproPage.filters.execTimeFromHour %>"></div>
+              <div class="datetime" style="float:left; padding:3px;">～</div>
+              <div class="datetime" style="float:left; padding:3px;"><input id="WhereData_ExecTimeTo" name="WhereData.ExecTimeTo" type="text" style="width:90px;" value="<%= iwproPage.filters.execTimeTo %>"></div>
+              <div style="float:left; padding:3px;"><input id="WhereData_ExecTimeToHour" name="WhereData.ExecTimeToHour" type="text" style="width:70px;" value="<%= iwproPage.filters.execTimeToHour %>"></div>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><label>Status <input type="checkbox" id="statusCheck" name="statusCheck" value="" <%= iwproPage.filters.statusSuccess && iwproPage.filters.statusRetrying && iwproPage.filters.statusFailure ? 'checked' : '' %>></label></th>
+            <td id="whereDataStatus">
+              <label><input type="hidden" name="WhereData.StatusSuccess" value="false"><input type="checkbox" name="WhereData.StatusSuccess" value="true" <%= iwproPage.filters.statusSuccess ? 'checked' : '' %>>Succeeded to link</label>
+              <label><input type="hidden" name="WhereData.StatusRetrying" value="false"><input type="checkbox" name="WhereData.StatusRetrying" value="true" <%= iwproPage.filters.statusRetrying ? 'checked' : '' %>>Retrying to link</label>
+              <label><input type="hidden" name="WhereData.StatusFailure" value="false"><input type="checkbox" name="WhereData.StatusFailure" value="true" <%= iwproPage.filters.statusFailure ? 'checked' : '' %>>Failed to link</label>
+            </td>
+          </tr>
+          <tr><th scope="row"><label for="WhereData_FailureCount">Number of failures</label></th><td><input id="WhereData_FailureCount" name="WhereData.FailureCount" value="<%= iwproPage.filters.failureCount %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_IreporterUser">i-Reporter users</label></th><td><input id="WhereData_IreporterUser" name="WhereData.IreporterUser" value="<%= iwproPage.filters.ireporterUser %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_RepTopId">Document ID</label></th><td><input id="WhereData_RepTopId" name="WhereData.RepTopId" value="<%= iwproPage.filters.repTopId %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_OfficeId">Office ID</label></th><td><input id="WhereData_OfficeId" name="WhereData.OfficeId" value="<%= iwproPage.filters.officeId %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_CabinetId">Cabinet ID</label></th><td><input id="WhereData_CabinetId" name="WhereData.CabinetId" value="<%= iwproPage.filters.cabinetId %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_BaseFolderId">Drawer ID or Folder ID</label></th><td><input id="WhereData_BaseFolderId" name="WhereData.BaseFolderId" value="<%= iwproPage.filters.baseFolderId %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_OutputFolder">Folder to be created under the folder or drawer</label></th><td><input id="WhereData_OutputFolder" name="WhereData.OutputFolder" value="<%= iwproPage.filters.outputFolder %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_UploadFile">linked files</label></th><td><input id="WhereData_UploadFile" name="WhereData.UploadFile" value="<%= iwproPage.filters.uploadFile %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_ErrorMessage">Contents of error</label></th><td><input id="WhereData_ErrorMessage" name="WhereData.ErrorMessage" value="<%= iwproPage.filters.errorMessage %>"></td></tr>
+        </table>
+        <div style="text-align:right;"><button type="button" id="search" class="image-ok_btn" style="cursor:pointer">Search</button></div>
+      </div>
+      <div class="toggle" data-toggle="resultList" role="button" tabindex="0" aria-expanded="true"><h2>▼SearchResult</h2></div>
+      <div id="resultList" style="overflow:auto;">
+        <div style="float:left;">
+          <% if (iwproPage.canDelete) { %><div style="float:left;"><button type="button" id="deleteLog" class="img_delete2" title="Delete" aria-label="Delete selected logs"></button></div><% } %>
+          <a style="float:left; padding:5px; margin-left:6px;" class="img_output_csv2" href="javascript:void(0)" alt="[csv]" id="csv">CSV</a>
+        </div>
+        <div class="PageSection">
+          Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize">
+            <% for (const option of iwproPage.pageSizeOptions) { %><option value="<%= option.value %>" <%= iwproPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (iwproPage.pageIndex > 0) { %><a href="javascript:void(0)" data-page="0" style="padding-right:5px;">First</a><a href="javascript:void(0)" data-page="<%= iwproPage.pageIndex - 1 %>" class="img_page_prev_e" aria-label="Previous page"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+          &nbsp;<%= iwproPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= iwproPage.pageCount %>&nbsp;
+          <% if (iwproPage.pageIndex + 1 < iwproPage.pageCount) { %><a href="javascript:void(0)" data-page="<%= iwproPage.pageIndex + 1 %>" class="img_page_next_e" aria-label="Next page"></a><a href="javascript:void(0)" data-page="<%= iwproPage.pageCount - 1 %>" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+        </div>
+        <% if (iwproPage.downloadLimit > 0) { %><div style="clear:left; padding-bottom:8px;">The maximum number to download once is <%= iwproPage.downloadLimit.toLocaleString('en-US') %>.</div><% } %>
+        <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= iwproPage.pageIndex %>">
+        <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= iwproPage.sortColumn %>">
+        <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= iwproPage.sortDirection %>">
+        <table class="GridCommon" border="0" cellspacing="1" id="logDataTable">
+          <tr>
+            <th scope="col" class="checkCol" style="width:20px;"><input type="checkbox" id="chkTopHead" aria-label="Select all logs"></th>
+            <% for (const [column,label,width] of [['sys_update_time','Execution date and time','60px'],['status','Status','60px'],['failure_count','Number of failures','60px'],['ir_user_id','i-Reporter users','70px'],['rep_top_id','Document ID','60px'],['office_id','Office ID','60px'],['cabinet_id','Cabinet ID','60px'],['base_folder_id','Drawer ID or Folder ID','60px'],['output_folder_path','Folder to be created under the folder or drawer','100px'],['file_name','linked files','100px'],['error_message','Contents of error','']]) { %>
+              <th scope="col" class="<%= iwproPage.sortColumn === column ? 'sorting' : '' %>" <%= width ? `style="width:${width};"` : '' %>>
+                <span><%= label %></span><a href="javascript:void(0)" class="sort <%= iwproPage.sortColumn === column ? iwproPage.sortDirection.toLowerCase() : '' %>" data-sort="<%= column %>" aria-label="Sort by <%= label %>">sort</a>
+              </th>
+            <% } %>
+            <th style="width:46px;"></th><th style="width:60px;"></th>
+          </tr>
+          <% iwproPage.rows.forEach((row, index) => { %>
+            <tr class="<%= index % 2 === 0 ? 'odd' : 'even' %>">
+              <td class="CenterCol"><input type="hidden" name="UploadLogList[<%= index %>].IsSelect" value="false"><input type="checkbox" name="UploadLogList[<%= index %>].IsSelect" value="true" aria-label="Select log <%= row.log_id %>"><input type="hidden" name="UploadLogList[<%= index %>].LogId" value="<%= row.log_id %>"></td>
+              <td class="LeftCol"><%= row.update_time ?? '' %></td>
+              <td class="LeftCol"><%= row.status === 0 ? 'Succeeded to link' : row.status === 1 ? 'Retrying to link' : 'Failed to link' %></td>
+              <td class="LeftCol"><%= row.failure_count ?? '' %></td>
+              <td class="LeftCol"><%= `${row.ir_user_id ?? ''}:${row.ir_user_name ?? ''}` %></td>
+              <td class="LeftCol"><%= row.rep_top_id %></td>
+              <td class="LeftCol"><%= row.office_id ?? '' %></td>
+              <td class="LeftCol"><%= row.cabinet_id ?? '' %></td>
+              <td class="LeftCol"><%= row.base_folder_id ?? '' %></td>
+              <td class="LeftCol"><%= row.output_folder_path ? `${row.output_folder_path}(ID:${row.output_folder_id ?? ''})` : '' %></td>
+              <td class="LeftCol"><%= `${row.file_name ?? ''}(ID:${row.file_id ?? ''})` %></td>
+              <td class="LeftCol"><%= row.error_message ?? '' %></td>
+              <td class="CenterCol"><% if (iwproPage.canEdit && !row.is_in_progress) { %><button type="button" id="rerun_<%= row.log_id %>" data-target="<%= row.log_id %>" style="cursor:pointer">Retry</button><% } %></td>
+              <td class="CenterCol"><% if (iwproPage.canEdit && row.is_in_progress) { %><button type="button" id="suspend_<%= row.rep_top_id %>" data-target="<%= row.rep_top_id %>" style="cursor:pointer">Stop linking</button><% } %></td>
+            </tr>
+          <% }); %>
+        </table>
+        <div class="PageSection">
+          Displayed number&nbsp;<select aria-label="Displayed number" onchange="document.getElementById('PageData_PageSize').value=this.value;document.getElementById('PageData_PageIndex').value='0';document.getElementById('act').value='';document.getElementById('IWproUploadLogForm').requestSubmit();">
+            <% for (const option of iwproPage.pageSizeOptions) { %><option value="<%= option.value %>" <%= iwproPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (iwproPage.pageIndex > 0) { %><a href="javascript:void(0)" data-page="0" style="padding-right:5px;">First</a><a href="javascript:void(0)" data-page="<%= iwproPage.pageIndex - 1 %>" class="img_page_prev_e" aria-label="Previous page"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+          &nbsp;<%= iwproPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= iwproPage.pageCount %>&nbsp;
+          <% if (iwproPage.pageIndex + 1 < iwproPage.pageCount) { %><a href="javascript:void(0)" data-page="<%= iwproPage.pageIndex + 1 %>" class="img_page_next_e" aria-label="Next page"></a><a href="javascript:void(0)" data-page="<%= iwproPage.pageCount - 1 %>" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+        </div>
+      </div>
+    </form>
+  </div></div>
+  <div id="domMessage" style="display:none;"><h1>In process</h1></div>
+  <script>
+    (() => {
+      const form = document.getElementById('IWproUploadLogForm');
+      const act = document.getElementById('act');
+      const target = document.getElementById('TargetId');
+      const pageIndex = document.getElementById('PageData_PageIndex');
+      const sortColumn = document.getElementById('PageData_SortColumn');
+      const sortDirection = document.getElementById('PageData_SortDirection');
+      const submit = (action = '', targetId = '') => {
+        if (act) act.value = action;
+        if (target) target.value = targetId;
+        form?.requestSubmit();
+      };
+      if (window.jQuery) {
+        const $ = window.jQuery;
+        $('#WhereData_ExecTimeFromHour').timepicker({ timeFormat: 'H:i:s' });
+        $('#WhereData_ExecTimeToHour').timepicker({ timeFormat: 'H:i:s' });
+        $(document).on('mousedown', '.datetime input', function () {
+          $(this).datepicker($.datepicker.regional[browserLanguage()]);
+        });
+      }
+      document.getElementById('search')?.addEventListener('click', () => {
+        if (pageIndex) pageIndex.value = '0';
+        submit();
+      });
+      document.getElementById('csv')?.addEventListener('click', () => submit('CSV'));
+      document.getElementById('PageData_PageSize')?.addEventListener('change', () => {
+        if (pageIndex) pageIndex.value = '0';
+        submit();
+      });
+      document.getElementById('deleteLog')?.addEventListener('click', () => {
+        const selected = form?.querySelectorAll('input[name$=".IsSelect"][type="checkbox"]:checked').length ?? 0;
+        if (!selected) { window.alert('Please check on the target logs to be deleted'); return; }
+        if (window.confirm('Delete the checked logs. Contine?')) submit('DELETE');
+      });
+      document.getElementById('chkTopHead')?.addEventListener('change', event => {
+        const checked = event.currentTarget.checked;
+        form?.querySelectorAll('input[name$=".IsSelect"][type="checkbox"]').forEach(input => { input.checked = checked; });
+      });
+      document.getElementById('statusCheck')?.addEventListener('change', event => {
+        const checked = event.currentTarget.checked;
+        form?.querySelectorAll('#whereDataStatus input[type="checkbox"]').forEach(input => { input.checked = checked; });
+      });
+      form?.querySelectorAll('[data-page]').forEach(button => button.addEventListener('click', () => {
+        if (pageIndex) pageIndex.value = button.dataset.page ?? '0';
+        submit('PAGE');
+      }));
+      form?.querySelectorAll('[data-sort]').forEach(button => button.addEventListener('click', () => {
+        const column = button.dataset.sort ?? '';
+        if (sortColumn?.value === column) {
+          if (sortDirection) sortDirection.value = sortDirection.value === 'ASC' ? 'DESC' : 'ASC';
+        } else {
+          if (sortColumn) sortColumn.value = column;
+          if (sortDirection) sortDirection.value = 'ASC';
+        }
+        if (pageIndex) pageIndex.value = '0';
+        submit();
+      }));
+      form?.querySelectorAll('[data-toggle]').forEach(button => {
+        const toggle = () => {
+          const target = document.getElementById(button.dataset.toggle ?? '');
+          if (!target) return;
+          const expanded = button.getAttribute('aria-expanded') === 'true';
+          button.setAttribute('aria-expanded', String(!expanded));
+          target.hidden = expanded;
+        };
+        button.addEventListener('click', toggle);
+        button.addEventListener('keydown', event => {
+          if (event.key === 'Enter' || event.key === ' ') {
+            event.preventDefault();
+            toggle();
+          }
+        });
+      });
+      form?.querySelectorAll('[id^="rerun_"]').forEach(button => button.addEventListener('click', () => {
+        if (!window.confirm('Are you sure to retry?')) return;
+        window.fConMasLockView();
+        submit('RERUN', button.dataset.target ?? '');
+      }));
+      form?.querySelectorAll('[id^="suspend_"]').forEach(button => button.addEventListener('click', () => {
+        if (!window.confirm('Are you sure to stop linking?')) return;
+        window.fConMasLockView();
+        submit('SUSPEND', button.dataset.target ?? '');
+      }));
+      for (const [dateId, timeId] of [['WhereData_ExecTimeFrom', 'WhereData_ExecTimeFromHour'], ['WhereData_ExecTimeTo', 'WhereData_ExecTimeToHour']]) {
+        document.getElementById(dateId)?.addEventListener('change', () => {
+          const date = document.getElementById(dateId);
+          const time = document.getElementById(timeId);
+          if (date?.value && time && !time.value) time.value = '00:00:00';
+        });
+      }
+    })();
+  </script>
+<% } %>

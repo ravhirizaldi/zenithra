@@ -1,0 +1,153 @@
+<% const root=`${base}/System`;const labels=mailPage.labels;const model=mailPage.model??{};const errors=mailPage.errors??[]; %>
+<% if(mailPage.mode==='template') { %>
+  <%- include('mail-templates',{mailTemplatePage:mailPage.templatePage}) %>
+<% } else if(mailPage.mode==='denied') { %>
+  <div class="PartialViewMessage" role="alert"><% for(const error of errors) { %><p><%= error %></p><% } %></div>
+<% } else if(mailPage.mode==='list') { %>
+  <script>
+    var flg = false;
+    function fConMasToggle(id) {
+      if (flg) { flg = false; return; }
+      const section = document.getElementById(id);
+      if (!section) return;
+      section.hidden = !section.hidden;
+      const toggle = document.querySelector('[aria-controls="' + id + '"]');
+      if (toggle) toggle.setAttribute('aria-expanded', String(!section.hidden));
+    }
+    function create() { flg = true; }
+    function mailToggleKey(event, id) {
+      if (event.key !== 'Enter' && event.key !== ' ') return;
+      event.preventDefault();
+      fConMasToggle(id);
+    }
+  </script>
+  <div id="MessageWrap">
+    <div class="PartialViewMessage" role="alert"><% for(const message of mailPage.messages??[]) { %><p><%= message %></p><% } %><% for(const error of errors) { %><p><%= error %></p><% } %></div>
+  </div>
+  <div id="DetailTop">
+    <span id="infoTitle"><%= labels.mailTitle %></span>
+    <span id="functionBar"><% if(mailPage.canEdit) { %><a href="<%= root %>/Details?mode=mail&amp;act=edit" class="img_edit" title="<%= labels.edit %>"> </a><% } %></span>
+  </div>
+  <div id="DetailSection">
+    <div class="info">
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row">ManagerRoot</th><td><%= model.ManagerRoot %></td></tr>
+      </table>
+      <div style="margin-left:36px;margin-bottom:8px;">
+        <label><input type="radio" name="mailBase.UseOAuth" value="false" id="UseSmtpAuth" disabled readonly <%= !model.UseOAuth?'checked':'' %>> <%= labels.smtpAuthentication %></label>
+        <label style="margin-left:10px;"><input type="radio" name="mailBase.UseOAuth" value="true" id="UseOAuth" disabled readonly <%= model.UseOAuth?'checked':'' %>> OAuth</label>
+      </div>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <% if(!model.UseOAuth) { %>
+          <tr><th scope="row"><%= labels.server %></th><td><%= model.server %></td></tr>
+          <tr><th scope="row"><%= labels.port %></th><td><%= model.port %></td></tr>
+          <tr><th scope="row"><%= labels.user %></th><td><%= model.user %></td></tr>
+          <tr><th scope="row"><%= labels.ssl %></th><td><%= model.ssl?labels.toUse:labels.notUse %></td></tr>
+        <% } %>
+        <% if(model.UseOAuth) { %>
+          <tr><th scope="row"><%= labels.provider %></th><td><%= model.OAuthProvider %></td></tr>
+          <tr><th scope="row"><%= labels.status %></th><td><%= model.IsOAuthAuthenticated?labels.authenticated:labels.unauthenticated %></td></tr>
+          <tr><th scope="row"><%= labels.user %></th><td><%= model.OAuthUser %></td></tr>
+          <tr id="row_oauth_clientid"><th scope="row"><%= labels.clientId %></th><td><%= model.OAuthClientId %></td></tr>
+          <tr id="row_oauth_clientsecret"><th scope="row"><%= labels.clientSecret %></th><td><%= model.OAuthClientSecret %></td></tr>
+          <% if(model.OAuthProvider==='microsoft') { %><tr id="row_oauth_tenantid"><th scope="row"><%= labels.tenantId %></th><td><%= model.OAuthTenantId %></td></tr><% } %>
+        <% } %>
+      </table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <% for(const field of mailPage.notificationFields) { %>
+          <tr><th scope="row"><%= labels[`notification_${field}`] %></th><td><%= model[`notification_${field}`]?labels.toNotify:labels.notNotify %></td></tr>
+        <% } %>
+      </table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row"><%= labels.signature %></th><td style="white-space:pre-line"><%= model.signature %></td></tr>
+      </table>
+      <% for(const group of mailPage.groups) { %>
+        <div class="toggle" onclick="fConMasToggle('<%= group.type %>');" onkeydown="mailToggleKey(event,'<%= group.type %>');" role="button" tabindex="0" aria-controls="<%= group.type %>" aria-expanded="true">
+          <h2>▼<%= group.title %><span style="float:right;margin-top:-6px;">
+            <% if(mailPage.canCreate) { %><a href="<%= root %>/Details?mode=mail&amp;act=create&amp;id=<%= encodeURIComponent(group.type) %>" class="img_add" title="<%= labels.add %>" onclick="create();"> </a><% } %>
+          </span></h2>
+        </div>
+        <div id="<%= group.type %>">
+          <table cellpadding="0" cellspacing="0" class="table_information verticality">
+            <tr><th scope="col"><%= labels.listTemplateName %></th><th scope="col"><%= labels.listSubject %></th><th scope="col"><%= labels.listDefault %></th><th scope="col"><%= labels.listPriority %></th></tr>
+            <% for(const item of group.templates) { %>
+              <tr>
+                <td><a href="<%= root %>/Details?mode=mail&amp;act=temp&amp;id=<%= encodeURIComponent(`${group.type},${item.id}`) %>"><%= item.name %></a></td>
+                <td><%= item.subject %></td>
+                <td class="center"><%= item.defaultTemp?'○':'' %></td>
+                <td class="center"><%= item.priority %></td>
+              </tr>
+            <% } %>
+          </table>
+        </div>
+      <% } %>
+    </div>
+  </div>
+<% } else if(mailPage.mode==='edit') { %>
+  <div id="MessageWrap"><div class="PartialViewMessage" role="alert"><% for(const error of errors) { %><p><%= error %></p><% } %></div></div>
+  <div id="DetailTop"><span id="infoTitle"><%= labels.editMailTitle %></span></div>
+  <form method="post" action="<%= root %>/EditMailBase">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <div id="DetailSection">
+      <div class="info">
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr>
+            <th scope="row"><label for="mailBase_ManagerRoot">ManagerRoot</label></th>
+            <td><input class="EditValue1" id="mailBase_ManagerRoot" name="mailBase.ManagerRoot" value="<%= model.ManagerRoot??'' %>"><% if(mailPage.fieldErrors?.['mailBase.ManagerRoot']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.ManagerRoot'] %></span><% } %></td>
+          </tr>
+        </table>
+        <div style="margin-left:36px;margin-bottom:8px;">
+          <label><input type="radio" name="mailBase.UseOAuth" value="false" id="UseSmtpAuth" <%= !model.UseOAuth?'checked':'' %>> <%= labels.smtpAuthentication %></label>
+          <label style="margin-left:10px;"><input type="radio" name="mailBase.UseOAuth" value="true" id="UseOAuth" <%= model.UseOAuth?'checked':'' %>> OAuth</label>
+        </div>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr id="row_server"><th scope="row"><label for="mailBase_server"><%= labels.server %></label></th><td><input class="EditValue1" id="mailBase_server" name="mailBase.server" value="<%= model.server??'' %>"><% if(mailPage.fieldErrors?.['mailBase.server']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.server'] %></span><% } %></td></tr>
+          <tr id="row_port"><th scope="row"><label for="mailBase_port"><%= labels.port %></label></th><td><input class="EditValue1" id="mailBase_port" name="mailBase.port" value="<%= model.port??'' %>"><% if(mailPage.fieldErrors?.['mailBase.port']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.port'] %></span><% } %></td></tr>
+          <tr id="row_user"><th scope="row"><label for="mailBase_user"><%= labels.user %></label></th><td><input class="EditValue1" id="mailBase_user" name="mailBase.user" value="<%= model.user??'' %>"><% if(mailPage.fieldErrors?.['mailBase.user']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.user'] %></span><% } %></td></tr>
+          <tr id="row_new_pass"><th scope="row"><label for="new_pass"><%= labels.newPassword %></label></th><td><input class="EditValue1" id="new_pass" name="new_pass" type="password" autocomplete="<%= mailPage.autocomplete??'on' %>"></td></tr>
+          <tr id="row_confirm_pass"><th scope="row"><label for="confirm_pass"><%= labels.confirmPassword %></label></th><td><input class="EditValue1" id="confirm_pass" name="confirm_pass" type="password" autocomplete="<%= mailPage.autocomplete??'on' %>"><% if(mailPage.fieldErrors?.confirm_pass) { %><span class="field-validation-error"><%= mailPage.fieldErrors.confirm_pass %></span><% } %></td></tr>
+          <tr id="row_ssl"><th scope="row"><label for="mailBase_ssl"><%= labels.ssl %></label></th><td><input type="checkbox" id="mailBase_ssl" name="mailBase.ssl" value="true" <%= model.ssl?'checked':'' %>><input type="hidden" name="mailBase.ssl" value="false"><span id="legendSSL"><%= model.ssl?labels.toUseSSL:labels.notUseSSL %></span></td></tr>
+          <tr id="row_oauth_provider"><th scope="row"><%= labels.provider %></th><td><label><input type="radio" name="mailBase.OAuthProvider" value="google" id="OAuthProviderGoogle" <%= model.OAuthProvider==='google'?'checked':'' %>>Google</label> <label><input type="radio" name="mailBase.OAuthProvider" value="microsoft" id="OAuthProviderMicrosoft" <%= model.OAuthProvider==='microsoft'?'checked':'' %>>Microsoft</label></td></tr>
+          <tr id="row_oauth_clientid"><th scope="row"><label for="mailBase_OAuthClientId"><%= labels.clientId %></label></th><td><input class="EditValue1" id="mailBase_OAuthClientId" name="mailBase.OAuthClientId" value="<%= model.OAuthClientId??'' %>"><% if(mailPage.fieldErrors?.['mailBase.OAuthClientId']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.OAuthClientId'] %></span><% } %></td></tr>
+          <tr id="row_oauth_clientsecret"><th scope="row"><label for="mailBase_OAuthClientSecret"><%= labels.clientSecret %></label></th><td><input class="EditValue1" id="mailBase_OAuthClientSecret" name="mailBase.OAuthClientSecret" value="<%= model.OAuthClientSecret??'' %>"><% if(mailPage.fieldErrors?.['mailBase.OAuthClientSecret']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.OAuthClientSecret'] %></span><% } %></td></tr>
+          <tr id="row_oauth_tenantid"><th scope="row"><label for="mailBase_OAuthTenantId"><%= labels.tenantId %></label></th><td><input class="EditValue1" id="mailBase_OAuthTenantId" name="mailBase.OAuthTenantId" value="<%= model.OAuthTenantId??'' %>"><% if(mailPage.fieldErrors?.['mailBase.OAuthTenantId']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.OAuthTenantId'] %></span><% } %></td></tr>
+        </table>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <% for(const field of mailPage.notificationFields) { %>
+            <tr><th scope="row"><label for="mailBase_notification_<%= field %>"><%= labels[`notification_${field}`] %></label></th><td><input type="checkbox" id="mailBase_notification_<%= field %>" name="mailBase.notification_<%= field %>" value="true" <%= model[`notification_${field}`]?'checked':'' %>><input type="hidden" name="mailBase.notification_<%= field %>" value="false"><span id="legend_<%= field %>"><%= model[`notification_${field}`]?labels.toNotify:labels.notNotify %></span></td></tr>
+          <% } %>
+        </table>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr><th scope="row"><label for="mailBase_signature"><%= labels.signature %></label></th><td><textarea class="EditValue2" id="mailBase_signature" name="mailBase.signature"><%= model.signature??'' %></textarea></td></tr>
+        </table>
+        <p><button type="submit" class="image-ok_btn"><%= labels.fix %></button> <a id="image-cancel_btn" class="image-cancel_label" href="<%= root %>/MailList"><%= labels.cancel %></a></p>
+      </div>
+    </div>
+  </form>
+  <script>
+    function updateMailMode() {
+      const oauth = document.querySelector('input[name="mailBase.UseOAuth"]:checked')?.value === 'true';
+      for (const id of ['server','port','user','new_pass','confirm_pass','ssl']) {
+        const row = document.getElementById('row_' + id);
+        if (row) row.hidden = oauth;
+      }
+      for (const id of ['provider','clientid','clientsecret']) {
+        const row = document.getElementById('row_oauth_' + id);
+        if (row) row.hidden = !oauth;
+      }
+      const tenant = document.getElementById('row_oauth_tenantid');
+      const microsoft = document.getElementById('OAuthProviderMicrosoft')?.checked;
+      if (tenant) tenant.hidden = !oauth || !microsoft;
+    }
+    document.querySelectorAll('input[name="mailBase.UseOAuth"], input[name="mailBase.OAuthProvider"]').forEach(input => input.addEventListener('change', updateMailMode));
+    document.querySelectorAll('input[type="checkbox"][id^="mailBase_notification_"]').forEach(input => input.addEventListener('change', () => {
+      const legend = input.parentElement?.querySelector('span');
+      if (legend) legend.textContent = input.checked ? <%- JSON.stringify(labels.toNotify) %> : <%- JSON.stringify(labels.notNotify) %>;
+    }));
+    document.getElementById('mailBase_ssl')?.addEventListener('change', event => {
+      const legend = document.getElementById('legendSSL');
+      if (legend) legend.textContent = event.currentTarget.checked ? <%- JSON.stringify(labels.toUseSSL) %> : <%- JSON.stringify(labels.notUseSSL) %>;
+    });
+    updateMailMode();
+  </script>
+<% } %>

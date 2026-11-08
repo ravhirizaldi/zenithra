@@ -1,0 +1,286 @@
+<% const page = devicePage; const record = page.record; const root = base + '/System'; const details = page.mode === 'details'; const creating = page.mode === 'create'; const editing = page.mode === 'edit'; %>
+<% if (page.error) { %><p class="login-error" role="alert"><%= page.error %></p><% } %>
+
+<% if (details) { %>
+  <div id="DetailTop">
+    <span id="infoTitle">Device reference</span>
+    <span id="functionBar">
+      <% if (!record.deleted) { %>
+        <a class="img_edit" href="<%= root %>/EditTerm?id=<%= encodeURIComponent(record.term_id) %>" title="Edit" aria-label="Edit device"> </a>
+        <form id="delete-device-form" method="post" action="<%= root %>/DetailsTerm" style="display:inline;">
+          <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+          <input type="hidden" name="mst_terminal.term_id" value="<%= record.term_id %>">
+          <input type="hidden" name="act" value="delete">
+          <a href="#" class="img_delete" title="Delete" aria-label="Delete device" onclick="if(!confirm('Delete the device. Are you sure you want to delete it?'))return false;document.getElementById('delete-device-form').requestSubmit();return false;"> </a>
+        </form>
+      <% } %>
+    </span>
+  </div>
+  <div id="DetailSection"><div class="info">
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <tr><th scope="row">Device ID</th><td><%= record.term_id %></td></tr>
+      <tr><th scope="row">Type of device</th><td><%= record.term_type_name %></td></tr>
+      <tr><th scope="row">Physical ID</th><td><%= record.physical_id %></td></tr>
+      <tr><th scope="row">Device name</th><td><%= record.term_name %></td></tr>
+      <tr><th scope="row">Device remarks</th><td><%= record.term_remarks %></td></tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <tr><th scope="row">Applicant ID</th><td><%= record.applicant %></td></tr>
+      <tr><th scope="row">Applicant name</th><td><%= record.applicant_name %></td></tr>
+      <tr><th scope="row">Application date</th><td><%= record.applicant_date_display %></td></tr>
+      <tr><th scope="row">Comment for apply</th><td><%= record.applicant_comment %></td></tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <tr><th scope="row">Approver ID</th><td><%= record.approver %></td></tr>
+      <tr><th scope="row">Name of approver</th><td><%= record.approver_name %></td></tr>
+      <tr><th scope="row">Date of approval</th><td><%= record.approver_date_display %></td></tr>
+    </table>
+    <% if (!page.isFreeDrawOnly && record.term_type !== 'Designer') { %>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row">Use Biometrics</th><td><%= Number(record.use_biometrics) === 1 ? 'Yes' : 'No' %></td></tr>
+      </table>
+    <% } %>
+    <% if (page.scanditEnable && record.term_type !== 'i-Repo FreeDraw' && record.term_type !== 'Designer') { %>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row">Use Scandit</th><td><%= record.UseScandit ? 'Yes' : 'No' %></td></tr>
+      </table>
+    <% } %>
+    <% if (page.isMobileIron) { %>
+      <div class="toggle"><h2>▼MobileIron</h2></div>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row">User ID</th><td><%= record.mobile_iron_user_id %></td></tr>
+      </table>
+    <% } %>
+  </div></div>
+<% } else { %>
+  <div id="DetailTop"><span id="infoTitle"><%= creating ? 'Device registration' : 'Edit device information' %></span></div>
+  <form method="post" action="<%= root %>/<%= creating ? 'CreateTerm' : 'EditTerm' %>">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <% if (editing) { %>
+      <input type="hidden" name="mst_terminal.term_id" value="<%= record.term_id %>">
+      <input type="hidden" name="mst_terminal.term_type" value="<%= record.term_type %>">
+      <input type="hidden" name="mst_terminal.physical_id" value="<%= record.physical_id %>">
+      <input type="hidden" name="mst_terminal.applicant" value="<%= record.applicant %>">
+      <input type="hidden" name="mst_terminal.applicant_name" value="<%= record.applicant_name %>">
+      <input type="hidden" name="mst_terminal.applicant_date" value="<%= record.applicant_date_input %>">
+      <input type="hidden" name="mst_terminal.applicant_comment" value="<%= record.applicant_comment %>">
+      <input type="hidden" name="mst_terminal.approver" value="<%= record.approver %>">
+      <input type="hidden" name="mst_terminal.approver_name" value="<%= record.approver_name %>">
+      <input type="hidden" name="mst_terminal.approver_date" value="<%= record.approver_date_display %>">
+    <% } %>
+    <div id="DetailSection"><div class="info">
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr>
+          <th scope="row"><label for="mst-terminal-type">Type of device</label></th>
+          <td>
+            <% if (creating) { %>
+              <select id="mst-terminal-type" name="mst_terminal.term_type" required>
+                <% for (const type of page.termTypes) { %><option value="<%= type.value %>" <%= record.term_type === type.value ? 'selected' : '' %>><%= type.label %></option><% } %>
+              </select>
+            <% } else { %><%= record.term_type_name %><% } %>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><label for="mst-terminal-physical-id">Physical ID</label></th>
+          <td>
+            <% if (creating) { %><input id="mst-terminal-physical-id" name="mst_terminal.physical_id" value="<%= record.physical_id %>" required><% } else { %><%= record.physical_id %><% } %>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><label for="mst-terminal-name">Device name</label></th>
+          <td><input id="mst-terminal-name" class="EditValue1" name="mst_terminal.term_name" value="<%= record.term_name %>" required></td>
+        </tr>
+        <tr>
+          <th scope="row"><label for="mst-terminal-remarks">Device remarks</label></th>
+          <td><input id="mst-terminal-remarks" class="EditValue1" name="mst_terminal.term_remarks" value="<%= record.term_remarks %>"></td>
+        </tr>
+        <% if (creating) { %>
+          <tr><th scope="row"><label for="mst-terminal-deleted">Delete</label></th><td><input type="hidden" name="mst_terminal.deleted" value="false"><input id="mst-terminal-deleted" type="checkbox" name="mst_terminal.deleted" value="true" <%= record.deleted ? 'checked' : '' %>></td></tr>
+        <% } %>
+      </table>
+
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr>
+          <th scope="row"><label for="mst-terminal-applicant">Applicant ID</label></th>
+          <td>
+            <% if (creating) { %>
+              <input id="mst-terminal-applicant" class="EditValue1" name="mst_terminal.applicant" value="<%= record.applicant %>" required>
+              <input type="button" value="参照" onclick="openDeviceUserSearch();">
+            <% } else { %><%= record.applicant %><% } %>
+          </td>
+        </tr>
+        <tr>
+          <th scope="row"><label for="mst-terminal-applicant-name">Applicant name</label></th>
+          <td><% if (creating) { %><input id="mst-terminal-applicant-name" class="readonly" name="mst_terminal.applicant_name" value="<%= record.applicant_name %>" readonly required><% } else { %><%= record.applicant_name %><% } %></td>
+        </tr>
+        <tr>
+          <th scope="row"><label for="mst-terminal-applicant-date">Application date</label></th>
+          <td class="datetime"><% if (creating) { %><input id="mst-terminal-applicant-date" name="mst_terminal.applicant_date" value="<%= record.applicant_date_input %>" required><% } else { %><%= record.applicant_date_display %><% } %></td>
+        </tr>
+        <tr>
+          <th scope="row"><label for="mst-terminal-applicant-comment">Comment for apply</label></th>
+          <td><% if (creating) { %><input id="mst-terminal-applicant-comment" name="mst_terminal.applicant_comment" value="<%= record.applicant_comment %>"><% } else { %><%= record.applicant_comment %><% } %></td>
+        </tr>
+      </table>
+
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <% if (editing && record.approver) { %>
+          <tr><th scope="row">Approver ID</th><td><%= record.approver %></td></tr>
+          <tr><th scope="row">Name of approver</th><td><%= record.approver_name %></td></tr>
+          <tr><th scope="row">Date of approval</th><td><%= record.approver_date_display %></td></tr>
+        <% } else { %>
+          <tr><th scope="row"><label for="device-approve">Approve</label></th><td><input id="device-approve" type="checkbox" name="approver" value="true" <%= creating && record.approver ? 'checked' : '' %>></td></tr>
+        <% } %>
+      </table>
+
+      <% if (editing && page.scanditEnable && record.term_type !== 'i-Repo FreeDraw' && record.term_type !== 'Designer') { %>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr><th scope="row"><label for="mst-terminal-scandit">Use Scandit</label></th><td><input type="hidden" name="mst_terminal.UseScandit" value="false"><input id="mst-terminal-scandit" type="checkbox" name="mst_terminal.UseScandit" value="true" <%= record.UseScandit ? 'checked' : '' %> <%= editing ? '' : 'disabled' %>></td></tr>
+        </table>
+      <% } %>
+
+      <% if (editing && !page.isFreeDrawOnly && record.term_type !== 'Designer') { %>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr><th scope="row">Use Biometrics</th><td><%= Number(record.use_biometrics) === 1 ? 'Yes' : 'No' %></td></tr>
+        </table>
+      <% } %>
+
+      <p>
+        <input type="submit" class="image-ok_btn" value="Fix">
+        <% if (creating) { %>
+          <a href="<%= root %>/TermList" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+        <% } else { %>
+          <a href="<%= root %>/DetailsTerm?id=<%= encodeURIComponent(record.term_id) %>" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+        <% } %>
+      </p>
+    </div></div>
+  </form>
+<% } %>
+
+<% if (creating) { %>
+  <div id="SearchUserDialog" style="display:none;">
+    <div class="DialogMargin">
+      <div class="DialogTitle">Select user:</div>
+      <div style="margin-left:60px;font-size:12px;">
+        <label for="search-user-id">ID</label><input id="search-user-id">
+        <label for="search-user-name">Name</label><input id="search-user-name">
+        <input type="button" id="search-user-submit" value="Search">
+      </div>
+      <div id="PageSection" style="font-size:12px;">
+        Displayed number&nbsp;
+        <select id="search-user-page-size">
+          <% for (const size of [10, 20, 50, 100]) { %><option value="<%= size %>" <%= size === Number(page.searchPageSize) ? 'selected' : '' %>><%= size %></option><% } %>
+        </select>
+        <input type="button" id="search-user-prev" aria-label="Previous page" value="←">
+        <span id="search-user-page">1/1</span>
+        <input type="button" id="search-user-next" aria-label="Next page" value="→">
+      </div>
+      <table cellpadding="0" cellspacing="0" class="table_information verticality">
+        <thead><tr><th scope="col" class="checkCol"></th><th scope="col">ID</th><th scope="col">Name</th></tr></thead>
+        <tbody id="search-user-rows"></tbody>
+      </table>
+      <p><input type="button" id="SearchUserDialogSelect" value="Select"> <input type="button" id="SearchUserDialogClose" value="Close"></p>
+    </div>
+  </div>
+
+  <script>
+    (function () {
+      var dialog = document.getElementById('SearchUserDialog');
+      var endpoint = '<%= root %>/SearchUser';
+      var applicantId = document.getElementById('mst-terminal-applicant');
+      var applicantName = document.getElementById('mst-terminal-applicant-name');
+      var searchId = document.getElementById('search-user-id');
+      var searchName = document.getElementById('search-user-name');
+      var pageSize = document.getElementById('search-user-page-size');
+      var pageLabel = document.getElementById('search-user-page');
+      var rows = document.getElementById('search-user-rows');
+      var pageIndex = 0;
+      var totalPages = 1;
+
+      function loadUsers(index) {
+        pageIndex = Math.max(0, index);
+        var query = new URLSearchParams({
+          searchId: searchId.value,
+          searchName: searchName.value,
+          pageIndex: String(pageIndex),
+          pageSize: pageSize.value
+        });
+        fetch(endpoint + '?' + query.toString(), { headers: { 'Accept': 'application/json' } })
+          .then(function (response) { if (!response.ok) throw new Error(); return response.json(); })
+          .then(function (data) {
+            rows.replaceChildren();
+            totalPages = data.totalPages;
+            pageIndex = data.pageIndex;
+            pageLabel.textContent = String(pageIndex + 1) + '/' + String(totalPages);
+            document.getElementById('search-user-prev').disabled = pageIndex === 0;
+            document.getElementById('search-user-next').disabled = pageIndex + 1 >= totalPages;
+            data.rows.forEach(function (user) {
+              var tr = document.createElement('tr');
+              var selectCell = document.createElement('td');
+              var radio = document.createElement('input');
+              radio.type = 'radio';
+              radio.name = 'SearchUserDialogCheck';
+              radio.value = user.user_id;
+              selectCell.className = 'checkCol';
+              selectCell.appendChild(radio);
+              var idCell = document.createElement('td');
+              idCell.textContent = user.user_id;
+              var nameCell = document.createElement('td');
+              nameCell.textContent = user.user_name;
+              tr.appendChild(selectCell);
+              tr.appendChild(idCell);
+              tr.appendChild(nameCell);
+              tr.dataset.userId = user.user_id;
+              tr.dataset.userName = user.user_name;
+              tr.addEventListener('click', function () {
+                rows.querySelectorAll('tr').forEach(function (item) { item.classList.remove('current'); });
+                tr.classList.add('current');
+                radio.checked = true;
+              });
+              tr.addEventListener('dblclick', selectUser);
+              rows.appendChild(tr);
+            });
+          })
+          .catch(function () {
+            rows.replaceChildren();
+            pageIndex = 0;
+            totalPages = 1;
+            pageLabel.textContent = '1/1';
+            document.getElementById('search-user-prev').disabled = true;
+            document.getElementById('search-user-next').disabled = true;
+          });
+      }
+      function selectUser() {
+        var selected = rows.querySelector('input[name="SearchUserDialogCheck"]:checked');
+        if (!selected) return;
+        var row = selected.closest('tr');
+        applicantId.value = row.dataset.userId;
+        applicantName.value = row.dataset.userName;
+        dialog.style.display = 'none';
+      }
+      window.openDeviceUserSearch = function () {
+        dialog.style.display = 'block';
+        loadUsers(0);
+      };
+      document.getElementById('search-user-submit').addEventListener('click', function () { loadUsers(0); });
+      document.getElementById('search-user-page-size').addEventListener('change', function () { loadUsers(0); });
+      document.getElementById('search-user-prev').addEventListener('click', function () { loadUsers(pageIndex - 1); });
+      document.getElementById('search-user-next').addEventListener('click', function () { loadUsers(pageIndex + 1); });
+      document.getElementById('SearchUserDialogSelect').addEventListener('click', selectUser);
+      document.getElementById('SearchUserDialogClose').addEventListener('click', function () { dialog.style.display = 'none'; });
+      applicantId.addEventListener('change', function () { applicantName.value = ''; });
+      applicantId.addEventListener('blur', function () {
+        if (!applicantId.value) return;
+        fetch('<%= root %>/SearchUserDirect?id=' + encodeURIComponent(applicantId.value), { headers: { 'Accept': 'application/json' } })
+          .then(function (response) { return response.json(); })
+          .then(function (result) {
+            if (!result) return;
+            var values = result.split(',');
+            applicantId.value = values[0];
+            applicantName.value = values.slice(1).join(',');
+          })
+          .catch(function () {});
+      });
+    })();
+  </script>
+<% } %>

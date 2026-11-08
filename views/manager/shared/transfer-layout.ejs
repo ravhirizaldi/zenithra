@@ -1,0 +1,70 @@
+<style>
+  /* Legacy selectors expect page-specific sizing; keep these corrections inside Library/Data Output. */
+  #Wrap.manager-transfer-workspace { display:flex; align-items:flex-start; }
+  .manager-transfer-workspace #SideWrap { flex-shrink:0; }
+  .manager-transfer-workspace #MainWrap { flex:1; min-width:0; }
+  .manager-index-workspace #SideWrap { display:flex; flex-direction:column; height:100%; }
+  .manager-index-workspace #LabelSection { flex:1; min-height:0; }
+  .manager-index-workspace #MainWrap, .manager-index-workspace #content { height:100%; }
+  .manager-index-workspace #ConMasForm { height:100%; display:flex; flex-direction:column; }
+  .manager-index-workspace #IndexList { flex:1; min-height:0; display:flex; flex-direction:column; }
+  .manager-index-workspace #GridSection { flex:1; min-height:0; }
+  .manager-transfer-workspace #LabelSection { max-height:calc(100vh - 250px); }
+  .manager-index-workspace #LabelSection { max-height:none; }
+  .manager-transfer-workspace #labelControl { padding:5px 0 15px; }
+  .manager-transfer-workspace #labelControl button { font-size:inherit; }
+  .manager-transfer-workspace #Filters { padding:8px 10px; }
+  .manager-transfer-workspace #Filters ul { position:static; float:none; display:flex; flex-wrap:wrap; align-items:center; justify-content:flex-end; gap:8px; margin:0; padding:0; }
+  .manager-transfer-workspace #Filters ul li { float:none; padding:0; }
+  .manager-transfer-workspace .PageSection { padding:5px 10px; }
+  .manager-transfer-workspace .manager-grid-scroll { overflow:auto; }
+  .manager-transfer-workspace .manager-library-grid { min-width:1050px; }
+  .manager-transfer-workspace .manager-output-grid { min-width:1000px; }
+  .manager-transfer-workspace .manager-document-labels { list-style:none; display:flex; flex-wrap:wrap; gap:5px; margin:5px 0 0; padding-left:40px; }
+  .manager-transfer-workspace .GridCommon td { overflow-wrap:anywhere; }
+  .manager-transfer-workspace .manager-detail-heading { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; padding-bottom:10px; }
+  .manager-transfer-workspace .manager-actions { display:flex; flex-wrap:wrap; align-items:center; gap:8px; margin:10px 0; }
+  .manager-transfer-workspace .manager-output-filter, .manager-transfer-workspace .manager-output-paging { display:flex; flex-wrap:wrap; align-items:center; justify-content:space-between; gap:10px; }
+  .manager-transfer-workspace .manager-output-filter ul, .manager-transfer-workspace .manager-output-paging .PageSection { flex:1; }
+  .manager-transfer-workspace .manager-cooperation-row { text-align:right; }
+  .manager-transfer-workspace .img_next.cooperation_view { width:170px; background-size:170px 30px; font-size:16px; margin-top:2px; padding-top:4px; }
+  .manager-transfer-workspace .manager-csv-preview { width:max-content; min-width:100%; margin:0; }
+  .manager-transfer-workspace .manager-csv-preview th, .manager-transfer-workspace .manager-csv-preview td { white-space:nowrap; text-align:left; }
+  .manager-transfer-workspace .manager-remarks { margin:0; font:inherit; white-space:pre-wrap; }
+  .manager-transfer-workspace .manager-pdf-preview { height:50vh; min-height:200px; }
+  .manager-transfer-workspace #conmasDocumentForm td > label, .manager-transfer-workspace #ConMasOutputForm td > label { margin-right:10px; }
+  .manager-transfer-workspace .manager-section-toggle { color:inherit; font:inherit; text-align:inherit; background:none; border:0; padding:0; cursor:pointer; }
+  .manager-transfer-workspace .manager-section-toggle::before { content:'▼ '; }
+  .manager-transfer-workspace .manager-section-toggle[aria-expanded=false]::before { content:'▶ '; }
+  .manager-transfer-workspace .manager-section-toggle:focus-visible { outline:2px solid #25729a; outline-offset:3px; }
+  .manager-transfer-workspace #DetailSection .info { min-width:0; }
+  .manager-transfer-workspace fieldset { border:0; padding:0; margin:0; min-width:0; }
+  .manager-transfer-workspace .manager-role-filters { display:flex; flex-wrap:wrap; align-items:center; gap:8px; padding:5px 10px; }
+  .manager-transfer-workspace input[type=text], .manager-transfer-workspace textarea { max-width:100%; box-sizing:border-box; }
+  .manager-transfer-workspace #SearchDialog, .manager-transfer-workspace #LinkLabelDialog { z-index:10; height:auto; max-height:calc(100vh - 200px); max-width:calc(100vw - 30px); overflow:auto; opacity:1; }
+  .manager-transfer-workspace .DialogClose { float:right; border:0; background:none; padding:0; cursor:pointer; }
+  .manager-transfer-workspace .DialogClose img { width:20px; height:20px; }
+  .manager-transfer-workspace .manager-date-range input[type=text] { width:100px; }
+  .manager-transfer-workspace #SearchDialog .manager-actions { justify-content:center; }
+  .manager-transfer-workspace #labelManagementForm { max-height:calc(100vh - 160px); max-width:calc(100vw - 40px); overflow:auto; }
+</style>
+<script>
+  $(function () {
+    var workspace = document.querySelector('.manager-index-workspace');
+    if (workspace) {
+      var resize = function () { workspace.style.height = Math.max(180, window.innerHeight - workspace.getBoundingClientRect().top - 10) + 'px'; };
+      resize();
+      $(window).on('resize', resize);
+      $('#Labels').treeview({ collapsed:false, animated:'medium', control:'#sidetreecontrol', persist:'location' });
+    }
+    $('.manager-transfer-workspace').on('click', '.manager-section-toggle', function () {
+      var expanded = this.getAttribute('aria-expanded') !== 'true';
+      this.setAttribute('aria-expanded', String(expanded));
+      document.getElementById(this.getAttribute('aria-controls')).hidden = !expanded;
+    });
+    $('.manager-transfer-workspace').on('keydown', function (event) {
+      if (event.key === 'Escape') $(this).find('#SearchDialog, #LinkLabelDialog').hide();
+    });
+    $('.manager-transfer-workspace input[data-manager-date]').datepicker($.datepicker.regional[browserLanguage()] || $.datepicker.regional.en);
+  });
+</script>

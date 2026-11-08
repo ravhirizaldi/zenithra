@@ -1,0 +1,185 @@
+<% const maintenance = systemMaintenancePage; const route = `${base}/System`; %>
+<% if (maintenance.mode === 'customMasterMaintenance') { %>
+  <style type="text/css">
+    .information {
+      border-width: 1px;
+      border-style: solid;
+      border-color: #CCC;
+      padding: 4px;
+      padding-left: 38px;
+      margin-top: 10px;
+      margin-bottom: 18px;
+      font-size: 80%;
+      line-height: 30px;
+      background: url('<%= base %>/Content/ConMas/images/function/alert-danger.png') no-repeat;
+      background-position: 8px 8px;
+      background-size: 20px 20px;
+    }
+  </style>
+  <script src="<%= base %>/Scripts/jquery.blockUI.js"></script>
+  <script type="text/javascript">
+    $(function () {
+      $(document).ajaxStop($.unblockUI);
+      window.scrollBy(0, document.cookie);
+      document.cookie = 0;
+      fConMasSelectDeleteType();
+    });
+
+    function fConMasDeletePost() {
+      if (confirm('Delete all records of this master. Are you sure to delete them?')) {
+        fConMasLockView();
+        $('#conmasPageForm').trigger('submit');
+      }
+    };
+
+    function fConMasSelectDeleteType() {
+      if ($('input[name="DeleteType"]:checked').val() === 'all') {
+        $('#DeleteDays').prop('disabled', true);
+      } else {
+        $('#DeleteDays').prop('disabled', false);
+      }
+    };
+  </script>
+
+  <div id="MessageWrap">
+    <% if (maintenance.error) { %><ul class="PartialViewMessage"><li role="alert"><%= maintenance.error %></li></ul><% } %>
+  </div>
+  <div id="DetailTop"><span id="infoTitle">Custom master maintenance</span></div>
+  <div id="DetailSection">
+    <div class="info">
+      <div>Physical deletion of deleted records</div>
+      <div class="information">If you set to "Yes" to enable saving to tablet, synchronize the custom masters of all the devices you are using before deleting.</div>
+      <form method="post" action="<%= route %>/CustomMasterMaintenance" enctype="multipart/form-data" id="conmasPageForm">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <div>
+          <div><label><input type="radio" name="DeleteType" value="all" onclick="fConMasSelectDeleteType();" <%= maintenance.customForm.DeleteType === 'all' ? 'checked="checked"' : '' %>>All</label></div>
+          <div><label><input type="radio" name="DeleteType" value="days" onclick="fConMasSelectDeleteType();" <%= maintenance.customForm.DeleteType === 'days' ? 'checked="checked"' : '' %>>How many days to be deleted&nbsp;<input type="text" id="DeleteDays" name="DeleteDays" value="<%= maintenance.customForm.DeleteDays %>" style="width:50px;"></label></div>
+          <div><input type="button" value="Delete" class="button_custom" style="width:100px; margin-top: 20px;" onclick="fConMasDeletePost();"></div>
+        </div>
+        <div id="ResultSection" style="margin-top: 20px;">
+          <% if (maintenance.customForm.DeleteResult > -1) { %>
+            <div>Result</div>
+            <div>&nbsp;&nbsp;Deletion number<%= maintenance.customForm.DeleteResult %>Number</div>
+          <% } %>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="domMessage" style="display:none;"><h1>In process</h1></div>
+<% } else if (maintenance.mode === 'voiceCommonGrammar') { %>
+  <script src="<%= base %>/Scripts/jquery.blockUI.js"></script>
+  <script type="text/javascript">
+    $(function () {
+      $(document).ajaxStop($.unblockUI);
+      window.scrollBy(0, document.cookie);
+      document.cookie = 0;
+    });
+
+    function fConMasSetScroll() {
+      document.cookie = document.documentElement.scrollTop || document.body.scrollTop;
+    };
+
+    function fConMasSavePost() {
+      fConMasLockView();
+      $('#GrammarForm').trigger('submit');
+    };
+
+    function fConMasRestoreGrammar(index, commonkey) {
+      if (commonkey === 'retry') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__VoiceValue').val('へんしゅう');
+      } else if (commonkey === 'ok') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__VoiceValue').val('おっけー,おーけー,よし,はい');
+      } else if (commonkey === 'cancel') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__VoiceValue').val('きゃんせる,いいえ');
+      } else if (commonkey === 'undo') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__VoiceValue').val('あんどぅ');
+      } else if (commonkey === 'redo') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__VoiceValue').val('りどぅ');
+      }
+    };
+
+    function fConMasRestoreAnswerback(index, commonkey) {
+      if (commonkey === 'retry') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__AnswerBack').val('編集');
+      } else if (commonkey === 'ok') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__AnswerBack').val('OK');
+      } else if (commonkey === 'cancel') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__AnswerBack').val('キャンセルしました');
+      } else if (commonkey === 'undo') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__AnswerBack').val('アンドゥ');
+      } else if (commonkey === 'redo') {
+        $('#VoiceCommonList_CommonGrammarList_' + index + '__AnswerBack').val('リドゥ');
+      }
+    };
+  </script>
+
+  <div id="MessageWrap">
+    <% if (maintenance.error) { %><ul class="PartialViewMessage"><li role="alert"><%= maintenance.error %></li></ul><% } %>
+  </div>
+  <div id="DetailTop" style="height:50px;">
+    <span style="color:Red; font-weight:bold;">Voice input function is applicable in Japanese only.</span>
+    <div id="infoTitle">Voice recognition common dictionary - Common operation</div>
+  </div>
+  <div id="DetailSection">
+    <div class="info">
+      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2>▼Setting</h2></div>
+      <form method="post" action="<%= route %>/VoiceCommonGrammar" enctype="multipart/form-data" id="GrammarForm">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <div>
+          <p>
+            <input type="button" value="Confirm" class="button_custom" style="width:100px;" onclick="fConMasSavePost();">
+            <a href="<%= route %>/VoiceCommonGrammar" class="conmas_link_button_black" style="padding:9px;">Cancel</a>
+          </p>
+        </div>
+        <table class="GridCommon" border="0" cellspacing="1" id="conmasGrammarGrid">
+          <tr>
+            <th>Common operation</th>
+            <th style="width:30%;">
+              Voice <a href="javascript:void(0)" onclick="fConMasToggle('conmasVoiceMemo');">?</a>
+              <div id="conmasVoiceMemo" style="display:none;">Available to set multiple contents with comma separated</div>
+            </th>
+            <th style="width:30%;">Repeat back</th>
+            <th>Option</th>
+          </tr>
+          <% for (let index = 0; index < maintenance.grammars.length; index++) { const grammar = maintenance.grammars[index]; const prefix = `VoiceCommonList.CommonGrammarList[${index}]`; %>
+            <tr>
+              <td>
+                <%= grammar.CommonName %>
+                <input type="hidden" name="<%= prefix %>.CommonKey" value="<%= grammar.CommonKey ?? '' %>">
+              </td>
+              <td>
+                <style>
+                  ul.nav { padding: 1px; }
+                  ul.nav li { display: inline-block; padding: 5px; text-align: center; vertical-align: middle; }
+                </style>
+                <ul class="nav">
+                  <li style="width:85%;"><input type="text" class="EditValue1" id="VoiceCommonList_CommonGrammarList_<%= index %>__VoiceValue" name="<%= prefix %>.VoiceValue" value="<%= grammar.VoiceValue ?? '' %>" style="width:100%; display:inline-block;"></li>
+                  <li><input type="button" class="conmas_link_button_black" value="既定" onclick="return fConMasRestoreGrammar('<%= index %>', '<%= grammar.CommonKey ?? '' %>');"></li>
+                </ul>
+                <% if (grammar.CommonKey === 'ok') { %><div>*Reflect to all confirm operation</div><% } else if (grammar.CommonKey === 'cancel') { %><div>*Reflect to all cancel operation</div><% } %>
+              </td>
+              <td>
+                <ul class="nav">
+                  <li style="width:85%;"><input type="text" class="EditValue1" id="VoiceCommonList_CommonGrammarList_<%= index %>__AnswerBack" name="<%= prefix %>.AnswerBack" value="<%= grammar.AnswerBack ?? '' %>" style="width:100%; display:inline-block"></li>
+                  <li><input type="button" class="conmas_link_button_black" value="既定" onclick="return fConMasRestoreAnswerback('<%= index %>', '<%= grammar.CommonKey ?? '' %>');"></li>
+                </ul>
+              </td>
+              <td>
+                <% if (grammar.CommonKey === 'retry') { %>
+                  <label><input type="checkbox" name="<%= prefix %>.IsAnsverBackCluster" value="true" <%= grammar.IsAnsverBackCluster ? 'checked="checked"' : '' %>><input type="hidden" name="<%= prefix %>.IsAnsverBackCluster" value="false">&nbsp; Answer back of calling cluster</label>
+                <% } %>
+              </td>
+            </tr>
+          <% } %>
+        </table>
+        <div>
+          <p>
+            <input type="button" value="Confirm" class="button_custom" style="width:100px;" onclick="fConMasSavePost();">
+            <a href="<%= route %>/VoiceCommonGrammar" class="conmas_link_button_black" style="padding:9px;">Cancel</a>
+          </p>
+        </div>
+      </form>
+    </div>
+  </div>
+  <div id="domMessage" style="display:none;"><h1>In process</h1></div>
+<% } %>

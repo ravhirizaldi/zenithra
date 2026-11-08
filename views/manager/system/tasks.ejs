@@ -1,0 +1,148 @@
+<% const route = `${base}/System`; %>
+<% if (taskPage.mode === 'list') { const pageUrl = index => `${route}/TaskList?${new URLSearchParams({ searchName: taskPage.searchName, searchRemark: taskPage.searchRemark, pageSize: String(taskPage.pageSize), pageIndex: String(index) })}`; %>
+  <script>
+    function taskPageMove(pageIndex) {
+      const form = document.getElementById('task-list-form');
+      form.elements.namedItem('pageIndex').value = String(pageIndex);
+      form.elements.namedItem('chkFiles').value = '';
+      form.elements.namedItem('act').value = '';
+      form.requestSubmit();
+      return false;
+    }
+    function taskPageSizeFilter(select) {
+      const form = select.form;
+      form.querySelectorAll('select[name=pageSize]').forEach(control => control.value = select.value);
+      form.elements.namedItem('pageIndex').value = '0';
+      form.requestSubmit();
+    }
+    function removeTask() {
+      const form = document.getElementById('task-list-form');
+      const ids = Array.from(form.querySelectorAll('input[type=checkbox][name$=".chk"]:checked'), input => input.value);
+      if (!ids.length) {
+        alert('Please select Task.');
+        return false;
+      }
+      form.elements.namedItem('chkFiles').value = ids.join(',');
+      if (!confirm('Do you want to delete?')) {
+        form.elements.namedItem('chkFiles').value = '';
+        return false;
+      }
+      form.elements.namedItem('act').value = 'delete';
+      return true;
+    }
+    document.addEventListener('DOMContentLoaded', function () {
+      const header = document.getElementById('headChk');
+      if (header) header.addEventListener('change', function () {
+        document.querySelectorAll('input[type=checkbox][name$=".chk"]').forEach(input => input.checked = header.checked);
+      });
+    });
+  </script>
+  <div class="PartialViewMessage"><% if (taskPage.error) { %><ul><li><%= taskPage.error %></li></ul><% } %></div>
+  <% if (!taskPage.canRead) { %>
+    <div>Role authority is insufficient.</div>
+  <% } else { %>
+    <form id="task-list-form" method="post" action="<%= route %>/TaskList">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" id="chkFiles" name="chkFiles" value="">
+      <input type="hidden" id="act" name="act" value="">
+      <div id="DetailTop">
+        <span id="infoTitle">Task list</span>
+      </div>
+      <div style="text-align:right; padding-right:3px; padding-top:0px;padding-bottom:3px;">
+        Task name <input id="searchName" name="searchName" value="<%= taskPage.searchName %>">
+        Content of task <input id="searchRemark" name="searchRemark" value="<%= taskPage.searchRemark %>">
+        <input type="submit" value="Search" class="image-search_user" onclick="this.form.elements.namedItem('pageIndex').value='0';this.form.elements.namedItem('chkFiles').value='';this.form.elements.namedItem('act').value='';">
+        <% if (taskPage.canCreate) { %><a class="img_add" href="<%= route %>/EditTask?id=-1" title="Create task" aria-label="Create task"> </a><% } %>
+        <% if (taskPage.canDelete) { %><input type="submit" value="" class="img_delete2" title="Delete" aria-label="Delete selected tasks" onclick="return removeTask();"><% } %>
+      </div>
+      <div class="info">
+        <div class="PageSection">
+          Displayed number&nbsp;<select id="pageSize" name="pageSize" onchange="taskPageSizeFilter(this)">
+            <% for (const option of taskPage.pageSizes) { %><option value="<%= option.value %>" <%= taskPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (taskPage.pageIndex > 0) { %>
+            <a href="<%= pageUrl(0) %>" onclick="return taskPageMove(0);" style="padding-right:5px;">First</a>
+            <a href="<%= pageUrl(taskPage.pageIndex - 1) %>" onclick="return taskPageMove(<%= taskPage.pageIndex - 1 %>);" class="img_page_prev_e" aria-label="Previous page"> </a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page disabled"><% } %>
+          &nbsp;<%= taskPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= taskPage.pages %> (<%= taskPage.total %>)&nbsp;
+          <% if (taskPage.pageIndex + 1 < taskPage.pages) { %>
+            <a href="<%= pageUrl(taskPage.pageIndex + 1) %>" onclick="return taskPageMove(<%= taskPage.pageIndex + 1 %>);" class="img_page_next_e" aria-label="Next page"> </a>
+            <a href="<%= pageUrl(taskPage.pages - 1) %>" onclick="return taskPageMove(<%= taskPage.pages - 1 %>);" style="padding-left:5px;">Last</a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page disabled"><% } %>
+        </div>
+        <input type="hidden" id="pageIndex" name="pageIndex" value="0">
+        <table cellpadding="0" cellspacing="0" class="table_information verticality">
+          <thead><tr>
+            <th scope="col" class="checkCol"><input type="checkbox" id="headChk" name="headChk"></th>
+            <th scope="col" style="width:30px;">ID</th>
+            <th scope="col">Task name</th>
+            <th scope="col">Content of task</th>
+            <th scope="col">Task view order</th>
+          </tr></thead>
+          <tbody>
+            <% for (const row of taskPage.rows) { %>
+              <tr>
+                <td class="center"><input type="checkbox" name="item.chk" value="<%= row.task_id %>" aria-label="Select task <%= row.task_id %>"></td>
+                <td><a href="<%= route %>/EditTask?id=<%= row.task_id %>"><%= row.task_id %></a></td>
+                <td><a href="<%= route %>/EditTask?id=<%= row.task_id %>"><%= row.task_name %></a></td>
+                <td><%= row.task_remark ?? '' %></td>
+                <td><%= row.display_number %></td>
+              </tr>
+            <% } %>
+          </tbody>
+        </table>
+        <div class="PageSection">
+          Displayed number&nbsp;<select name="pageSize" onchange="taskPageSizeFilter(this)">
+            <% for (const option of taskPage.pageSizes) { %><option value="<%= option.value %>" <%= taskPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (taskPage.pageIndex > 0) { %>
+            <a href="<%= pageUrl(0) %>" onclick="return taskPageMove(0);" style="padding-right:5px;">First</a>
+            <a href="<%= pageUrl(taskPage.pageIndex - 1) %>" onclick="return taskPageMove(<%= taskPage.pageIndex - 1 %>);" class="img_page_prev_e" aria-label="Previous page"> </a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page disabled"><% } %>
+          &nbsp;<%= taskPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= taskPage.pages %> (<%= taskPage.total %>)&nbsp;
+          <% if (taskPage.pageIndex + 1 < taskPage.pages) { %>
+            <a href="<%= pageUrl(taskPage.pageIndex + 1) %>" onclick="return taskPageMove(<%= taskPage.pageIndex + 1 %>);" class="img_page_next_e" aria-label="Next page"> </a>
+            <a href="<%= pageUrl(taskPage.pages - 1) %>" onclick="return taskPageMove(<%= taskPage.pages - 1 %>);" style="padding-left:5px;">Last</a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page disabled"><% } %>
+        </div>
+      </div>
+    </form>
+  <% } %>
+<% } else { const record = taskPage.record; %>
+  <script>
+    function removeTask() {
+      if (!confirm('Do you want to delete?')) return false;
+      document.getElementById('isDelete').value = 'true';
+      return true;
+    }
+  </script>
+  <div class="PartialViewMessage"><% if (taskPage.error) { %><ul><li><%= taskPage.error %></li></ul><% } %></div>
+  <% if (!taskPage.canWrite) { %>
+    <div>Role authority is insufficient.</div>
+  <% } else { %>
+    <form method="post" action="<%= route %>/EditTask">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" id="isDelete" name="isDelete" value="false">
+      <div id="DetailTop">
+        <span id="infoTitle"><%= record.task_id === -1 ? 'Create task' : 'Edit task' %></span><span id="functionBar"></span>
+        <% if (record.task_id !== -1 && taskPage.canDelete) { %><input type="submit" value="" class="img_delete" style="float:right" title="Delete" aria-label="Delete task" onclick="return removeTask();"><% } %>
+      </div>
+      <input type="hidden" name="Task.task_id" value="<%= record.task_id %>">
+      <div id="DetailSection">
+        <div class="info">
+          <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+            <tr><th scope="row"><label for="Task_task_name">Task name</label></th><td><input type="text" id="Task_task_name" name="Task.task_name" value="<%= record.task_name %>" class="EditValue1" required></td></tr>
+            <tr><th scope="row"><label for="Task_task_remark">Content of task</label></th><td><textarea id="Task_task_remark" name="Task.task_remark" class="EditValue1"><%= record.task_remark ?? '' %></textarea></td></tr>
+            <tr><th scope="row"><label for="Task_diplay_number">Task view order</label></th><td><input type="text" id="Task_diplay_number" name="Task.diplay_number" value="<%= record.display_number %>" class="EditValue1" required></td></tr>
+          </table>
+          <p>
+            <input type="submit" value="Confirm" class="image-ok_btn">
+            <a href="<%= route %>/TaskList" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+          </p>
+        </div>
+      </div>
+    </form>
+  <% } %>
+<% } %>

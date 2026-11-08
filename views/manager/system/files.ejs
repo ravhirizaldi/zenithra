@@ -1,0 +1,253 @@
+<% const route = `${base}/System`; %>
+<% const page = systemFilesPage; %>
+<% const listRoute = `${route}/${page.route}`; %>
+<% const pageParams = (pageNo, pageSize = page.page.pageSize) => {
+  const params = new URLSearchParams();
+  if (page.mode === 'backup') params.set('type', String(page.type));
+  if (page.mode === 'autoOutput') params.set('currentPath', page.currentPath ?? '');
+  if (page.mode === 'serverLog') params.set('rootPath', page.rootPath ?? '');
+  if (page.searchText) params.set('searchText', page.searchText);
+  params.set('pageNo', String(pageNo));
+  params.set('pageSize', String(pageSize));
+  return params.toString();
+}; %>
+<style type="text/css">
+  body, html { min-width: 800px; }
+  #MainWrap { margin-left: 270px; }
+  .grid-view .icon { width: 1.5em; }
+  <% if (page.mode === 'backup' && page.type === 1) { %>
+  .grid-view tbody tr { height: 79px; }
+  .grid-view .thumbnail { width: 120px; }
+  .grid-view .thumnail img { max-width: 100px; max-height: 75px; }
+  <% } %>
+</style>
+<script type="text/javascript">
+  $(function () {
+    $("#Labels").treeview({ collapsed: false, animated: "medium", control: "#sidetreecontrol", persist: "location" });
+    <% if (page.mode === 'backup') { %>
+    $("#Labels li a#<%= page.type === 0 ? 'backupLogFunction' : 'backupImageFunction' %>").addClass("current");
+    <% } else if (page.mode === 'autoOutput') { %>
+    $("#Labels li a#autoOutputFileFunction").addClass("current");
+    <% } else if (page.mode === 'serverLog') { %>
+    $("#Labels li a#serverLogFileFunction").addClass("current");
+    <% } %>
+    var appIsIE8 = window.navigator.appVersion.toLowerCase().indexOf("msie 8.") >= 0;
+    var docIsIE8 = document.uniqueID && document.documentMode === 8;
+    if (appIsIE8 || docIsIE8) {
+      $('table.grid-view a.download-icon').removeClass('download-icon').text('↓');
+      $('table.grid-view a.delete-icon').removeClass('delete-icon').text('×');
+    }
+
+    $("#MessageWrap .PartialViewMessage").empty();
+    if ($(".PartialViewMessage li").length === 1 && $(".PartialViewMessage li").css("display") === "none") {
+      $(".PartialViewMessage").css("display", "none");
+    } else {
+      $(".PartialViewMessage").appendTo("#MessageWrap");
+    }
+  });
+
+  function submitFileDelete(fileNames) {
+    $.each(fileNames, function (index, fileName) {
+      $("<input />", { name: "fileNames", type: "hidden", value: fileName }).appendTo("#DeleteForm");
+    });
+    $("#DeleteForm").trigger("submit");
+    fConMasLockView();
+  }
+
+  function confirmAndDeleteFiles(fileNames) {
+    $("#DeleteConfirm").dialog({
+      modal: true,
+      resizable: false,
+      buttons: {
+        "ok": function () {
+          submitFileDelete(fileNames);
+          $(this).dialog("close");
+        },
+        "cancel": function () {
+          $(this).dialog("close");
+        }
+      }
+    });
+  }
+
+  function deleteFile(fileName) {
+    confirmAndDeleteFiles([fileName]);
+  }
+
+  function deleteAllFiles() {
+    var fileNames = JSON.parse(document.getElementById("allFileNames").value);
+    confirmAndDeleteFiles(fileNames);
+  }
+
+  $(document).on("click", "a.delete-icon", function (event) {
+    event.preventDefault();
+    if (this.getAttribute("data-delete-all") === "true") deleteAllFiles();
+    else deleteFile(this.getAttribute("data-file-name"));
+  });
+</script>
+<div class="PartialViewMessage">
+  <ul><li style="display:none"></li><% if (page.error) { %><li role="alert"><%= page.error %></li><% } %></ul>
+  <% if (page.deleteErrors.length) { %>
+    <p><% if (page.mode !== 'backup') { %>&nbsp;<% } %><%= page.deleteErrorTitle %></p>
+    <ul><% for (const fileName of page.deleteErrors) { %><li><%= fileName %></li><% } %></ul>
+  <% } %>
+</div>
+<% if (page.mode !== 'error') { %>
+  <div id="DetailTop"><span id="infoTitle"><%= page.title %></span></div>
+  <form id="SearchForm" class="search-form" method="get" action="<%= listRoute %>">
+    <% if (page.mode === 'backup') { %><input name="type" type="hidden" value="<%= page.type %>"><% } %>
+    <% if (page.mode === 'autoOutput') { %><input name="currentPath" type="hidden" value="<%= page.currentPath %>"><% } %>
+    <% if (page.mode === 'serverLog') { %><input name="rootPath" type="hidden" value="<%= page.rootPath %>"><% } %>
+    <input name="pageSize" type="hidden" value="<%= page.page.pageSize %>">
+    <label for="searchBox" class="search-title"><%= page.searchLabel %></label>
+    <input class="search-box" id="searchBox" name="searchText" type="text" value="<%= page.searchText %>" placeholder="<%= page.searchLabel %>">
+    <button class="search-button" type="submit"><img src="../Content/ConMas/images/function/search.png" alt="search"></button>
+  </form>
+  <div id="DetailSection"><div class="info">
+    <% if (page.page.totalPages <= 0) { %>
+      <p><%= page.emptyMessage %></p>
+    <% } else { %>
+      <input id="allFileNames" type="hidden" value="<%= JSON.stringify(page.files.map(file => file.fileName)) %>">
+      <form id="DeleteForm" method="post" action="<%= route %>/<%= page.mode === 'backup' ? 'DeleteBackupFile' : page.mode === 'autoOutput' ? 'DeleteAutoOutputFile' : 'DeleteServerLogFile' %>">
+        <input name="__RequestVerificationToken" type="hidden" value="<%= csrfToken %>">
+        <% if (page.mode === 'backup') { %><input name="type" type="hidden" value="<%= page.type %>"><% } %>
+        <% if (page.mode === 'autoOutput') { %><input name="currentPath" type="hidden" value="<%= page.currentPath %>"><% } %>
+        <% if (page.mode === 'serverLog') { %><input name="rootPath" type="hidden" value="<%= page.rootPath %>"><% } %>
+        <input name="searchText" type="hidden" value="<%= page.searchText %>">
+        <input name="pageNo" type="hidden" value="<%= page.page.pageNo %>">
+        <input name="pageSize" type="hidden" value="<%= page.page.pageSize %>">
+      </form>
+    <% } %>
+
+    <% if (page.mode === 'autoOutput' && page.rootFolder !== page.currentPath) { %>
+      <a href="<%= route %>/AutoOutputFile?<%= new URLSearchParams({ currentPath: page.parentPath }) %>">Return to parent folder</a>
+    <% } %>
+
+      <div class="pagination">
+        <ol class="skip">
+          <% if (page.page.hasPreviousPage) { %>
+            <li><a class="first" href="<%= listRoute %>?<%= pageParams(1) %>"></a></li>
+            <li><a class="previous" href="<%= listRoute %>?<%= pageParams(page.page.pageNo - 1) %>"></a></li>
+          <% } else { %>
+            <li><span class="first"></span></li><li><span class="previous"></span></li>
+          <% } %>
+          <% for (let pageNo = page.page.startPageNo; pageNo <= page.page.endPageNo; pageNo++) { %>
+            <% if (pageNo === page.page.pageNo) { %><li><span class="specific current"><%= pageNo %></span></li>
+            <% } else { %><li><a class="specific" href="<%= listRoute %>?<%= pageParams(pageNo) %>"><%= pageNo %></a></li><% } %>
+          <% } %>
+          <% if (page.page.hasNextPage) { %>
+            <li><a class="next" href="<%= listRoute %>?<%= pageParams(page.page.pageNo + 1) %>"></a></li>
+            <li><a class="last" href="<%= listRoute %>?<%= pageParams(page.page.totalPages) %>"></a></li>
+          <% } else { %>
+            <li><span class="next"></span></li><li><span class="last"></span></li>
+          <% } %>
+        </ol>
+        <div class="item">
+          <span><%= page.page.startItemNo %>&nbsp;-&nbsp;<%= page.page.endItemNo %>&nbsp;/&nbsp;<%= page.page.totalItems %></span>
+          <span class="supplement">items</span>
+        </div>
+        <ol class="size">
+          <% for (const pageSize of page.page.pageSizes) { %>
+            <% if (pageSize === page.page.pageSize) { %><li><span class="current"><%= pageSize %></span></li>
+            <% } else { %><li><a href="<%= listRoute %>?<%= pageParams(1, pageSize) %>"><%= pageSize %></a></li><% } %>
+          <% } %>
+          <li><span class="supplement">items / page</span></li>
+        </ol>
+      </div>
+    <% } %>
+
+    <% if (page.files.length) { %>
+      <% if (page.mode === 'backup' && page.type === 0) { %>
+        <table class="grid-view">
+          <thead><tr>
+            <th><a class="download-icon" title="Download" aria-label="Download all files on this page" href="<%= route %>/DownloadBackupFiles?<%= new URLSearchParams({ type: String(page.type), pageNo: String(page.page.pageNo), pageSize: String(page.page.pageSize), searchText: page.searchText }) %>"></a></th>
+            <% if (page.hasPermissionToDelete) { %><th><a class="delete-icon" title="Delete" aria-label="Delete all files on this page" href="#" data-delete-all="true"></a></th><% } %>
+            <th>Log file name</th><th>Date and time</th><th>Device ID</th>
+          </tr></thead>
+          <tbody><% for (const file of page.files) { %><tr>
+            <td class="icon"><a class="download-icon" title="Download" aria-label="Download <%= file.fileName %>" href="<%= route %>/DownloadBackupFile?<%= new URLSearchParams({ type: String(page.type), fileName: file.fileName }) %>"></a></td>
+            <% if (page.hasPermissionToDelete) { %><td class="icon"><a class="delete-icon" title="Delete" aria-label="Delete <%= file.fileName %>" href="#" data-file-name="<%= file.fileName %>"></a></td><% } %>
+            <td class="text"><%= file.fileName %></td><td class="date"><%= file.dateText %></td><td class="text"><%= file.physicalId ?? '' %></td>
+          </tr><% } %></tbody>
+        </table>
+      <% } else if (page.mode === 'backup') { %>
+        <table class="grid-view">
+          <thead><tr>
+            <th><a class="download-icon" title="Download" aria-label="Download all files on this page" href="<%= route %>/DownloadBackupFiles?<%= new URLSearchParams({ type: String(page.type), pageNo: String(page.page.pageNo), pageSize: String(page.page.pageSize), searchText: page.searchText }) %>"></a></th>
+            <% if (page.hasPermissionToDelete) { %><th><a class="delete-icon" title="Delete" aria-label="Delete all files on this page" href="#" data-delete-all="true"></a></th><% } %>
+            <th></th><th>Image file name</th><th>Date and time</th><th>Device ID</th><th>Form ID</th><th>Sheet no</th><th>Cluster index</th><th>Document ID</th>
+          </tr></thead>
+          <tbody><% for (const file of page.files) { %><tr>
+            <td class="icon"><a class="download-icon" title="Download" aria-label="Download <%= file.fileName %>" href="<%= route %>/DownloadBackupFile?<%= new URLSearchParams({ type: String(page.type), fileName: file.fileName }) %>"></a></td>
+            <% if (page.hasPermissionToDelete) { %><td class="icon"><a class="delete-icon" title="Delete" aria-label="Delete <%= file.fileName %>" href="#" data-file-name="<%= file.fileName %>"></a></td><% } %>
+            <td class="thumbnail"><img src="<%= file.src %>" alt="no image"></td><td class="text"><%= file.fileName %></td><td class="date"><%= file.dateText %></td><td class="text"><%= file.physicalId ?? '' %></td><td class="numeric"><%= file.defId ?? '' %></td><td class="numeric"><%= file.sheetNo ?? '' %></td><td class="numeric"><%= file.clusterIndex ?? '' %></td><td class="numeric"><%= file.repId ?? '' %></td>
+          </tr><% } %></tbody>
+        </table>
+      <% } else if (page.mode === 'autoOutput') { %>
+        <table class="grid-view">
+          <thead><tr>
+            <th><a class="download-icon" title="download" aria-label="Download all files on this page" href="<%= route %>/DownloadAutoOutputFiles?<%= new URLSearchParams({ currentPath: page.currentPath, pageNo: String(page.page.pageNo), pageSize: String(page.page.pageSize), searchText: page.searchText }) %>"></a></th>
+            <% if (page.hasPermissionToDelete) { %><th><a class="delete-icon" title="delete" aria-label="Delete all files on this page" href="#" data-delete-all="true"></a></th><% } %>
+            <th>Auto output file name</th><th>Date and time</th><th>Type</th><th>File size</th>
+          </tr></thead>
+          <tbody><% for (const file of page.files) { %><tr>
+            <% if (file.folder === 'File') { %><td class="icon"><a class="download-icon" title="download" aria-label="Download <%= file.fileName %>" href="<%= route %>/DownloadAutoOutputFile?<%= new URLSearchParams({ currentPath: page.currentPath, fileName: file.fileName }) %>"></a></td>
+            <% } else { %><td class="icon"><a class="download-icon" title="download" aria-label="Download folder <%= file.fileName %>" href="<%= route %>/DownloadAutoOutputFolder?<%= new URLSearchParams({ currentPath: page.currentPath, folderName: file.fileName }) %>"></a></td><% } %>
+            <% if (page.hasPermissionToDelete) { %><td class="icon"><a class="delete-icon" title="delete" aria-label="Delete <%= file.fileName %>" href="#" data-file-name="<%= file.fileName %>"></a></td><% } %>
+            <% if (file.folder === 'File') { %><td class="text"><%= file.fileName %></td><% } else { %><td><a href="<%= route %>/AutoOutputFile?<%= new URLSearchParams({ currentPath: page.currentPath, nextPath: file.fileName }) %>"><%= file.fileName %></a></td><% } %>
+            <td class="date" style="text-align:center"><%= file.dateText %></td><td class="type" style="text-align:center"><%= file.folder %></td>
+            <% if (file.folder === 'File') { %><td class="text" style="text-align:right"><%= file.sizeText %></td><% } else { %><td class="text" style="text-align:right">---</td><% } %>
+          </tr><% } %></tbody>
+        </table>
+      <% } else { %>
+        <table class="grid-view">
+          <thead><tr>
+            <th><a class="download-icon" title="download" aria-label="Download all files on this page" href="<%= route %>/DownloadServerLogFiles?<%= new URLSearchParams({ rootPath: page.rootPath, pageNo: String(page.page.pageNo), pageSize: String(page.page.pageSize), searchText: page.searchText }) %>"></a></th>
+            <% if (page.hasPermissionToDelete) { %><th><a class="delete-icon" title="delete" aria-label="Delete all files on this page" href="#" data-delete-all="true"></a></th><% } %>
+            <th>Server log name</th><th>Date and time</th><th>Log size</th>
+          </tr></thead>
+          <tbody><% for (const file of page.files) { %><tr>
+            <td class="icon"><a class="download-icon" title="download" aria-label="Download <%= file.fileName %>" href="<%= route %>/DownloadServerLogFile?<%= new URLSearchParams({ rootPath: page.rootPath, fileName: file.fileName }) %>"></a></td>
+            <% if (page.hasPermissionToDelete) { %><td class="icon"><a class="delete-icon" title="delete" aria-label="Delete <%= file.fileName %>" href="#" data-file-name="<%= file.fileName %>"></a></td><% } %>
+            <td class="text"><%= file.fileName %></td><td class="date" style="text-align:center"><%= file.dateText %></td><td class="text" style="text-align:right"><%= file.sizeText %></td>
+          </tr><% } %></tbody>
+        </table>
+      <% } %>
+    <% } %>
+
+      <div class="pagination">
+        <ol class="skip">
+          <% if (page.page.hasPreviousPage) { %>
+            <li><a class="first" href="<%= listRoute %>?<%= pageParams(1) %>"></a></li>
+            <li><a class="previous" href="<%= listRoute %>?<%= pageParams(page.page.pageNo - 1) %>"></a></li>
+          <% } else { %>
+            <li><span class="first"></span></li><li><span class="previous"></span></li>
+          <% } %>
+          <% for (let pageNo = page.page.startPageNo; pageNo <= page.page.endPageNo; pageNo++) { %>
+            <% if (pageNo === page.page.pageNo) { %><li><span class="specific current"><%= pageNo %></span></li>
+            <% } else { %><li><a class="specific" href="<%= listRoute %>?<%= pageParams(pageNo) %>"><%= pageNo %></a></li><% } %>
+          <% } %>
+          <% if (page.page.hasNextPage) { %>
+            <li><a class="next" href="<%= listRoute %>?<%= pageParams(page.page.pageNo + 1) %>"></a></li>
+            <li><a class="last" href="<%= listRoute %>?<%= pageParams(page.page.totalPages) %>"></a></li>
+          <% } else { %>
+            <li><span class="next"></span></li><li><span class="last"></span></li>
+          <% } %>
+        </ol>
+        <div class="item">
+          <span><%= page.page.startItemNo %>&nbsp;-&nbsp;<%= page.page.endItemNo %>&nbsp;/&nbsp;<%= page.page.totalItems %></span>
+          <span class="supplement">items</span>
+        </div>
+        <ol class="size">
+          <% for (const pageSize of page.page.pageSizes) { %>
+            <% if (pageSize === page.page.pageSize) { %><li><span class="current"><%= pageSize %></span></li>
+            <% } else { %><li><a href="<%= listRoute %>?<%= pageParams(1, pageSize) %>"><%= pageSize %></a></li><% } %>
+          <% } %>
+          <li><span class="supplement">items / page</span></li>
+        </ol>
+      </div>
+    <% } %>
+  </div></div>
+  <div id="domMessage" style="display:none"><h1>In process</h1></div>
+  <div id="DeleteConfirm" <% if (page.mode === 'autoOutput') { %>title="Auto output file"<% } else if (page.mode === 'serverLog') { %>title="Server log file"<% } %> style="display:none"><p><%= page.deleteConfirmMessage %></p></div>
+<% } %>

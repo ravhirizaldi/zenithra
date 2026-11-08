@@ -1,0 +1,37 @@
+<div class="PartialViewMessage"><% if(wp.error){ %><ul><li><%= wp.error %></li></ul><% } %></div>
+<div id="DetailTop"><span id="infoTitle">Webhook Transmission history</span></div>
+<div id="DetailSection"><div class="info">
+  <form method="post" action="<%= root %>/WebhookSendLog" id="webhookSendLogForm" onsubmit="webhookLogSaveScroll()">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="ActionCommonType" id="webhookLogAction" value=""><input type="hidden" name="resendLogId" id="webhookResendId" value="">
+    <input type="hidden" name="ScrollXPoint" id="ScrollXPoint" value="<%= wp.scrollX || 0 %>"><input type="hidden" name="ScrollYPoint" id="ScrollYPoint" value="<%= wp.scrollY || 0 %>">
+    <input type="hidden" name="PageData.PageIndex" id="webhookLogPageIndex" value="<%= page.pageIndex %>"><input type="hidden" name="PageData.SortColumn" id="webhookLogSortColumn" value="<%= page.sortColumn %>"><input type="hidden" name="PageData.SortDirection" id="webhookLogSortDirection" value="<%= page.sortDirection %>">
+    <div class="toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="SearchLogLibraryBox" onclick="webhookToggle(this,'SearchLogLibraryBox')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();webhookToggle(this,'SearchLogLibraryBox')}"><h2 style="margin-top:5px;">▼SearchConditions</h2></div>
+    <div id="SearchLogLibraryBox">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <tr><th scope="row">Send date and time</th><td>
+          <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeFrom" name="WhereData.SendTimeFrom" value="<%= filters.SendTimeFrom %>" style="width:90px;" onchange="webhookTimeInitFrom()" aria-label="Send date from"></div>
+          <div style="float:left;padding:3px;"><input id="WhereData_SendTimeFromHour" name="WhereData.SendTimeFromHour" value="<%= filters.SendTimeFromHour %>" style="width:70px;" aria-label="Send time from"></div>
+          <div class="datetime" style="float:left;padding:3px;">～</div>
+          <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeTo" name="WhereData.SendTimeTo" value="<%= filters.SendTimeTo %>" style="width:90px;" onchange="webhookTimeInitTo()" aria-label="Send date to"></div>
+          <div style="float:left;padding:3px;"><input id="WhereData_SendTimeToHour" name="WhereData.SendTimeToHour" value="<%= filters.SendTimeToHour %>" style="width:70px;" aria-label="Send time to"></div>
+        </td></tr>
+        <tr><th scope="row"><label>Status <input type="checkbox" id="webhookStatusCheck" onclick="webhookCheckAll(this,'webhookLogStatus')"></label></th><td id="webhookLogStatus"><% for(const [key,label] of [['StatusSuccess','Succeeded to send'],['StatusFailure','Failed to send']]){ %><label><input type="checkbox" name="WhereData.<%= key %>" value="true"<%- checked(filters[key]) %>> <%= label %></label><input type="hidden" name="WhereData.<%= key %>" value="false"><% } %></td></tr>
+        <tr><th scope="row"><label>Notification type <input type="checkbox" id="webhookNotificationTypeCheck" onclick="webhookCheckAll(this,'webhookLogTypes')"></label></th><td id="webhookLogTypes"><% for(const [key,label] of notifyNames){const property='NotificationType'+({terminalapprove:'TerminalApprove',defapply:'DefApply',defremand:'DefRemand',defapprove:'DefApprove'}[key]||key[0].toUpperCase()+key.slice(1)); %><label><input type="checkbox" name="WhereData.<%= property %>" value="true"<%- checked(filters[property]) %>> <%= label %></label><input type="hidden" name="WhereData.<%= property %>" value="false"><% } %></td></tr>
+        <tr><th scope="row"><label for="WebhookTemplateName">Name of webhook</label></th><td><input id="WebhookTemplateName" name="WhereData.TemplateName" value="<%= filters.TemplateName %>"></td></tr>
+      </table>
+      <div style="text-align:right;"><input type="button" class="image-ok_btn" value="Search" onclick="webhookLogAction('SearchType')"></div>
+    </div>
+    <div class="toggle" role="button" tabindex="0" aria-expanded="true" aria-controls="resultList" onclick="webhookToggle(this,'resultList')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();webhookToggle(this,'resultList')}"><h2>▼SearchResult</h2></div>
+    <div id="resultList" style="overflow:auto;">
+      <div style="float:left;padding-bottom:8px;"><% if(wp.canSystemDelete){ %><div style="float:left;"><input type="button" value="" class="img_delete2" title="Delete" aria-label="Delete selected logs" onclick="webhookDeleteLogs()"></div><% } %><div style="float:left;padding-left:6px;"><input type="button" value="CSV" class="img_output_csv2" onclick="webhookLogAction('CsvType')"></div></div>
+      <%- include('webhook-log-pager',{wp,page,selected,base,selectId:'webhookLogPageSizeTop'}) %>
+      <% if(wp.limitOfDownloadCount>0){ %><div style="clear:left;padding-bottom:8px;">The maximum number to download once is <%= Number(wp.limitOfDownloadCount).toLocaleString('en-US') %>.</div><% } %>
+      <table class="GridCommon" border="0" cellspacing="1" id="sendLogDataTable">
+        <thead><tr><th scope="col" class="checkCol" style="width:20px;"><input type="checkbox" id="webhookLogSelectAll" aria-label="Select all logs"></th>
+          <% for(const [column,label] of [['inform_time','Send date and time'],['status','Status'],['notification_type','Notification type'],['webhook_id','Name of webhook'],['paramcontent','Parameter information'],['error_message','Contents of error']]){ %><th scope="col" class="<%= page.sortColumn===column?'sorting':'' %>"><span><%= label %></span><a href="#" class="sort <%= page.sortColumn===column?page.sortDirection.toLowerCase():'' %>" aria-label="Sort by <%= label %>" onclick="webhookSortLog('<%= column %>');return false;">sort</a></th><% } %><th scope="col"></th></tr></thead>
+        <tbody><% for(let i=0;i<logs.length;i++){const log=logs[i]; %><tr class="<%= i%2?'even':'odd' %>"><td class="CenterCol"><input type="checkbox" name="SendLogList[<%= i %>].IsSelect" value="true" aria-label="Select log <%= log.LogId %>"><input type="hidden" name="SendLogList[<%= i %>].LogId" value="<%= log.LogId %>"></td><td class="CenterCol"><%= log.InformTime %></td><td class="CenterCol"><%= log.Status %></td><td class="CenterCol"><%= log.NotificationType %></td><td class="CenterCol"><%= log.WebhookName %></td><td class="LeftCol" style="word-break:keep-all;overflow:hidden;"><% for(const [key,value] of log.Parameters){ %><div><% if(key){ %><%= key %>:<% } %><%= value %></div><% } %></td><td class="LeftCol"><%= log.ErrorMessage %></td><td class="CenterCol"><% if(wp.canSystemEdit){ %><input type="button" value="Resend" onclick="webhookResend('<%= log.LogId %>')"><% } %></td></tr><% } %></tbody>
+      </table>
+      <%- include('webhook-log-pager',{wp,page,selected,base,selectId:'webhookLogPageSize'}) %>
+    </div>
+  </form>
+</div></div>

@@ -1,0 +1,5 @@
+<form method="post" action="<%= root %>/Role"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="mode" value="<%= mode %>"><input type="hidden" name="Document.document_id" value="<%= document.document_id %>"><input type="hidden" name="detailsMode" value="<%= edit ? 'Edit' : 'Search' %>"><input type="hidden" name="ActionCommonType" value="PageType">
+<%- include('summary') %>
+<%- include('role-fields') %>
+<div class="manager-actions"><% if(edit && permissions.edit) { %><button class="image-ok_btn" type="submit" onclick="this.form.elements.ActionCommonType.value='SaveType'">Confirm</button><button class="image-cancel_btn" type="submit" onclick="this.form.elements.ActionCommonType.value='CancelType'">Cancel</button><% } else if(permissions.edit) { %><a class="img_edit2" title="Edit" aria-label="Edit" href="<%= root %>/Role?documentId=<%= document.document_id %>&mode=<%= mode %>&detailsMode=Edit"> </a><% } %></div>
+</form>

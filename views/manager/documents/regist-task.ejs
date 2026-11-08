@@ -1,0 +1,48 @@
+<% const record = state.record;
+const hidden = (name,value) => { %><input id="<%= name.replace(/\./g,'_') %>" name="<%= name %>" type="hidden" value="<%= value %>"><% };
+const text = (name,style = '',attrs = '') => { %><input id="SchData_<%= name %>" name="SchData.<%= name %>" type="text" value="<%= record[name] || '' %>" style="<%= style %>" <%- attrs %>><% };
+const textarea = (name,style,readonly = false) => { %><textarea cols="20" rows="2" id="SchData_<%= name %>" name="SchData.<%= name %>" style="<%= style %>"<% if (readonly) { %> readonly="readonly"<% } %>><%= record[name] || '' %></textarea><% };
+const validation = name => { %><span class="<%= error && errorField === name ? 'field-validation-error' : 'field-validation-valid' %>" data-valmsg-for="<%= name %>" data-valmsg-replace="true"><%= errorField === name ? error : '' %></span><% };
+const buttons = () => { %><p style="padding:0px 15px;"><input type="submit" value="<%= r.Fix %>" class="image-ok_btn" onclick="return checkSelectReportData('Submit');"><input type="button" value="<%= r.Cancel %>" class="image-cancel_btn" onclick="display('contentTask'); display('blankBox');"></p><% }; %>
+<script type="text/javascript"><%- js %></script>
+<form id="taskRegistForm" action="<%= base %>/Common/RegistTask" method="post" data-ajax="true" data-ajax-update="#contentTask">
+  <% hidden('__RequestVerificationToken',csrfToken); hidden('SchData.schedule_id',-1); hidden('SelectRepTask',state.reports); hidden('SelectDefTask',''); hidden('SchAction',''); hidden('CalActionParam',''); hidden('RequestKbn','0'); hidden('ReturnMonth',''); hidden('ReturnGroup',''); hidden('ReturnUser',''); hidden('ControllerName','InputReport'); hidden('SchUserId',''); hidden('RegistTackClosed',closed); %>
+  <div style="display:none;"><a id="go" rel="leanModal" name="popUpDialogForm" href="#popUpDialogForm"></a><a id="conmasCloseButton" class="modal_close" href="#"></a><a id="conmasCustomMenuDialog" name="conmasCustomMenuDialog" href="#popUpDialogForm"></a></div>
+  <div style="width:100%; height:100%;">
+    <div style="margin-left:5px; font-size:10pt; font-weight:bold;"><%= r.TaskRegistTitle %> <% validation('SelectRepTask'); %></div>
+    <% buttons(); %>
+    <span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="display('contentTask'); display('blankBox');"></span>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto;">
+      <tr><th scope="row"><% validation('SchData.start_date'); validation('SchData.FromTime'); %> <%= r.start_date %></th><td><div style="float:left;"><% text('start_date','','class="text-box single-line" onchange="toDateEvent(this.value);"'); %></div><div class="" style="float:left; z-index:300;"><% text('FromTime','width:50px;','onchange="toTimeEvent(this.value);"'); %></div></td></tr>
+      <tr><th scope="row"><% validation('SchData.end_date'); validation('SchData.ToTime'); %> <%= r.end_date %></th><td><div style="float:left;"><% text('end_date','','class="text-box single-line"'); %></div><div class=""><% text('ToTime','width:50px;'); %></div></td></tr>
+      <tr><th scope="row"><% validation('SchData.task_id'); %> <%= r.task_name %></th><td><% hidden('SchData.task_id',state.taskId); text('task_name','width:400px;',state.taskId>0 ? 'readonly="readonly"' : ''); %> <input id="searchTask" type="button" value="<%= r.Search %>" onclick="return true;"> <input id="clearTask" type="button" value="<%= r.Clear %>" onclick="taskClear(); return true;"></td></tr>
+      <tr><th scope="row"><%= r.task_remark %></th><td class="taskRemark"><% textarea('task_remark','width:95%',state.taskId>0); %></td></tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto;">
+      <tr>
+        <th scope="row" rowspan="2"><%= r.WorkingUser %></th>
+        <td style="width:228px;" rowspan="2"><div class="workingUser selectedGroupUser" style="height:174px;">
+          <% validation('SelectUsers'); %><select id="SelectUsers" name="SelectUsers" multiple="multiple" style="width:100%; height:100%; display:<%= state.users.length ? 'block' : 'none' %>;"><% for (const id of state.users) { const row = users.find(row=>row.user_id===id); %><option value="<%= id %>" selected="selected"><%= row?.user_name ?? id %></option><% } %></select>
+          <% validation('SelectGroups'); %><select id="SelectGroups" name="SelectGroups" multiple="multiple" style="width:100%; height:100%; display:<%= state.users.length ? 'none' : 'block' %>;"><% for (const id of state.groups) { const row = groups.find(row=>String(row.group_id)===id); %><option value="<%= id %>" selected="selected"><%= row?.group_name ?? id %></option><% } %></select>
+        </div></td>
+        <td style="width:10%; border-bottom-style:none;"><div class="workingUser addDeleteButton" style="text-align:center;"><input type="button" value="← <%= r.Add %>" class="addGroup" style="" onclick="addGroup(); return true;"> <input type="button" value="<%= r.Delete %> →" class="delGroup" style="" onclick="delGroup(); return true;"></div></td>
+        <td style="border-bottom-style:none; vertical-align:top;"><div class="workingUser chooseGroup"><span class="field-validation-valid" data-valmsg-for="GroupList" data-valmsg-replace="true"></span><select id="GroupList" name="SchGroupId" onchange="return submitActionComboCalFunc('GroupSelect');" style="width:179px;"><% for (const row of groups) { %><option value="<%= row.group_id %>"<% if (String(row.group_id)===state.group) { %> selected="selected"<% } %>><%= row.group_name %></option><% } %></select> <span><%= r.ChooseWorkingGroup %></span></div></td>
+      </tr>
+      <tr>
+        <td style="width:10%; border-top-style:none;"><div class="workingUser addDeleteButton" style="text-align:center;"><input type="button" value="← <%= r.Add %>" class="addUser" style="" onclick="addUser(); return true;"> <input type="button" value="<%= r.Delete %> →" class="delUser" style="" onclick="delUser(); return true;"></div></td>
+        <td style="border-top-style:none;"><div class="workingUser chooseUser"><div><input id="UserSearch" name="UserSearch" type="text" style="width:171px;" value="<%= state.search %>"> <input type="submit" value="<%= r.User %><%= r.Search %>" onclick="return submitActionFunc('UserSearch');"></div><div style="display:table;"><span class="field-validation-valid" data-valmsg-for="UserList" data-valmsg-replace="true"></span><select id="UserList" name="UserList" multiple="multiple" style="width:179px; height:86px;"><% for (const row of candidates) { %><option value="<%= row.user_id %>"><%= row.user_name %></option><% } %></select> <span style="display:table-cell; vertical-align:top; padding:6px 3px;"><%= r.ChooseWorkingUser %></span></div></div></td>
+      </tr>
+    </table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto;"><tr><th scope="row"><%= r.InputType %></th><td><input id="SchData_input_type" name="SchData.input_type" type="radio" value="false"<% if (!state.inputType) { %> checked="checked"<% } %>><%= r.YES_NO_STATE_NO %><input id="SchData_input_type" name="SchData.input_type" type="radio" value="true"<% if (state.inputType) { %> checked="checked"<% } %>><%= r.YES_NO_STATE_YES %></td></tr></table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto; display:none;"><tr><th scope="row"><%= r.ReportType %></th><td class="searchRepAndDef">
+      <input id="SchData_report_type" name="SchData.report_type" type="radio" value="false" checked="checked"><%= r.InputReport %><input id="SchData_report_type" name="SchData.report_type" type="radio" value="true"><%= r.DefinitionForm %>
+      <div><span class="rep" style=""><%= r.ConMasResource_RepTopId %>:</span><input id="SchData_rep_top_id" name="SchData.rep_top_id" type="text" class="rep" style="width:50px;" value=""><input id="SchData_rep_top_name" name="SchData.rep_top_name" type="text" class="rep" style="width:397px;" value=""><input class="rep" id="searchRepTop" type="button" value="<%= r.Search %>" onclick="return true;" style=""><span class="def" style="display:none;"><%= r.ConMasResource_DefTopId %>:</span><input id="SchData_def_top_id" name="SchData.def_top_id" type="text" class="def" style="width:50px;display:none;" value=""><input id="SchData_def_top_name" name="SchData.def_top_name" type="text" class="def" style="display:none;width:397px;" value=""><input class="def" id="searchDefTop" type="button" value="<%= r.Search %>" onclick="return true;" style="display:none;"></div>
+    </td></tr></table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto;">
+      <tr><th></th><th style="width:auto; text-align:center;"><%= r.CommentLabel %></th><th style="width:auto; text-align:center;"><%= r.CommentValue %></th></tr>
+      <% for (let i=1;i<=10;i++) { const name = i===1 ? 'order_comment' : i===2 ? 'work_comment' : 'Comment'+i; const field = i===1 ? 'order_comment' : i===2 ? 'work_comment' : 'comment_value'+i; %><tr><th scope="row"><%= r[name] %></th><td><% textarea('comment_label'+i,'width:90%'); %> </td><td><% textarea(field,'width:90%'); %></td></tr><% } %>
+    </table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto;"><tr><th scope="row"><%= r.AutoDownload %></th><td><input id="SchData_auto_download" name="SchData.auto_download" type="checkbox" value="true"<% if (state.autoDownload) { %> checked="checked"<% } %>><input name="SchData.auto_download" type="hidden" value="false"></td></tr></table>
+  </div>
+  <% buttons(); %>
+</form>

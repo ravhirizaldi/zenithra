@@ -1,0 +1,66 @@
+<script src="<%= base %>/Scripts/MicrosoftAjax.js?20250901-01" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/MicrosoftMvcAjax.js?20250901-01" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/jquery.unobtrusive-ajax.min.js?20250901-01" type="text/javascript"></script>
+<script type="text/javascript">
+  $.ajaxSetup({ cache: false });
+  $(function () {
+    $('#MainWrap').css('margin-left', $('#SideWrap').width());
+    $(window).on('resize', function () { $('#MainWrap').css('margin-left', $('#SideWrap').width()); });
+    $('#Labels').treeview({ collapsed: false, animated: 'medium', control: '#sidetreecontrol', persist: 'location' });
+    <% if (view === 'details') { %>
+      var act = $('#act').val(), mode = $('#mode').val();
+      $('#act, #mode').remove();
+      $('#content').load($(act === 'create' ? '#UrlCreate' : act === 'autoCreate' ? '#UrlAutoCreate' : act === 'autoEdit' ? '#UrlAutoEdit' : '#UrlEdit').attr('href'));
+    <% } else { %>var mode = $('#mode').val(); $('#mode').remove(); $('#content').load($('#' + mode + 'LabelLink').attr('href'));<% } %>
+    $('#' + mode + 'LabelLink').addClass('current');
+    $('#Labels li a').on('click', function () { $('#Labels li a').removeClass('current'); $(this).addClass('current'); });
+  });
+  function removeAt(deleteMessage) {
+    if (confirm('Delete label. Are you sure you want to delete it?\n' + deleteMessage.replace(/,/g, '\n'))) {
+      $('#act').val('DELETE_LABEL'); $('#conmasPageForm').trigger('submit');
+    }
+    return false;
+  }
+  function checkAll(obj, id) { $('#' + id + " input[type='checkbox']").prop('checked', $(obj).prop('checked')); displayAllRoleLegend(); }
+  function displayRoleLegend(indexNo) {
+    $('#legend' + indexNo).text($('#mst_label_GroupRolePages_' + indexNo + '__IsReferRole').val().toUpperCase() === 'TRUE' ? 'Available to refer' : 'No reference');
+  }
+  function displayAllRoleLegend() { for (var i = 0; i < $('#GruopRoleTable tbody tr').length - 1; i++) displayRoleLegend(i); }
+  function fConMasLabelSelectDisplay() {
+    $('#LinkLabelDialog').toggle();
+    if (!$('#conmasLabelSelectWindow').length) { $('#conmasSelectLabelId').val($('#mst_label_mst_label_id').val()); $('#formLabelSelectListView').trigger('submit'); }
+    $('#lean_overlay').css({ display: 'none' }); return false;
+  }
+  function onLabelSelect(val, valName) { $('#mst_label_upper_label_id').val(val); $('#parentLabelDisplay').text(val + ':' + valName); $('#LinkLabelDialog').hide(); }
+  function onClearUpperLabel() { $('#mst_label_upper_label_id').val('-1'); $('#parentLabelDisplay').text(''); }
+</script>
+<% if (view === 'details') { for (const [link, route, action] of [['UrlEdit', 'Edit', ''], ['UrlAutoEdit', 'Edit', 'autoEdit'], ['UrlCreate', 'Create', ''], ['UrlAutoCreate', 'Create', 'autoCreate']]) { %>
+  <a id="<%= link %>" href="<%= base %>/Label/<%= route %>?mode=<%= mode %>&amp;id=<%= id %>&amp;act=<%= action %>&amp;LabelPageIndex=<%= source.LabelPageIndex ?? 1 %>&amp;SearchLabelName=<%= encodeURIComponent(source.SearchLabelName ?? '') %>" style="display:none;"><%= route %></a>
+<% } %><input type="hidden" id="act" value="<%= act %>"><% } %>
+<input type="hidden" id="mode" value="<%= mode %>">
+<input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+<div id="MessageWrap"><% if (error) { %><div class="validation-summary-errors"><ul><li><%= error %></li></ul></div><% } %></div>
+<div id="Wrap">
+  <div id="SideWrap">
+    <% if (view === 'details') { %><div id="BackIndex"><a href="<%= base %>/Label?act=BACK_INDEX">BACK</a></div><% } %>
+    <div id="LabelSection"><ul id="Labels" class="treeview"><li><span>Label Manager</span><ul class="rank1">
+      <% const labelLink = (key, text, hidden = false) => { %><li<% if (hidden) { %> style="display:none;"<% } %>><a id="<%= key %>LabelLink" href="<%= base %>/Label<%= view === 'index' ? '/IndexList' : '' %>?mode=<%= key %>"<% if (view === 'index') { %> data-ajax="true" data-ajax-mode="replace" data-ajax-update="#content"<% } %>><%= text %></a></li><% }; %>
+      <% if (!freeDrawOnly) { labelLink('Def', 'Form'); labelLink('Rep', 'Documents'); } %>
+      <li><span>Document label</span><ul class="rank1">
+        <% labelLink('ComLIb', 'Common document'); if (!freeDrawOnly) labelLink('RepLIb', 'Documents by form'); labelLink('ImageLib', 'Image file for FreeDraw'); %>
+      </ul></li>
+      <% if (!freeDrawOnly) { %><li><span>Master Label</span><ul class="rank1"><% labelLink('ComMas', 'Custom master'); labelLink('RepMas', 'Master by document', true); %></ul></li><% } %>
+    </ul></li></ul></div>
+  </div>
+  <div id="MainWrap"><div id="content"></div></div>
+  <% if (view === 'details') { %>
+    <form method="post" action="<%= base %>/Common/LabelSelectListView?reportMode=<%= mode %>&amp;LabelSelectPageIndex=1&amp;InputType=button" data-ajax="true" data-ajax-mode="replace" data-ajax-update="#conmasLabelSelectListContent" id="formLabelSelectListView">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <div id="LinkLabelDialog" style="width:300px; height:480px; margin-top:0px;">
+        <a id="conmasCloseButton" class="modal_close" href="#" style="display:none;"></a>
+        <input type="hidden" id="conmasSelectLabelId" name="conmasSelectLabelId" value="">
+        <div class="DialogMargin"><div class="DialogTitle">Parent label <span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="fConMasLabelSelectDisplay();"></span></div><div id="conmasLabelSelectListContent"></div></div>
+      </div>
+    </form>
+  <% } %>
+</div>

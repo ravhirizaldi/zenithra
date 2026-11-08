@@ -1,0 +1,120 @@
+<script src="<%= base %>/Scripts/jquery.validate.min.js" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
+<% const p = meIdPage; const settings = p.settings; const systemRoot = base + '/System'; const hasValue = value => Boolean(value); const message = key => p.fieldErrors?.[key] ?? ''; %>
+<% if (p.mode === 'roleError') { %>
+  <p class="login-error" role="alert"><%= p.errors?.[0] ?? 'Role authority is insufficient.' %></p>
+<% } else { %>
+  <div id="MessageWrap" class="PartialViewMessage" role="alert">
+    <% if (p.errors?.length) { %><ul><% p.errors.forEach(error => { %><li><%= error %></li><% }); %></ul><% } %>
+  </div>
+
+  <% if (p.mode === 'details') { %>
+    <div id="DetailTop">
+      <span id="infoTitle">Microsoft Entra ID Linkage Setting</span>
+      <span id="functionBar">
+        <% if (p.canEdit) { %>
+          <button class="img_edit" type="submit" form="MeIdSettingForm" name="act" value="edit" title="Edit" aria-label="Edit" style="background-color:transparent" onclick="if (document.getElementById('Enable').value === 'true') { alert('Cannot Edit due to Switched.'); return false; }"> </button>
+        <% } %>
+      </span>
+    </div>
+    <form id="MeIdSettingForm" method="post" action="<%= systemRoot %>/DetailsMeIdSetting">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" id="Enable" name="Enable" value="<%= p.enable ? 'true' : 'false' %>">
+      <div id="DetailSection"><div class="info">
+        <div class="toggle" role="button" tabindex="0" aria-controls="appSetting" aria-expanded="true" onclick="fConMasToggle('appSetting');this.setAttribute('aria-expanded',String(getComputedStyle(document.getElementById('appSetting')).display!=='none'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <h2 style="margin-top:5px; margin-bottom:10px">▼Setting for i-Reporter application</h2>
+        </div>
+        <div id="appSetting">
+          <p style="font-size:12px;margin-left:14px">Setting for mobile and desktop apps (i-Reporter app, Designer, i-Repo FreeDraw) that use the ConMas server.</p>
+          <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+            <tr><th scope="row" style="width:230px;">Client ID</th><td><%= settings.AppClientId %></td></tr>
+            <tr><th scope="row">Tenant ID</th><td><%= settings.AppTenantId %></td></tr>
+            <tr><th scope="row">Microsoft Entra ID SSO permission</th><td><%= settings.AppAllowSso === 1 ? 'Allowed' : 'Not allowed' %></td></tr>
+          </table>
+        </div>
+
+        <div class="toggle" role="button" tabindex="0" aria-controls="managerSetting" aria-expanded="true" onclick="fConMasToggle('managerSetting');this.setAttribute('aria-expanded',String(getComputedStyle(document.getElementById('managerSetting')).display!=='none'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <h2 style="margin-top:5px; margin-bottom:10px">▼Setting for ConMas Manager</h2>
+        </div>
+        <div id="managerSetting">
+          <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+            <tr><th scope="row" style="width:230px;">Client ID</th><td><%= settings.ManagerClientId %></td></tr>
+            <tr><th scope="row">Tenant ID</th><td><%= settings.ManagerTenantId %></td></tr>
+            <tr><th scope="row">Microsoft Entra ID SSO permission</th><td><%= settings.ManagerAllowSso === 1 ? 'Allowed' : 'Not allowed' %></td></tr>
+            <tr><th scope="row">Redirection URL (automatically generated if it's unspecified)</th><td><%= settings.ManagerRedirectUri %></td></tr>
+          </table>
+        </div>
+
+        <div class="toggle" role="button" tabindex="0" aria-controls="switchingSetting" aria-expanded="true" onclick="fConMasToggle('switchingSetting');this.setAttribute('aria-expanded',String(getComputedStyle(document.getElementById('switchingSetting')).display!=='none'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <h2 style="margin-top:5px; margin-bottom:10px">▼Switching Setting</h2>
+        </div>
+        <div id="switchingSetting">
+          <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+            <tr><th scope="row" style="width:230px;">Switch to Microsoft Entra ID login</th><td><%= p.enable ? 'Switched' : 'Not switched' %></td></tr>
+            <tr>
+              <th scope="row">Microsoft User for conmasadmin</th>
+              <td>
+                <% if (hasValue(p.adminMsUser)) { %><%= p.adminMsUser %><% } else { %><span style="color:gray">ME-ID User Principal Name of conmasadmin user is automatically registered upon successful switch to Microsoft authentication</span><% } %>
+                <% if (p.canEdit && p.enable && hasValue(p.adminMsUser)) { %>
+                  <button type="submit" name="act" value="changeUser" style="cursor:pointer" onclick="alert('Please login with the Microsoft Entra ID user associated with the conmasadmin user.')">To Change</button>
+                <% } else { %>
+                  <button type="button" disabled>To Change</button>
+                <% } %>
+              </td>
+            </tr>
+          </table>
+        </div>
+        <p>
+          <% if (p.canEdit && !p.enable && hasValue(settings.AppClientId) && hasValue(settings.AppTenantId) && hasValue(settings.ManagerClientId) && hasValue(settings.ManagerTenantId)) { %>
+            <button type="submit" name="act" value="apply" class="conmas_link_button_blue" style="cursor:pointer" onclick="alert('Please login with the Microsoft Entra ID user associated with the conmasadmin user.'+'Use the Microsoft Entra ID user that is dedicated to the conmasadmin user. You may need to log in again after the switchover is complete.')">Switch to Microsoft Entra ID login</button>
+          <% } else { %>
+            <button type="button" disabled>Switch to Microsoft Entra ID login</button>
+          <% } %>
+          <% if (p.canEdit && p.enable) { %>
+            <button type="submit" name="act" value="rescission" class="conmas_link_button_custom" onclick="return confirm('Are you sure you want to switch back to the standard login?')">Switch back to standard login</button>
+          <% } else { %>
+            <button type="button" disabled>Switch back to standard login</button>
+          <% } %>
+        </p>
+      </div></div>
+    </form>
+  <% } else { %>
+    <div id="DetailTop"><span id="infoTitle">Microsoft Entra ID Linkage Setting</span><span id="functionBar"></span></div>
+    <form id="MeIdSettingForm" method="post" action="<%= systemRoot %>/EditMeIdSetting">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <div id="DetailSection"><div class="info">
+        <div class="toggle" role="button" tabindex="0" aria-controls="appSetting" aria-expanded="true" onclick="fConMasToggle('appSetting');this.setAttribute('aria-expanded',String(getComputedStyle(document.getElementById('appSetting')).display!=='none'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <h2 style="margin-top:5px; margin-bottom:10px">▼Setting for i-Reporter application</h2>
+        </div>
+        <div id="appSetting">
+          <p style="font-size:12px;margin-left:14px">Setting for mobile and desktop apps (i-Reporter app, Designer, i-Repo FreeDraw) that use the ConMas server.</p>
+          <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+            <tr><th scope="row"><label for="AppClientId">Client ID</label></th><td><input id="AppClientId" name="AppClientId" class="EditValue1" value="<%= settings.AppClientId %>"><% if (message('AppClientId')) { %> <span class="field-validation-error" role="alert"><%= message('AppClientId') %></span><% } %></td></tr>
+            <tr><th scope="row"><label for="AppTenantId">Tenant ID</label></th><td><input id="AppTenantId" name="AppTenantId" class="EditValue1" value="<%= settings.AppTenantId %>"><% if (message('AppTenantId')) { %> <span class="field-validation-error" role="alert"><%= message('AppTenantId') %></span><% } %></td></tr>
+            <tr><th scope="row">Microsoft Entra ID SSO permission</th><td>
+              <label><input type="radio" name="AppAllowSso" value="0" <%= settings.AppAllowSso === 0 ? 'checked' : '' %>>Not allowed</label><br>
+              <label><input type="radio" name="AppAllowSso" value="1" <%= settings.AppAllowSso === 1 ? 'checked' : '' %>>Allowed</label>
+              <% if (message('AppAllowSso')) { %><div style="margin-left:4px;" class="field-validation-error" role="alert"><%= message('AppAllowSso') %></div><% } %>
+            </td></tr>
+          </table>
+        </div>
+        <div class="toggle" role="button" tabindex="0" aria-controls="managerSetting" aria-expanded="true" onclick="fConMasToggle('managerSetting');this.setAttribute('aria-expanded',String(getComputedStyle(document.getElementById('managerSetting')).display!=='none'))" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();this.click();}">
+          <h2 style="margin-top:5px; margin-bottom:10px">▼Setting for ConMas Manager</h2>
+        </div>
+        <div id="managerSetting">
+          <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+            <tr><th scope="row"><label for="ManagerClientId">Client ID</label></th><td><input id="ManagerClientId" name="ManagerClientId" class="EditValue1" value="<%= settings.ManagerClientId %>"><% if (message('ManagerClientId')) { %> <span class="field-validation-error" role="alert"><%= message('ManagerClientId') %></span><% } %></td></tr>
+            <tr><th scope="row"><label for="ManagerTenantId">Tenant ID</label></th><td><input id="ManagerTenantId" name="ManagerTenantId" class="EditValue1" value="<%= settings.ManagerTenantId %>"><% if (message('ManagerTenantId')) { %> <span class="field-validation-error" role="alert"><%= message('ManagerTenantId') %></span><% } %></td></tr>
+            <tr><th scope="row">Microsoft Entra ID SSO permission</th><td>
+              <label><input type="radio" name="ManagerAllowSso" value="0" <%= settings.ManagerAllowSso === 0 ? 'checked' : '' %>>Not allowed</label><br>
+              <label><input type="radio" name="ManagerAllowSso" value="1" <%= settings.ManagerAllowSso === 1 ? 'checked' : '' %>>Allowed</label>
+              <% if (message('ManagerAllowSso')) { %><div style="margin-left:4px;" class="field-validation-error" role="alert"><%= message('ManagerAllowSso') %></div><% } %>
+            </td></tr>
+            <tr><th scope="row"><label for="ManagerRedirectUri">Redirection URL (automatically generated if it's unspecified)</label></th><td><input id="ManagerRedirectUri" name="ManagerRedirectUri" class="EditValue1" value="<%= settings.ManagerRedirectUri %>"></td></tr>
+          </table>
+        </div>
+        <p><button type="submit" class="image-ok_btn">Fix</button> <a id="image-cancel_btn" class="image-cancel_label" href="<%= systemRoot %>/DetailsMeIdSetting">Cancel</a></p>
+      </div></div>
+    </form>
+  <% } %>
+<% } %>

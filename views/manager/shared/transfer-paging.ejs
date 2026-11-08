@@ -1,0 +1,8 @@
+<div class="PageSection">
+  Displayed number <select name="PageSize" aria-label="Displayed number" onchange="<%= pageFunction %>(0)"><% for (const size of [...new Set([10,20,50,100,list.size])].sort((a,b)=>a-b)) { %><option value="<%= size %>" <%= list.size === size ? 'selected' : '' %>><%= size %></option><% } %></select>
+  <% if (list.index > 0) { %><a href="#" onclick="<%= pageFunction %>(0);return false;">First</a><% } %>
+  <button type="button" class="img_page_prev_<%= list.index > 0 ? 'e' : 'd' %>" title="Previous page" aria-label="Previous page" onclick="<%= pageFunction %>(<%= Math.max(0,list.index-1) %>)" <%= list.index === 0 ? 'disabled' : '' %>> </button>
+  <%= list.index+1 %> / <%= list.pages %> (<%= list.total %>)
+  <button type="button" class="img_page_next_<%= list.index < list.pages-1 ? 'e' : 'd' %>" title="Next page" aria-label="Next page" onclick="<%= pageFunction %>(<%= Math.min(list.pages-1,list.index+1) %>)" <%= list.index >= list.pages-1 ? 'disabled' : '' %>> </button>
+  <% if (list.index < list.pages-1) { %><a href="#" onclick="<%= pageFunction %>(<%= list.pages-1 %>);return false;">Last</a><% } %>
+</div>

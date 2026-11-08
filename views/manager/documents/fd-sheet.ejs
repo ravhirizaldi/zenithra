@@ -1,0 +1,20 @@
+<script type="text/javascript">
+  $(function () {
+    $('#MessageWrap .PartialViewMessage').empty();
+    if ($('.PartialViewMessage li').length === 1 && $('.PartialViewMessage li').css('display') === 'none') $('.PartialViewMessage').css('display','none');
+    else $('.PartialViewMessage').appendTo('#MessageWrap');
+  });
+</script>
+<div class="PartialViewMessage"><div class="validation-summary-valid"><ul><li style="display:none"></li></ul></div></div>
+<div id="DetailTop"><span id="infoTitle"><%= r.DefReportResource_reportName %> : <%= name %></span></div>
+<div id="DetailSection"><div class="info">
+  <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td id="previewLeftTop"><br></td><td rowspan="2" id="previewImage"><embed src="<%= base %>/InputReport/GetFdPdf?repTopId=<%= repTopId %>&amp;fdSheetNo=<%= fdSheetNo %>" alt="[pdf]" width="100%" height="100%"></td><td id="previewRightTop"><br></td></tr></table>
+  <div class="toggle" onclick="fConMasToggle('ImageList');"><h2>▼<%= r.InnerImageInfo %></h2></div>
+  <div id="ImageList"><table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col"><%= r.MenuImage %></th><th scope="col"><%= r.LocationInfo %></th></tr>
+    <% for (const image of images) { const url=base+'/InputReport/GetIrfdImage?'+new URLSearchParams({repTopId:String(repTopId),fdSheetNo:String(fdSheetNo),pageNumber:String(image.pageNumber),format:image.format,name:image.name}).toString(); %>
+      <tr><td style="text-align:center;"><a href="<%= url %>"><%= r.Download %></a><br><br><img src="<%= url %>&amp;isResize=true"></td><td><% if (image.location) { %><div><%= r.gps_lat %>:<%= image.location.latitude %></div><div><%= r.gps_lon %>:<%= image.location.longitude %></div><div><%= r.gps_alt %>:<%= image.location.altitude %></div><input type="button" value="Map" onclick="linkGMapl(<%= image.location.latitude %>,<%= image.location.longitude %>);"><% } %></td></tr>
+    <% } %>
+  </table></div>
+  <div class="toggle" onclick="fConMasToggle('TextList');"><h2>▼<%= r.TextInfo %></h2></div>
+  <div id="TextList"><table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col"><%= r.TextContent %></th></tr><% for (const text of texts) { %><tr><td><pre style="margin:0;font:inherit"><%= text %></pre></td></tr><% } %></table></div>
+</div></div>

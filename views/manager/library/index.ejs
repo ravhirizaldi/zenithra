@@ -1,0 +1,89 @@
+<% const dateText = value => value ? new Date(value).toISOString().slice(0,16).replace('T',' ').replaceAll('-','/') : ''; const root = `${base}/Library`; const selectedLabel = view === 'index' ? String(input.LabelID || 'All') : ''; %>
+<script src="<%= base %>/Scripts/MicrosoftAjax.js?20250901-01"></script>
+<script src="<%= base %>/Scripts/MicrosoftMvcAjax.js?20250901-01"></script>
+<script src="<%= base %>/Scripts/jquery.unobtrusive-ajax.min.js?20250901-01"></script>
+<%- include('../shared/transfer-layout') %>
+<div id="MessageWrap"><% if (error) { %><ul class="validation-summary-errors" role="alert"><li><%= error %></li></ul><% } %></div>
+<div id="Wrap" class="manager-transfer-workspace<%= view === 'index' ? ' manager-index-workspace' : '' %>">
+  <div id="SideWrap" style="width:<%= view === 'index' ? 300 : 270 %>px;">
+    <% if (view === 'index') { %>
+      <div style="padding:5px;text-align:center;font-size:9pt;">
+        <% for (const [key,title] of [['ComLIb','Common'],['RepLIb','By document'],['ImageLib','Image file for FreeDraw']]) { if (freeDrawOnly && key === 'RepLIb') continue; %>
+          <a class="<%= key === mode ? 'tabButtonSelect' : 'tabButtonNormal' %>" href="<%= root %>?mode=<%= key %>"><%= title %></a>
+        <% } %>
+      </div>
+      <div id="LabelSection"><%- include('../shared/transfer-labels', { selectedLabel, labelHref: `${root}?mode=${mode}&Act=BACK_INDEX&LabelID=` }) %></div>
+      <div id="labelControl" style="text-align:center;font-size:9pt;">
+        <% const labelAccess = typeof labelPermissions === 'undefined' ? null : labelPermissions; const selectedId = /^\d+$/.test(selectedLabel) ? Number(selectedLabel) : -1; %>
+        <form id="labelForm" method="post" action="<%= root %>">
+          <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="mode" value="<%= mode %>"><input type="hidden" name="LabelID" value="<%= selectedLabel %>"><input type="hidden" name="LabelSelectID" value="<%= selectedId %>"><input type="hidden" name="LabelAct" value="LABEL_MANAGEMENT_ADD">
+          <% if (labelAccess?.create) { %><a rel="leanModal" class="button_custom" href="#labelManagementForm">Label Issue</a><% } %>
+          <% if (labelAccess?.delete) { %><button type="submit" class="button_cancel_custom" formnovalidate <%= selectedId > 0 ? '' : 'disabled' %> onclick="if(!confirm('Delete the selected label and its descendants?'))return false;this.form.elements.LabelAct.value='LABEL_MANAGEMENT_DELETE';">Label Delete</button><% } %>
+          <% if (labelAccess?.create) { %><div id="labelManagementForm" role="region" aria-label="Label Issue" style="text-align:left;">
+            <div style="text-align:right;"><button type="button" class="modal_close DialogClose" aria-label="Close label creation"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt=""></button></div>
+            <div class="label_create_label">Label Issue</div>
+            <div class="DialogLabel"><label for="LibraryLabelName">Label name</label></div><div class="DialogField"><input type="text" id="LibraryLabelName" name="mst_label.label_name" class="EditValue1" required></div>
+            <div class="DialogLabel"><label for="LibraryLabelRemarks">Remarks</label></div><div class="DialogField"><input type="text" id="LibraryLabelRemarks" name="mst_label.label_remarks" class="EditValue1"></div>
+            <ul class="Side"><% for (let icon=1;icon<=10;icon++) { %><li><label><input type="radio" name="mst_label.label_icon_id" value="<%= icon %>" <%= icon===1 ? 'checked' : '' %>><img class="labelPictureSize" src="<%= base %>/Content/ConMas/images/function/label_icon_<%= icon %>.png" alt="Icon <%= icon %>"></label></li><% } %></ul>
+            <div class="manager-actions" style="clear:both;"><button type="submit" class="button_custom" name="LabelCreateMode" value="0">Create label as the same hierarchy of selected one.</button><button type="submit" class="button_custom" name="LabelCreateMode" value="1" <%= selectedId > 0 ? '' : 'disabled' %>>Create label under the hierarchy of selected one.</button><button type="button" class="button_cancel_custom modal_close">Cancel</button></div>
+          </div><% } %>
+        </form>
+      </div>
+    <% } else { %>
+      <div id="BackIndex"><a href="<%= root %>?mode=<%= mode %>&Act=BACK_INDEX">BACK</a></div>
+      <div id="LabelSection"><ul id="Labels" class="treeview">
+        <% for (const [action,title] of [['Details',mode === 'ImageLib' ? 'Image file for FreeDrawInformation' : 'ReferDocumentInformation'],['Role','Authority'],['Log','View records'],['Image','Related images'],['IrfdHistory','i-Repo FreeDraw history']]) { if (create && action !== 'Details' || (!fd || !permissions.read) && ['Image','IrfdHistory'].includes(action)) continue; %>
+          <li><a class="<%= (view === 'details' || view === 'info') && action === 'Details' || view === 'role' && action === 'Role' || view === 'log' && action === 'Log' || view === 'history' && action === 'IrfdHistory' || view === 'images' && action === 'Image' ? 'current' : '' %>" href="<%= root %>/<%= action %>?mode=<%= mode %>&documentId=<%= document.document_id %>&detailsMode=<%= create ? 'Create' : 'Search' %>"><%= title %></a></li>
+        <% } %>
+      </ul></div>
+    <% } %>
+  </div>
+  <div id="MainWrap"><div id="content">
+    <% if (view === 'index') { %>
+      <form id="ConMasForm" method="post" action="<%= root %>/IndexList">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="mode" value="<%= mode %>">
+        <input type="hidden" name="Act" id="Act"><input type="hidden" name="LabelID" value="<%= input.LabelID || '' %>">
+        <input type="hidden" name="ChkDefTopID" id="ChkDefTopID"><input type="hidden" name="ChkLinkLabelID" id="ChkLinkLabelID">
+        <div id="Filters"><ul id="FiltersUl">
+          <li><select name="UseEndDate" aria-label="Expiration" onchange="libraryPage(0)"><% for (const [key,title] of [['','Indicate including expired one.'],['0','Not indicate expired one.'],['2','Indicate only expired one.']]) { %><option value="<%= key %>" <%= String(input.UseEndDate || '') === key ? 'selected' : '' %>><%= title %></option><% } %></select></li>
+          <% if (mode === 'ImageLib') { %><li><label><input type="checkbox" name="IstTumbnail" value="true" onchange="libraryPage(0)" <%= input.IstTumbnail === 'true' ? 'checked' : '' %>>Thumbnail view</label></li><% } %>
+          <% if (permissions.create) { %><li><a class="img_add" aria-label="Add" title="Add" href="<%= root %>/Details?documentId=-1&mode=<%= mode %>&detailsMode=Create&isFirst=true"> </a></li><% } %>
+          <li><a class="img_search" title="Search" aria-label="Search" href="#SearchDialog" onclick="$('#SearchDialog').toggle();return false;"> </a></li>
+          <% if (permissions.edit) { %><li><a class="img_label" title="Add label" aria-label="Add label" href="#LinkLabelDialog" onclick="$('#LinkLabelDialog').toggle();return false;"> </a></li><% } %>
+          <% if (permissions.delete) { %><li><button class="img_delete" title="Delete" aria-label="Delete" type="button" onclick="if(confirm('Delete selected documents?')) libraryAction('DELETE_DOCUMENT');"> </button></li><% } %>
+        </ul></div>
+        <div id="SearchDialog" role="region" aria-label="Search" style="display:none;"><div class="DialogMargin"><div class="DialogTitle">Search<button type="button" class="DialogClose" aria-label="Close search" onclick="$('#SearchDialog').hide();"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt=""></button></div>
+          <% for (const [key,title] of [['SearchDocumentName','Name'],['SearchRemarks','Remarks'],['SearchRegistUser','Registrant'],['SearchUpdateUser','Last updated by'],...(mode === 'RepLIb' ? [['SearchDefTopId','Form ID'],['SearchDefTopName','Form name'],['SearchRepTopId','Document ID'],['SearchRepTopName','Form name']] : []),...(mode === 'ComLIb' ? [['SearchIrfdText','FreeDraw text']] : [])]) { %>
+            <div class="DialogLabel"><label for="<%= key %>"><%= title %></label></div><div class="DialogField"><input type="text" id="<%= key %>" name="<%= key %>" value="<%= input[key] || '' %>"></div>
+          <% } %>
+          <% for (const [prefix,title] of [['SearchRegist','Registered'],['SearchUpdate','Updated']]) { %><div class="DialogLabel"><%= title %> date</div><div class="DialogField manager-date-range"><input type="text" data-manager-date aria-label="<%= title %> from" name="<%= prefix %>TimeFrom" value="<%= input[prefix+'TimeFrom'] || '' %>" placeholder="yyyy/MM/dd"> - <input type="text" data-manager-date aria-label="<%= title %> to" name="<%= prefix %>TimeTo" value="<%= input[prefix+'TimeTo'] || '' %>" placeholder="yyyy/MM/dd"></div><% } %>
+          <% for (const [key,title,choices] of [['SearchMobileSave','Save on device',[['','All'],['1','Yes'],['0','No']]],['SearchSaveKbn','Storage',[['','All'],['0','File'],['1','URL'],['2','FreeDraw']]]]) { %><div class="DialogLabel"><label for="<%= key %>"><%= title %></label></div><div class="DialogField"><select id="<%= key %>" name="<%= key %>"><% for(const [value,text] of choices) { %><option value="<%= value %>" <%= String(input[key] || '') === value ? 'selected' : '' %>><%= text %></option><% } %></select></div><% } %>
+          <div class="manager-actions"><button type="submit" class="image-ok_btn">Search</button><button type="button" class="image-cancel_btn" onclick="$('#SearchDialog').hide();">Close</button></div>
+        </div></div>
+        <div id="LinkLabelDialog" role="region" aria-label="Add label" style="display:none;"><div class="DialogMargin"><div class="DialogTitle">Add label<button type="button" class="DialogClose" aria-label="Close labels" onclick="$('#LinkLabelDialog').hide();"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt=""></button></div><ul><% for (const label of labels) { %><li><label><input type="checkbox" class="library-link-label" value="<%= label.mst_label_id %>"><%= label.label_name_path %></label></li><% } %></ul><select name="LinkLabelStatus" aria-label="Label action"><option value="add">Add</option><option value="delete">Remove</option></select><button type="button" class="button_custom" onclick="libraryAction('LINK_LABEL');">Apply</button></div></div>
+        <div id="IndexList"><%- include('list', { base,mode,permissions,input,csrfToken,list,error:'' }) %></div>
+      </form>
+    <% } else { %>
+      <div id="DetailSection"><div class="info"><div class="manager-detail-heading"><span id="infoTitle"><%= view === 'role' ? 'Another group permission settings' : view === 'log' ? 'View recordsInformation' : view === 'history' ? 'i-Repo FreeDraw historyInformation' : view === 'images' ? 'Related imagesInformation' : mode === 'ImageLib' ? 'Image file for FreeDrawInformation' : 'ReferDocumentInformation' %></span></div>
+        <% if (view === 'details' || view === 'info') { %><%- include('detail', { root, dateText }) %>
+        <% } else if (view === 'role') { %><%- include('role', { root }) %>
+        <% } else if (view === 'history' || view === 'images') { %>
+          <%- include('images', { root, dateText }) %>
+        <% } else if (view === 'log') { %>
+          <%- include('summary', { root }) %>
+          <form method="post" class="manager-actions"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="mode" value="<%= mode %>"><input type="hidden" name="Document.document_id" value="<%= document.document_id %>"><select name="WhereData.LogKbn" aria-label="History type"><option value="0">Download history</option><option value="1" <%= input['WhereData.LogKbn'] === '1' ? 'selected' : '' %>>Reference history</option></select><button class="button_custom">Search</button></form><div class="manager-grid-scroll" tabindex="0" role="region" aria-label="Document history">
+          <table class="GridCommon" cellspacing="1"><tr><th>Date</th><th>User</th><th>Device</th><th>Latitude</th><th>Longitude</th><th>Altitude</th></tr><% for (const row of rows) { %><tr><td><%= dateText(row.log_date) %></td><td><%= row.log_user_name || row.log_user %></td><td><%= row.log_term_name || row.log_term %></td><td><%= row.log_gps_lat %></td><td><%= row.log_gps_lon %></td><td><%= row.log_gps_alt %></td></tr><% } %></table>
+          </div>
+        <% } %>
+      </div></div>
+    <% } %>
+  </div></div>
+</div>
+<div id="popUpDialogForm"><div id="contentPop"></div></div><div id="popUpDialogForm2"><div id="contentListView"></div></div>
+<script>
+  $(function(){ $('#labelControl a[rel=leanModal]').leanModal({top:140,closeButton:'.modal_close'}); });
+  function libraryAction(action) { $('#Act').val(action); $('#ChkDefTopID').val($('.library-select:checked').map(function(){return this.value;}).get().join(',')); $('#ChkLinkLabelID').val($('.library-link-label:checked').map(function(){return this.value;}).get().join(',')); $('#ConMasForm').trigger('submit'); }
+  function libraryPage(index) { $('#PageIndex').val(index); libraryAction('PAGE'); }
+  function librarySort(column) { $('#SortDirection').val($('#SortColumn').val() === column && $('#SortDirection').val() === 'ASC' ? 'DESC' : 'ASC'); $('#SortColumn').val(column); libraryPage(0); }
+  $(function(){ $('#ConMasForm').on('submit',function(e){ e.preventDefault(); var form=$(this); $.ajax({url:form.attr('action'),type:'POST',data:form.serialize(),success:function(html){$('#IndexList').html(html);},error:function(xhr){$('#MessageWrap').text(xhr.status === 403 ? 'Role authority is insufficient.' : 'Request failed.');},complete:function(){$('#Act').val('');}}); }); });
+</script>

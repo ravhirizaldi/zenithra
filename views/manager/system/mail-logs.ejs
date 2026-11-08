@@ -1,0 +1,207 @@
+<% const page = mailLogPage; const root = `${base}/System`; %>
+<script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js"></script>
+<script src="<%= base %>/Scripts/jquery.ui.datepicker-ja.js"></script>
+<script src="<%= base %>/Scripts/jquery.ui.datepicker-en.js"></script>
+<script src="<%= base %>/Scripts/jquery.ui.datepicker-en-GB.js"></script>
+<script src="<%= base %>/Scripts/jquery.blockUI.js"></script>
+<script src="<%= base %>/Scripts/jquery.timepicker.js"></script>
+<script src="<%= base %>/Scripts/conmas.paging.action.js"></script>
+<script src="<%= base %>/Scripts/conmas.paging.sort.js"></script>
+<script>
+  function browserLanguage() {
+    try {
+      const language = navigator.userLanguage || navigator.browserLanguage || navigator.language || 'en';
+      return language.substr(0, 2);
+    } catch {
+      return undefined;
+    }
+  }
+  $(function () {
+    $('#ActionCommonType').val('');
+    $(document).ajaxStop($.unblockUI);
+    $('#MainWrap').css('margin-left', $('#SideWrap').width());
+    $(window).on('resize', function () {
+      $('#MainWrap').css('margin-left', $('#SideWrap').width());
+    });
+    $('#WhereData_SendTimeFromHour, #WhereData_SendTimeToHour').timepicker({ timeFormat: 'H:i:s' });
+    $('#Labels').treeview({ collapsed: false, animated: 'medium', control: '#sidetreecontrol', persist: 'location' });
+    window.scrollBy(0, document.cookie);
+    document.cookie = 0;
+    $(document).on('mousedown', '.datetime input', function () {
+      $(this).datepicker($.datepicker.regional[browserLanguage()]);
+    });
+    $('#WhereData_SendTimeFrom').on('change', function () {
+      if ($(this).val() && !$('#WhereData_SendTimeFromHour').val()) $('#WhereData_SendTimeFromHour').val('00:00:00');
+    });
+    $('#WhereData_SendTimeTo').on('change', function () {
+      if ($(this).val() && !$('#WhereData_SendTimeToHour').val()) $('#WhereData_SendTimeToHour').val('00:00:00');
+    });
+    $('#csvBtn').on('click', function (event) {
+      event.preventDefault();
+      fConMasSetAction('CsvType');
+      $('#conmasPageForm').trigger('submit');
+    });
+    fConMasCheckDefault();
+  });
+
+  function fConMasSetAction(actionType) {
+    $('#ActionCommonType').val(actionType);
+  }
+  function fConMasSetScroll() {
+    document.cookie = document.documentElement.scrollTop || document.body.scrollTop;
+  }
+  function fConMasCheckAll(obj, id) {
+    $('#' + id + " input[type='checkbox']").prop('checked', $(obj).prop('checked'));
+  }
+  function fConMasCheckDefault() {
+    if ($('#whereDataStatus input[type="checkbox"]').length === $('#whereDataStatus input[type="checkbox"]:checked').length) $('#statusCheck').prop('checked', true);
+    if ($('#whereDataNotificationType input[type="checkbox"]').length === $('#whereDataNotificationType input[type="checkbox"]:checked').length) $('#notificationTypeCheck').prop('checked', true);
+    $('#sendLogDataTable input[type="checkbox"]').prop('checked', false);
+    $('#resendLogId').val('');
+  }
+  function resend(logId) {
+    if (!confirm('Is it ok to resend?')) return false;
+    $('#resendLogId').val(logId);
+    fConMasLockView();
+  }
+  function deleteLog() {
+    if ($('#sendLogDataTable input[type="checkbox"]:checked').length === 0) {
+      alert('Please check on the target logs to be deleted');
+      return false;
+    }
+    if (!confirm('Delete the checked logs. Contine?')) return false;
+    fConMasSetAction('DeleteType');
+  }
+</script>
+
+<div id="MessageWrap">
+  <% if (page.errorMessage) { %><div class="PartialViewMessage" role="alert"><ul><li><%= page.errorMessage %></li></ul></div><% } %>
+</div>
+<div id="DetailTop"><span id="infoTitle">E-mail transmission history</span></div>
+<div id="DetailSection">
+  <div class="info">
+    <form method="post" action="<%= root %>/MailSendLog" enctype="multipart/form-data" id="conmasPageForm" onsubmit="fConMasSetScroll();">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" id="ActionCommonType" name="ActionCommonType" value="">
+      <input type="hidden" id="resendLogId" name="resendLogId" value="">
+
+      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2 style="margin-top:5px;">▼SearchConditions</h2></div>
+      <div id="SearchLogLibraryBox">
+        <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+          <tr>
+            <th scope="row">Send date and time</th>
+            <td>
+              <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeFrom" name="WhereData.SendTimeFrom" value="<%= page.filters.sendTimeFrom %>" style="width:90px;"></div>
+              <div style="float:left;padding:3px;"><input id="WhereData_SendTimeFromHour" name="WhereData.SendTimeFromHour" value="<%= page.filters.sendTimeFromHour %>" style="width:70px;"></div>
+              <div class="datetime" style="float:left;padding:3px;">～</div>
+              <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeTo" name="WhereData.SendTimeTo" value="<%= page.filters.sendTimeTo %>" style="width:90px;"></div>
+              <div style="float:left;padding:3px;"><input id="WhereData_SendTimeToHour" name="WhereData.SendTimeToHour" value="<%= page.filters.sendTimeToHour %>" style="width:70px;"></div>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><label>Status <input type="checkbox" id="statusCheck" name="statusCheck" value="" onclick="fConMasCheckAll(this, 'whereDataStatus');"></label></th>
+            <td id="whereDataStatus">
+              <label><input type="hidden" name="WhereData.StatusSuccess" value="false"><input type="checkbox" name="WhereData.StatusSuccess" value="true" <%= page.filters.statusSuccess ? 'checked' : '' %>> Succeeded to send</label>
+              <label><input type="hidden" name="WhereData.StatusFailure" value="false"><input type="checkbox" name="WhereData.StatusFailure" value="true" <%= page.filters.statusFailure ? 'checked' : '' %>> Failed to send</label>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><label>Notification type <input type="checkbox" id="notificationTypeCheck" name="notificationTypeCheck" value="" onclick="fConMasCheckAll(this, 'whereDataNotificationType');"></label></th>
+            <td id="whereDataNotificationType">
+              <% for (const item of [
+                ['NotificationTypeApply','Application'],['NotificationTypeRemand','Rejection'],['NotificationTypeApprove','Approval'],['NotificationTypeEdit','Save in editing'],
+                ['NotificationTypeComplete','Completion'],['NotificationTypeChange','Change'],['NotificationTypeTerminal','Device application'],['NotificationTypeTerminalApprove','Device approval'],
+                ['NotificationTypeDefApply','Form application'],['NotificationTypeDefRemand','Form rejection'],['NotificationTypeDefApprove','Form approval'],
+              ]) { const field = `notificationType${item[0].replace('NotificationType','')}`; %>
+                <label><input type="hidden" name="WhereData.<%= item[0] %>" value="false"><input type="checkbox" name="WhereData.<%= item[0] %>" value="true" <%= page.filters[field] ? 'checked' : '' %>> <%= item[1] %></label>
+              <% } %>
+            </td>
+          </tr>
+        </table>
+        <div style="text-align:right;"><input type="submit" value="Search" class="image-ok_btn" onclick="fConMasSetAction('SearchType');"></div>
+      </div>
+
+      <div class="toggle" onclick="fConMasToggle('resultList');"><h2>▼SearchResult</h2></div>
+      <div id="resultList" style="overflow:auto;">
+        <div style="float:left;">
+          <% if (page.canDelete) { %><div style="float:left;"><input type="submit" value="" class="img_delete2" title="Delete" aria-label="Delete" onclick="return deleteLog();"></div><% } %>
+          <a style="float:left;padding:5px;margin-left:6px;" class="img_output_csv2" href="#" id="csvBtn">CSV</a>
+        </div>
+        <div class="PageSection">
+          Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="return fConMasPageAction(0, 'PageType');">
+            <% for (const option of page.pageSizeOptions) { %><option value="<%= option.value %>" <%= option.value === page.pageSize ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (page.pageIndex > 0) { %>
+            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;">First</a>
+            <a href="#" onclick="return fConMasPageAction(<%= page.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+          &nbsp;<%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>&nbsp;
+          <% if (page.pageIndex + 1 < page.totalPages) { %>
+            <a href="#" onclick="return fConMasPageAction(<%= page.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="Next page"> </a>
+            <a href="#" onclick="return fConMasPageAction(<%= page.totalPages - 1 %>, 'PageType');" style="padding-left:5px;">Last</a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+        </div>
+        <% if (page.limitOfDownloadCount > 0) { %><div style="clear:left;padding-bottom:8px;">The maximum number to download once is <%= page.limitOfDownloadCount.toLocaleString('en-US') %>.</div><% } %>
+        <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= page.pageIndex %>">
+        <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= page.sortColumn %>">
+        <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= page.sortDirection %>">
+        <table class="GridCommon" border="0" cellspacing="1" id="sendLogDataTable">
+          <tr>
+            <th scope="col" class="checkCol" style="width:20px;"><% if (page.canDelete) { %><input type="checkbox" id="chkTopHead" onclick="fConMasCheckAll(this, 'sendLogDataTable');"><% } %></th>
+            <% for (const [column, label] of [
+              ['send_time','Send date and time'],['status','Status'],['notification_type','Notification type'],['template_id','Name of template'],
+              ['destination','Destination'],['subject','Title'],['content','Message'],['error_message','Contents of error'],
+            ]) { %>
+              <th scope="col" class="<%= page.sortColumn === column ? 'sorting' : '' %>">
+                <span><%= label %></span>
+                <a href="#" class="sort <%= page.sortColumn === column ? page.sortDirection.toLowerCase() : '' %>" aria-label="Sort by <%= label %>" onclick="return fConMasPageSortAction('<%= column %>', 'PageType');">sort</a>
+              </th>
+            <% } %>
+            <th scope="col"></th>
+          </tr>
+          <% page.rows.forEach((row, index) => { %>
+            <tr class="<%= index % 2 === 0 ? 'odd' : 'even' %>">
+              <td class="CenterCol">
+                <% if (page.canDelete) { %>
+                  <input type="hidden" name="SendLogList[<%= index %>].IsSelect" value="false">
+                  <input type="checkbox" name="SendLogList[<%= index %>].IsSelect" value="true">
+                <% } %>
+                <input type="hidden" name="SendLogList[<%= index %>].LogId" value="<%= row.logId %>">
+              </td>
+              <td class="CenterCol"><%= row.sendTime %></td>
+              <td class="CenterCol"><%= row.statusLabel %></td>
+              <td class="CenterCol"><%= row.notificationType %></td>
+              <td class="CenterCol"><%= row.templateName %></td>
+              <td class="LeftCol">
+                <% for (const [kind, addresses] of [['To',row.destination.to],['Cc',row.destination.cc],['Bcc',row.destination.bcc]]) { %>
+                  <% if (addresses.length) { %><%= kind %>:<% addresses.forEach(address => { %><%= address %><br><% }); %><% } %>
+                <% } %>
+              </td>
+              <td class="LeftCol"><%= row.subject %></td>
+              <td class="LeftCol" id="content" title="<%= row.content %>"><%= row.contentShortend %></td>
+              <td class="LeftCol"><%= row.errorMessage %></td>
+              <td class="CenterCol"><% if (page.canResend) { %><input type="submit" value="Resend" data-log-id="<%= row.logId %>" onclick="return resend(this.dataset.logId);"><% } %></td>
+            </tr>
+          <% }); %>
+        </table>
+        <div class="PageSection">
+          Displayed number&nbsp;<select aria-label="Displayed number" onchange="$('#PageData_PageSize').val($(this).val());return fConMasPageAction(0, 'PageType');">
+            <% for (const option of page.pageSizeOptions) { %><option value="<%= option.value %>" <%= option.value === page.pageSize ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (page.pageIndex > 0) { %>
+            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;">First</a>
+            <a href="#" onclick="return fConMasPageAction(<%= page.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+          &nbsp;<%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>&nbsp;
+          <% if (page.pageIndex + 1 < page.totalPages) { %>
+            <a href="#" onclick="return fConMasPageAction(<%= page.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="Next page"> </a>
+            <a href="#" onclick="return fConMasPageAction(<%= page.totalPages - 1 %>, 'PageType');" style="padding-left:5px;">Last</a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="domMessage" style="display:none;"><h1>In process</h1></div>

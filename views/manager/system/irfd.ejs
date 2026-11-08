@@ -1,0 +1,156 @@
+<% const route = `${base}/System`; const page = irfdPage; %>
+<% if (page.mode === 'denied') { %>
+  <div class="PartialViewMessage"><%= page.error %></div>
+<% } else if (page.mode === 'list') { %>
+  <div class="PartialViewMessage"><% if (page.error) { %><ul><li><%= page.error %></li></ul><% } %></div>
+  <form id="IrfdTemplateListForm" method="post" action="<%= route %>/IrfdTemplateList" onsubmit="if(this.elements.act.value!=='delete'){this.elements.pageIndex.value='0';}">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <input type="hidden" id="ChkIds" name="ChkIds" value="">
+    <input type="hidden" id="act" name="act" value="">
+    <input type="hidden" id="pageIndex" name="pageIndex" value="<%= page.pageIndex %>">
+    <div id="DetailTop">
+      <span id="infoTitle">i-Repo FreeDraw setting template</span>
+      <span id="functionBar">
+        <label for="SearchName">Name of template</label>
+        <input id="SearchName" name="SearchName" value="<%= page.searchName %>">
+        <input type="submit" value="Search" class="image-search_user">
+        <% if (page.permissions.create) { %><span><a href="<%= route %>/EditIrfdTemplate?id=-1" id="irfdFunction" class="img_add" title="Add" aria-label="Add"></a></span><% } %>
+        <% if (page.permissions.canDelete) { %><button type="submit" id="delete" class="img_delete2" title="Delete" aria-label="Delete" name="deleteAction" value="delete"></button><% } %>
+      </span>
+    </div>
+  <% const pageUrl = index => `${route}/IrfdTemplateList?${new URLSearchParams({ SearchName: page.searchName, pageSize: String(page.pageSize), pageIndex: String(index) })}`; %>
+  <div class="info">
+    <div class="PageSection">
+      Displayed number&nbsp;<select id="pageSize" name="pageSize" onchange="document.getElementById('pageIndex').value='0';this.form.submit()"><% for (const option of page.pageSizes) { %><option value="<%= option.value %>" <%= page.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %></select>
+      &nbsp;
+      <% if (page.pageIndex > 0) { %><a href="<%= pageUrl(0) %>" onclick="document.getElementById('pageIndex').value='0';document.getElementById('IrfdTemplateListForm').submit();return false;" style="padding-right:5px;">First</a><a href="<%= pageUrl(page.pageIndex - 1) %>" onclick="document.getElementById('pageIndex').value='<%= page.pageIndex - 1 %>';document.getElementById('IrfdTemplateListForm').submit();return false;" class="img_page_prev_e" aria-label="Previous page"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+      &nbsp;
+      <%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %> (<%= page.total %>)
+      &nbsp;
+      <% if (page.pageIndex + 1 < page.totalPages) { %><a href="<%= pageUrl(page.pageIndex + 1) %>" onclick="document.getElementById('pageIndex').value='<%= page.pageIndex + 1 %>';document.getElementById('IrfdTemplateListForm').submit();return false;" class="img_page_next_e" aria-label="Next page"></a><a href="<%= pageUrl(page.totalPages - 1) %>" onclick="document.getElementById('pageIndex').value='<%= page.totalPages - 1 %>';document.getElementById('IrfdTemplateListForm').submit();return false;" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+    </div>
+      <table cellpadding="0" cellspacing="0" class="table_information verticality">
+        <thead>
+          <tr>
+            <th scope="col" class="checkCol" style="width:5%;"><input type="checkbox" id="headChk" name="headChk"></th>
+            <th scope="col" style="width:5%;">ID</th>
+            <th scope="col" style="width:30%;">Name of template</th>
+            <th scope="col" style="width:15%;">Availability to save on tablet</th>
+            <th scope="col" style="width:15%;">Term of valid on tablet</th>
+            <th scope="col" style="width:15%;">Term of validity</th>
+            <th scope="col" style="width:15%;">Allow to open the file by another application.</th>
+          </tr>
+        </thead>
+        <tbody>
+          <% for (const template of page.rows) { %>
+            <tr>
+              <% if (template.template_id === 1) { %><td class="checkCol"></td><% } else { %><td class="checkCol"><input type="checkbox" id="chk" name="chk" value="<%= template.template_id %>" aria-label="Select template <%= template.template_id %>"></td><% } %>
+              <td class="CenterCol"><% if (page.permissions.edit) { %><a href="<%= route %>/EditIrfdTemplate?id=<%= template.template_id %>"><%= template.template_id %></a><% } else { %><%= template.template_id %><% } %></td>
+              <td><% if (page.permissions.edit) { %><a href="<%= route %>/EditIrfdTemplate?id=<%= template.template_id %>"><%= template.displayName %></a><% } else { %><%= template.displayName %><% } %></td>
+              <td><%= template.mobileSaveText %></td>
+              <td><%= template.lifeTimeText %></td>
+              <td><%= template.use_end_time_display ?? '' %></td>
+              <td><%= Number(template.is_other_app_open) === 1 ? 'Yes' : 'No' %></td>
+            </tr>
+          <% } %>
+        </tbody>
+      </table>
+    <div class="PageSection">
+      Displayed number&nbsp;<select onchange="document.getElementById('pageSize').value=this.value;document.getElementById('pageIndex').value='0';this.form.submit()"><% for (const option of page.pageSizes) { %><option value="<%= option.value %>" <%= page.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %></select>
+      &nbsp;
+      <% if (page.pageIndex > 0) { %><a href="<%= pageUrl(0) %>" onclick="document.getElementById('pageIndex').value='0';document.getElementById('IrfdTemplateListForm').submit();return false;" style="padding-right:5px;">First</a><a href="<%= pageUrl(page.pageIndex - 1) %>" onclick="document.getElementById('pageIndex').value='<%= page.pageIndex - 1 %>';document.getElementById('IrfdTemplateListForm').submit();return false;" class="img_page_prev_e" aria-label="Previous page"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+      &nbsp;
+      <%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %> (<%= page.total %>)
+      &nbsp;
+      <% if (page.pageIndex + 1 < page.totalPages) { %><a href="<%= pageUrl(page.pageIndex + 1) %>" onclick="document.getElementById('pageIndex').value='<%= page.pageIndex + 1 %>';document.getElementById('IrfdTemplateListForm').submit();return false;" class="img_page_next_e" aria-label="Next page"></a><a href="<%= pageUrl(page.totalPages - 1) %>" onclick="document.getElementById('pageIndex').value='<%= page.totalPages - 1 %>';document.getElementById('IrfdTemplateListForm').submit();return false;" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+    </div>
+  </div>
+</form>
+  <script>
+    $(function () {
+      $('#headChk').on('click', function () {
+        const checked = $(this).prop('checked');
+        $("input[type='checkbox'][name='chk']").prop('checked', checked);
+      });
+      $('#delete').on('click', function (event) {
+        const selected = $("input[type='checkbox'][name='chk']:checked").map(function () { return $(this).val(); }).get();
+        if (!selected.length) {
+          event.preventDefault();
+          alert('Please select Template');
+          return;
+        }
+        $('#act').val('delete');
+        if (!confirm('Delete the template. Are you sure you want to delete it?')) {
+          event.preventDefault();
+          $('#act').val('');
+        }
+      });
+    });
+  </script>
+<% } else { const record = page.record; const errors = page.errors; %>
+  <div class="PartialViewMessage"><% if (page.error) { %><ul><li><%= page.error %></li></ul><% } %></div>
+  <form method="post" action="<%= route %>/EditIrfdTemplate" id="IrfdTemplateEditForm">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <input type="hidden" id="act" name="act" value="">
+    <div id="DetailTop">
+      <% if (record.TemplateId === -1) { %><span id="infoTitle">i-Repo FreeDraw setting template creation</span><span id="functionBar"></span>
+      <% } else { %><span id="infoTitle">i-Repo FreeDraw setting template editing</span><span id="functionBar"></span><% } %>
+      <% if (record.TemplateId > 1 && page.canDelete) { %><button type="submit" id="delete" class="img_delete" title="Delete" aria-label="Delete" name="deleteAction" value="delete" formnovalidate style="float:right"></button><% } %>
+    </div>
+    <input type="hidden" name="TemplateId" value="<%= record.TemplateId %>">
+    <div id="DetailSection">
+      <div class="info">
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr>
+            <th scope="row"><label for="TemplateName">Name of template</label></th>
+            <td><input type="text" id="TemplateName" name="TemplateName" class="EditValue1" value="<%= record.TemplateName %>" required><% if (errors.TemplateName) { %><span class="field-validation-error"><%= errors.TemplateName %></span><% } %></td>
+          </tr>
+          <tr>
+            <th scope="row">Availability to save on tablet</th>
+            <td><label><input type="radio" name="DocumentMobileSave" value="1" <%= record.DocumentMobileSave === '1' ? 'checked' : '' %>>Yes</label><label><input type="radio" name="DocumentMobileSave" value="0" <%= record.DocumentMobileSave === '0' ? 'checked' : '' %>>No</label><% if (errors.DocumentMobileSave) { %><span class="field-validation-error"><%= errors.DocumentMobileSave %></span><% } %></td>
+          </tr>
+          <tr>
+            <th scope="row">Term of valid on tablet</th>
+            <td>
+              <input type="text" id="DocumentLifeTimeDay" name="DocumentLifeTimeDay" value="<%= record.DocumentLifeTimeDay %>" style="width:40px; text-align:right;"> Day&nbsp;&nbsp;
+              <input type="text" id="DocumentLifeTimeHour" name="DocumentLifeTimeHour" value="<%= record.DocumentLifeTimeHour %>" style="width:40px; text-align:right;"> Time&nbsp;&nbsp;
+              <input type="text" id="DocumentLifeTimeMinute" name="DocumentLifeTimeMinute" value="<%= record.DocumentLifeTimeMinute %>" style="width:40px; text-align:right;"> Minutes
+              <% if (errors.DocumentLifeTimeDay) { %><span class="field-validation-error"><%= errors.DocumentLifeTimeDay %></span><% } %>
+              <% if (errors.DocumentLifeTimeHour) { %><span class="field-validation-error"><%= errors.DocumentLifeTimeHour %></span><% } %>
+              <% if (errors.DocumentLifeTimeMinute) { %><span class="field-validation-error"><%= errors.DocumentLifeTimeMinute %></span><% } %>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row"><label for="UseEndTime">Term of validity</label></th>
+            <td><div class="datetime"><input type="text" id="UseEndTime" name="UseEndTime" value="<%= record.UseEndTime %>"></div><% if (errors.UseEndTime) { %><span class="field-validation-error"><%= errors.UseEndTime %></span><% } %></td>
+          </tr>
+          <tr>
+            <th scope="row">Allow to open the file by another application.</th>
+            <td><label><input type="radio" name="IsOtherAppOpen" value="1" <%= record.IsOtherAppOpen === '1' ? 'checked' : '' %>>Yes</label><label><input type="radio" name="IsOtherAppOpen" value="0" <%= record.IsOtherAppOpen === '0' ? 'checked' : '' %>>No</label><% if (errors.IsOtherAppOpen) { %><span class="field-validation-error"><%= errors.IsOtherAppOpen %></span><% } %></td>
+          </tr>
+        </table>
+        <p>
+          <input type="submit" value="Confirm" class="image-ok_btn">
+          <a href="<%= route %>/IrfdTemplateList" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+        </p>
+      </div>
+    </div>
+  </form>
+  <script>
+    $(function () {
+      $(document).on('mousedown', '.datetime input', function () {
+        if ($.fn.datepicker) {
+          const language = typeof browserLanguage === 'function' ? browserLanguage() : 'en';
+          $(this).datepicker($.datepicker.regional[language] || $.datepicker.regional.en);
+        }
+      });
+      $('#delete').on('click', function (event) {
+        if (!confirm('Delete the template. Are you sure you want to delete it?')) {
+          event.preventDefault();
+          return;
+        }
+        $('#act').val('delete');
+      });
+    });
+  </script>
+<% } %>

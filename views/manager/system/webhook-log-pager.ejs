@@ -1,0 +1,6 @@
+<div class="PageSection">
+  <label for="<%= selectId %>">Displayed number</label>&nbsp;<select id="<%= selectId %>" name="PageData.PageSize" onchange="webhookLogSize(this)"><% for(const size of wp.pageSizes){ %><option value="<%= size %>"<%- selected(page.pageSize,size) %>><%= size %></option><% } %></select>&nbsp;
+  <% if(page.pageIndex>0){ %><a href="#" onclick="webhookLogPage(0);return false;" style="padding-right:5px;">First</a><a href="#" class="img_page_prev_e" aria-label="Previous page" onclick="webhookLogPage(<%= page.pageIndex-1 %>);return false;"> </a><% }else{ %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+  &nbsp;<%= page.pageIndex+1 %>&nbsp;/&nbsp;<%= wp.pages %>&nbsp;
+  <% if(page.pageIndex+1<wp.pages){ %><a href="#" class="img_page_next_e" aria-label="Next page" onclick="webhookLogPage(<%= page.pageIndex+1 %>);return false;"> </a><a href="#" style="padding-left:5px;" onclick="webhookLogPage(<%= wp.pages-1 %>);return false;">Last</a><% }else{ %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+</div>

@@ -1,0 +1,116 @@
+<% const route = `${base}/System`; %>
+<% if (systemUploadsPage.mode === 'denied') { %>
+  <div class="PartialViewMessage" role="alert"><% for (const error of systemUploadsPage.errors) { %><p><%= error %></p><% } %></div>
+<% } else if (systemUploadsPage.mode === 'create') { %>
+  <div id="MessageWrap">
+    <% if (systemUploadsPage.message) { %><div class="PartialViewMessage"><p><%= systemUploadsPage.message %></p></div><% } %>
+    <% if (systemUploadsPage.errors.length) { %><div class="PartialViewMessage" role="alert"><ul><% for (const error of systemUploadsPage.errors) { %><li><%= error %></li><% } %></ul></div><% } %>
+  </div>
+  <div id="DetailTop"><span id="infoTitle">File upload for reference</span></div>
+  <form method="post" action="<%= route %>/CreateUpload" enctype="multipart/form-data">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <div id="DetailSection">
+      <div class="info">
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <% for (let index = 1; index <= 10; index++) { %>
+            <tr>
+              <th scope="row"><label for="file<%= index %>">File<%= index %></label></th>
+              <td><input type="file" name="file<%= index %>" id="file<%= index %>" class="EditValue1"></td>
+            </tr>
+          <% } %>
+        </table>
+        <p>
+          <input type="submit" value="Registration" class="image-ok_btn">
+          <a href="<%= route %>/UploadList" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+        </p>
+      </div>
+    </div>
+  </form>
+<% } else { %>
+  <% if (systemUploadsPage.message) { %><div class="PartialViewMessage"><p><%= systemUploadsPage.message %></p></div><% } %>
+  <% if (systemUploadsPage.errors.length) { %><div class="PartialViewMessage" role="alert"><ul><% for (const error of systemUploadsPage.errors) { %><li><%= error %></li><% } %></ul></div><% } %>
+  <div id="DetailTop">
+    <span id="infoTitle">List of file upload for reference</span>
+    <div id="functionBar">
+      <form method="get" action="<%= route %>/UploadList" style="float:left;padding-left:2px;">
+        <div style="float:left;padding-left:2px;"><label for="upload-search">Name of file</label> <input id="upload-search" type="text" name="searchFileName" value="<%= systemUploadsPage.searchFileName %>"></div>
+        <input type="hidden" name="pageSize" value="<%= systemUploadsPage.pageSize %>">
+        <input type="hidden" name="pageIndex" value="0">
+        <div style="float:left;padding-left:2px;"><input type="submit" value="Search" class="image-ok2_btn"></div>
+      </form>
+      <% if (systemUploadsPage.canCreate) { %><div style="float:left;padding-left:2px;"><a href="<%= route %>/CreateUpload" class="img_add" title="Add" aria-label="Add file"> </a></div><% } %>
+      <% if (systemUploadsPage.canDelete) { %><div style="float:left;padding-left:2px;"><input type="submit" value="" form="upload-delete-form" class="img_delete" title="Delete" aria-label="Delete selected files" onclick="return conmasRemoveFile();"></div><% } %>
+    </div>
+  </div>
+  <div id="DetailSection">
+    <div class="info">
+      <div class="PageSection">
+        <form method="get" action="<%= route %>/UploadList" style="display:inline;">
+          <label for="page-size-top">Displayed number</label>&nbsp;
+          <select id="page-size-top" name="pageSize" onchange="this.form.submit()"><% for (const option of systemUploadsPage.pageSizes) { %><option value="<%= option.value %>" <%= option.value === systemUploadsPage.pageSize ? 'selected' : '' %>><%= option.text %></option><% } %></select>
+          <input type="hidden" name="searchFileName" value="<%= systemUploadsPage.searchFileName %>">
+          <input type="hidden" name="pageIndex" value="0">
+        </form>
+        &nbsp;
+        <% if (systemUploadsPage.pageIndex > 0) { %><a href="<%= `${route}/UploadList?${new URLSearchParams({ searchFileName: systemUploadsPage.searchFileName, pageSize: String(systemUploadsPage.pageSize), pageIndex: String(systemUploadsPage.pageIndex - 1) })}` %>" class="img_page_prev_e" aria-label="Previous page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+        &nbsp;<%= systemUploadsPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= systemUploadsPage.pages %>&nbsp;
+        <% if (systemUploadsPage.pageIndex + 1 < systemUploadsPage.pages) { %><a href="<%= `${route}/UploadList?${new URLSearchParams({ searchFileName: systemUploadsPage.searchFileName, pageSize: String(systemUploadsPage.pageSize), pageIndex: String(systemUploadsPage.pageIndex + 1) })}` %>" class="img_page_next_e" aria-label="Next page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+      </div>
+      <form id="upload-delete-form" method="post" action="<%= route %>/UploadList">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <input type="hidden" id="chkFiles" name="chkFiles" value="">
+        <input type="hidden" name="act" value="delete">
+        <input type="hidden" name="searchFileName" value="<%= systemUploadsPage.searchFileName %>">
+        <input type="hidden" name="pageSize" value="<%= systemUploadsPage.pageSize %>">
+        <input type="hidden" name="pageIndex" value="<%= systemUploadsPage.pageIndex %>">
+        <table cellpadding="0" cellspacing="0" class="table_information verticality">
+          <tr>
+            <th scope="col" class="checkCol"><input type="checkbox" id="headChk" name="headChk" aria-label="Select all files"></th>
+            <th scope="col">Name of file</th>
+            <th scope="col">URL</th>
+            <th scope="col">Size(KB)</th>
+            <th scope="col">Date</th>
+          </tr>
+          <% for (const item of systemUploadsPage.rows) { %>
+            <tr>
+              <td class="center"><input type="checkbox" name="item.chk" value="<%= item.fileName %>" aria-label="Select <%= item.fileName %>"></td>
+              <td><a href="<%= item.url %>"><%= item.fileName %></a></td>
+              <td><a href="<%= item.url %>"><%= item.url %></a></td>
+              <td align="right"><%= item.size %></td>
+              <td align="center"><%= item.dateTimeUpload %></td>
+            </tr>
+          <% } %>
+          <% if (!systemUploadsPage.rows.length && !systemUploadsPage.errors.length) { %><tr><td colspan="5"><%= systemUploadsPage.searchFileName ? 'No files matched the search.' : 'No files have been uploaded.' %></td></tr><% } %>
+        </table>
+      </form>
+      <div class="PageSection">
+        <form method="get" action="<%= route %>/UploadList" style="display:inline;">
+          <label for="page-size-bottom">Displayed number</label>&nbsp;
+          <select id="page-size-bottom" name="pageSize" onchange="this.form.submit()"><% for (const option of systemUploadsPage.pageSizes) { %><option value="<%= option.value %>" <%= option.value === systemUploadsPage.pageSize ? 'selected' : '' %>><%= option.text %></option><% } %></select>
+          <input type="hidden" name="searchFileName" value="<%= systemUploadsPage.searchFileName %>">
+          <input type="hidden" name="pageIndex" value="0">
+        </form>
+        &nbsp;
+        <% if (systemUploadsPage.pageIndex > 0) { %><a href="<%= `${route}/UploadList?${new URLSearchParams({ searchFileName: systemUploadsPage.searchFileName, pageSize: String(systemUploadsPage.pageSize), pageIndex: String(systemUploadsPage.pageIndex - 1) })}` %>" class="img_page_prev_e" aria-label="Previous page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+        &nbsp;<%= systemUploadsPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= systemUploadsPage.pages %>&nbsp;
+        <% if (systemUploadsPage.pageIndex + 1 < systemUploadsPage.pages) { %><a href="<%= `${route}/UploadList?${new URLSearchParams({ searchFileName: systemUploadsPage.searchFileName, pageSize: String(systemUploadsPage.pageSize), pageIndex: String(systemUploadsPage.pageIndex + 1) })}` %>" class="img_page_next_e" aria-label="Next page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+      </div>
+    </div>
+  </div>
+  <script>
+    document.getElementById('headChk')?.addEventListener('click', function () {
+      document.querySelectorAll('input[type="checkbox"][name$="chk"]').forEach(function (checkbox) {
+        checkbox.checked = this.checked;
+      }, this);
+    });
+    function conmasRemoveFile() {
+      const selected = Array.from(document.querySelectorAll('input[type="checkbox"][name$="chk"]:checked'), function (checkbox) { return checkbox.value; });
+      if (!selected.length) {
+        window.alert('Please select the file to be deleted.');
+        return false;
+      }
+      document.getElementById('chkFiles').value = selected.join(',');
+      return window.confirm('Delete selected file. Are you sure you want to delete it?');
+    }
+  </script>
+<% } %>

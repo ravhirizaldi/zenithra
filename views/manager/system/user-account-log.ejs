@@ -1,0 +1,202 @@
+<% const logPage = userAccountLogPage; const filters = logPage.filters; %>
+<script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js"></script>
+<script src="<%= base %>/Scripts/jquery.timepicker.js"></script>
+<script src="<%= base %>/Scripts/conmas.paging.action.js"></script>
+<script src="<%= base %>/Scripts/conmas.paging.sort.js"></script>
+
+<div id="MessageWrap">
+  <% if (logPage.errorMessage) { %>
+    <div class="PartialViewMessage" role="alert"><ul><li><%= logPage.errorMessage %></li></ul></div>
+  <% } %>
+</div>
+
+<div id="DetailTop">
+  <span id="infoTitle">Users - User Account Log</span>
+</div>
+<div id="DetailSection">
+  <div class="info">
+    <form method="post" action="<%= base %>/System/UserAccountOperationLog" enctype="multipart/form-data" id="conmasPageForm" onsubmit="fConMasSetScroll();">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" id="ActionCommonType" name="ActionCommonType" value="">
+      <input type="hidden" name="ScrollXPoint" value="">
+      <input type="hidden" name="ScrollYPoint" value="">
+      <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= logPage.pageIndex %>">
+      <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= logPage.sortColumn %>">
+      <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= logPage.sortDirection %>">
+
+      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2>▼SearchConditions</h2></div>
+      <div id="SearchLogLibraryBox">
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+          <tr>
+            <th scope="row">Operation date and time</th>
+            <td>
+              <div class="datetime" style="float:left; padding:3px;">
+                <input type="text" id="whereData_SearchChild_TimeFrom" name="whereData.SearchChild.TimeFrom" value="<%= filters.timeFrom %>" style="width:90px;" onchange="fConMasTimeInitFrom();">
+              </div>
+              <div style="float:left; padding:3px;">
+                <input type="text" id="whereData_SearchChild_TimeFromHour" name="whereData.SearchChild.TimeFromHour" value="<%= filters.timeFromHour %>" style="width:70px;">
+              </div>
+              <div class="datetime" style="float:left; padding:3px;">～</div>
+              <div class="datetime" style="float:left; padding:3px;">
+                <input type="text" id="whereData_SearchChild_TimeTo" name="whereData.SearchChild.TimeTo" value="<%= filters.timeTo %>" style="width:90px;" onchange="fConMasTimeInitTo();">
+              </div>
+              <div style="float:left; padding:3px;">
+                <input type="text" id="whereData_SearchChild_TimeToHour" name="whereData.SearchChild.TimeToHour" value="<%= filters.timeToHour %>" style="width:70px;">
+              </div>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">
+              <label>Operation type <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label>
+            </th>
+            <td>
+              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeInsert" value="true" <%= filters.operationTypeInsert ? 'checked' : '' %>> Insert</label>
+              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeUpdate" value="true" <%= filters.operationTypeUpdate ? 'checked' : '' %>> Update</label>
+              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeDelete" value="true" <%= filters.operationTypeDelete ? 'checked' : '' %>> Delete</label>
+            </td>
+          </tr>
+          <tr>
+            <th scope="row">User</th>
+            <td>
+              <div style="float:left;">
+                <div style="float:left;">User ID <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></div>
+                <div style="float:left;">&nbsp;&nbsp;</div>
+                <div style="float:left;">User name <input type="text" name="whereData.SearchChild.UserName" value="<%= filters.userName %>"></div>
+              </div>
+            </td>
+          </tr>
+        </table>
+        <div style="text-align:right;">
+          <input type="submit" value="Search" class="image-ok_btn" onclick="fConMasSetAction('SearchType');">
+          <input type="submit" value="CSV" class="img_output_csv2" onclick="fConMasSetAction('CsvType');">
+        </div>
+        <% if (logPage.limitOfDownloadCount > 0) { %>
+          <div style="text-align:right; padding-top:8px;">The maximum number to download once is <%= Number(logPage.limitOfDownloadCount).toLocaleString('en-US') %>.</div>
+        <% } %>
+      </div>
+
+      <div class="toggle" onclick="fConMasToggle('resultLogLibraryBox');"><h2>▼SearchResult</h2></div>
+      <div id="resultLogLibraryBox" style="overflow:auto;">
+        <div class="PageSection">
+          Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="return fConMasPageSubmitAction('PageType');">
+            <% for (const option of logPage.pageSizeOptions) { %><option value="<%= option.value %>" <%= logPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (logPage.pageIndex > 0) { %>
+            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;">First</a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a>
+          <% } else { %>
+            <img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d">
+          <% } %>
+          &nbsp;<%= logPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= logPage.totalPages %>&nbsp;
+          <% if (logPage.pageIndex + 1 < logPage.totalPages) { %>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="Next page"> </a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.totalPages - 1 %>, 'PageType');" style="padding-left:5px;">Last</a>
+          <% } else { %>
+            <img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d">
+          <% } %>
+        </div>
+
+        <table class="GridCommon" border="0" cellspacing="1">
+          <tr>
+            <% const columns = [
+              ['log_time', 'Operation date and time'],
+              ['operation_type', 'Operation type'],
+              ['operation_content', 'Operation content'],
+              ['user_id', 'User ID'],
+              ['user_name', 'User name'],
+              ['term_id', 'Device ID'],
+              ['physical_id', 'Device ID'],
+              ['term_name', 'Device name'],
+              ['client_ip_address', 'Client address'],
+              ['app_type', 'Application type'],
+              ['update_user_id', 'Update User ID'],
+            ]; %>
+            <% for (const [column, label] of columns) { %>
+              <th scope="col" class="<%= logPage.sortColumn === column ? 'sorting' : '' %>">
+                <span><%= label %></span>
+                <a href="#" class="sort<%= logPage.sortColumn === column ? ' ' + logPage.sortDirection.toLowerCase() : '' %>" onclick="return fConMasPageSortAction('<%= column %>', 'PageType');">sort</a>
+              </th>
+            <% } %>
+          </tr>
+          <% for (const [index, row] of logPage.rows.entries()) { %>
+            <tr class="<%= index % 2 === 0 ? 'odd' : 'even' %>">
+              <td class="CenterCol"><%= row.log_time_display ?? '' %></td>
+              <td class="CenterCol"><%= row.operationTypeLabel %></td>
+              <td class="CenterCol"><% for (const line of row.operationContentLines) { %><p><%= line %></p><% } %></td>
+              <td class="CenterCol"><%= row.user_id ?? '' %></td>
+              <td class="CenterCol"><%= row.user_name ?? '' %></td>
+              <td class="CenterCol"><%= row.term_id ?? '' %></td>
+              <td class="CenterCol"><%= row.physical_id ?? '' %></td>
+              <td class="CenterCol"><%= row.term_name ?? '' %></td>
+              <td class="CenterCol"><%= row.client_ip_address ?? '' %></td>
+              <td class="CenterCol"><%= row.app_type ?? '' %></td>
+              <td class="CenterCol"><%= row.update_user_id ?? '' %></td>
+            </tr>
+          <% } %>
+        </table>
+        <div class="PageSection">
+          Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="$('#PageData_PageSize').val($(this).val()); return fConMasPageSubmitAction('PageType');">
+            <% for (const option of logPage.pageSizeOptions) { %><option value="<%= option.value %>" <%= logPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
+          </select>
+          &nbsp;
+          <% if (logPage.pageIndex > 0) { %>
+            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;">First</a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a>
+          <% } else { %>
+            <img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d">
+          <% } %>
+          &nbsp;<%= logPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= logPage.totalPages %>&nbsp;
+          <% if (logPage.pageIndex + 1 < logPage.totalPages) { %>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="Next page"> </a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.totalPages - 1 %>, 'PageType');" style="padding-left:5px;">Last</a>
+          <% } else { %>
+            <img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d">
+          <% } %>
+        </div>
+      </div>
+    </form>
+  </div>
+</div>
+<div id="domMessage" style="display:none;"><h1>In process</h1></div>
+
+<script>
+  $(function () {
+    $('#ActionCommonType').val('');
+    window.scrollBy(0, document.cookie);
+    document.cookie = 0;
+    $('#whereData_SearchChild_TimeFromHour').timepicker({ timeFormat: 'H:i:s' });
+    $('#whereData_SearchChild_TimeToHour').timepicker({ timeFormat: 'H:i:s' });
+    $('#Labels ul a#userAccountOperationLogFunction').addClass('current');
+    $(document).on('mousedown', '.datetime input', function () {
+      if ($.fn.datepicker) $(this).datepicker($.datepicker.regional[browserLanguage()]);
+    });
+  });
+
+  function fConMasSetAction(actionType) {
+    $('#ActionCommonType').val(actionType);
+  }
+
+  function fConMasSetScroll() {
+    document.cookie = document.documentElement.scrollTop || document.body.scrollTop;
+  }
+
+  function fConMasTimeInitFrom() {
+    if ($('#whereData_SearchChild_TimeFrom').val() !== '' && $('#whereData_SearchChild_TimeFromHour').val() === '') {
+      $('#whereData_SearchChild_TimeFromHour').val('00:00:00');
+    }
+  }
+
+  function fConMasTimeInitTo() {
+    if ($('#whereData_SearchChild_TimeTo').val() !== '' && $('#whereData_SearchChild_TimeToHour').val() === '') {
+      $('#whereData_SearchChild_TimeToHour').val('00:00:00');
+    }
+  }
+
+  function fConMasAllCheck() {
+    const check = $('#conmasOperationTypeCheck')[0].checked;
+    $('input[name="whereData.SearchChild.OperationTypeInsert"]').prop('checked', check);
+    $('input[name="whereData.SearchChild.OperationTypeUpdate"]').prop('checked', check);
+    $('input[name="whereData.SearchChild.OperationTypeDelete"]').prop('checked', check);
+  }
+</script>

@@ -1,0 +1,146 @@
+<% const fileVer = '20250901-01';
+const form = typeof labelForm === 'undefined' ? {} : labelForm;
+const formError = typeof labelError === 'undefined' ? '' : labelError;
+const formValue = name => { const value = form['mst_label.'+name]; return typeof value === 'string' ? value : Array.isArray(value) && typeof value[0] === 'string' ? value[0] : ''; };
+const hiddenInput = (name,value) => { %><input type="hidden" id="<%= name.replace(/\./g,'_') %>" name="<%= name %>" value="<%= value %>"><% };
+const checkbox = (name,checked,label = '',attrs = '') => { %><input type="checkbox" id="<%= name.replace(/\./g,'_') %>" name="<%= name %>" value="true"<% if (checked) { %> checked="checked"<% } %> <%- attrs %>><input type="hidden" name="<%= name %>" value="false"><% if (label) { %><label for="<%= name.replace(/\./g,'_') %>"><%= label %></label><% } };
+const select = (name,options) => { %><select id="<%= name %>" name="<%= name %>" onchange="return filter();"><% for (const [value,text] of options) { %><option value="<%= value %>"<% if (String(value) === state[name]) { %> selected="selected"<% } %>><%= text %></option><% } %></select><% };
+const textInput = (field,style = '',attrs = '') => { %><input type="text" id="SearchInfo_<%= field %>" name="SearchInfo.<%= field %>" value="<%= state.SearchInfo[field] %>"<% if (['ReportName','Remarks','InputValue','RegistUser','UpdateUser','SystemKey'].includes(field)) { %> class="text-box single-line"<% } %><% if (style) { %> style="<%= style %>"<% } %> <%- attrs %>><% };
+const close = (dialog,onclick = '') => { %><span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="<%= onclick || `display('${dialog}');` %>"></span><% };
+%>
+<% for (const script of ['MicrosoftAjax.js','MicrosoftMvcAjax.js','jquery.unobtrusive-ajax.min.js','jquery.validate.min.js','jquery.validate.unobtrusive.min.js','conmas.identification.js']) { %><script src="<%= base %>/Scripts/<%= script %>?<%= fileVer %>" type="text/javascript"></script><% } %>
+<script type="text/javascript"><%- js %></script>
+<script type="text/javascript">
+  $(document).ajaxError(function (_event, xhr, request) {
+    if (!/\/(InputReport|Common\/Label(?:Select)?ListView)(?:[/?]|$)/.test(request.url)) return;
+    $('#MessageWrap').text(xhr.status === 501 ? 'This Documents action has not been migrated. No changes were saved.' : xhr.status === 403 ? 'Role authority or form verification is insufficient.' : 'The Documents request failed.');
+  });
+</script>
+<div id="MessageWrap"></div>
+<div style="display:none;">
+  <a id="goTaskList" rel="leanModal" name="popUpDialogForm" href="#popUpDialogForm"></a>
+  <a id="searchTaskButton" href="<%= base %>/Common/TaskList" data-ajax="true" data-ajax-update="#contentTaskSearch">..</a>
+</div>
+<div id="Wrap">
+  <div id="SideWrap">
+    <div id="conmasLabelSearchBox" style="height:77px;"></div>
+    <div id="LabelSection">
+      <form id="formLabelView" action="<%= base %>/Common/LabelListView?reportMode=Rep&amp;LabelPageIndex=<%= state.LabelPageIndexBackup %>&amp;SearchNameLabelView=<%= encodeURIComponent(state.SearchNameLabelViewBackup) %>&amp;isLabelAllDisplay=<%= settings.allDisplay %>" method="post" data-ajax="true" data-ajax-update="#conmasLabelContent">
+        <% hiddenInput('__RequestVerificationToken',csrfToken); %><div id="conmasLabelContent"></div>
+      </form>
+    </div>
+    <div style="text-align:center; font-size:9pt; margin-bottom:15px;"><a href="javascript:void(0)" onclick="return fConmasChangeLabelMode('<%= hidden ? '0' : '1' %>');"><%= hidden ? r.LabelNormalMode : r.LabelReportHiddenMode %></a></div>
+    <div style="text-align:center; font-size:9pt;" id="labelControl">
+      <% if (labelPermissions?.create) { %><a id="go" rel="leanModal" name="labelManagementForm" href="#labelManagementForm" class="button_custom"><%= r.ConMasResource_Label.replace('{0}',r.Create) %></a><% } %>
+      <% if (labelPermissions?.delete) { %><a href="javascript:void(0)" onclick="return deleteConMasLabel();" class="button_cancel_custom"><%= r.ConMasResource_Label.replace('{0}',r.Delete) %></a><% } %>
+    </div>
+  </div>
+  <form id="formReportIndex" name="formReportIndex" action="<%= base %>/InputReport/IndexList" method="post" data-ajax="true" data-ajax-update="#content" data-ajax-complete="onComplete">
+    <% hiddenInput('LabelID',state.LabelID); hiddenInput('__RequestVerificationToken',csrfToken);
+    for (const [name,value] of Object.entries({ Act:state.Act,ActMode:'',approveEditStatus:'',approveRepTopId:0,approveIdentificationState:'',LabelPageIndexBackup:state.LabelPageIndexBackup,SearchNameLabelViewBackup:state.SearchNameLabelViewBackup,IsLabelInitLoad:settings.initLoad ? 'True' : 'False',IsLabelAllDisplay:settings.allDisplay ? 'True' : 'False',ChkLinkLabelID:'',LinkLabelStatus:'' })) hiddenInput(name,value); %>
+    <div id="MainWrap">
+      <div id="Filters">
+        <div id="approveDivBox" style="margin-top:14px;position:absolute; left:270px;">
+          <label for="ApprovalStatus"><%= r.NameTemplete.replace('{0}',userName || '') + r.charge %></label>
+          <% select('ApprovalStatus',[['-1',r.ApprovalStatus],['0',r.allData],['1',r.ApproveLabel],['2',r.ConMasResource_remand],['3',r.ApplicantLabel]]); %>
+        </div>
+        <% if (permissions.update) { %>
+          <% if (settings.bulkApproval) { %><span id="approveButton" style="margin-top:14px;position:absolute; left:270px;"><a href="<%= base %>/InputReport" class="img_approve" title="<%= v.approveDialog %>" alt="[approve]" onclick="return display('ApproveDialog');"> </a></span><% }
+          else { %><span id="approveButton" class="img_approve disabled" style="margin-top: 14px; position: absolute; left: 270px;"></span><% } %>
+        <% } %>
+        <% if (permissions.delete) { %><div id="physicalDeleteButton" style="margin-top:14px;position:absolute; left:270px;"><a href="<%= base %>/InputReport" class="img_physical_delete" title="<%= r.PhysicalDeleteButton %>" alt="[physicalDelete]" onclick="return removeAt('1');"> </a></div><% } %>
+        <ul id="FiltersUl">
+          <li><% select('PublicStatus',[['-1','- '+r.PublicStatus+' -'],['1',r.Test],['2',r.Published]]); %></li>
+          <li><% select('EditReferStatus',[['-1','- '+r.EditReferStatus+' -'],['0',r.BeforeEditing],['1',r.InEditing],['2',r.WaitingForApproval],['3',r.Rejected],['4',r['BizDataOutputResource-Completed']]]); %></li>
+          <li><% checkbox('ReportTypeSheet',state.ReportTypeSheet,r.reportTypeSheet,'onchange="return filter();"'); %></li>
+          <li><% checkbox('ReportTypeSet',state.ReportTypeSet,r.reportTypeSet,'onchange="return filter();"'); %></li>
+          <% if (permissions.update) { %><li><a href="javascript:void(0)" onclick="display('conmasCopyReportDialog');"><img alt="copy" class="copy_report" src="<%= base %>/Content/ConMas/images/function/copy_report.png" title="<%= r.Copy %>"></a></li><% } %>
+          <% if (permissions.schedule) { const today = new Date(); %><li><a href="<%= base %>/Common/RegistTask?requestKbn=0&amp;year=<%= today.getFullYear() %>&amp;month=<%= today.getMonth()+1 %>&amp;day=<%= today.getDate() %>&amp;controllerName=InputReport" data-ajax="true" data-ajax-update="#contentTask" onclick="return display('contentTask');" class="img_schedule" title="<%= r.Schedule %>"> </a></li><% } %>
+          <li><a href="<%= base %>/InputReport" class="img_search" title="<%= v.search %>" alt="[search]" onclick="return display('SearchDialog');"> </a></li>
+          <% if (permissions.update) { %><li><a href="<%= base %>/InputReport" class="img_label" title="<%= v.setLabel %>" alt="[label]" onclick="return fConMasLabelSelectDisplay();"> </a></li><% } %>
+          <% if (permissions.delete) { %><li>
+            <div id="trashBox"><a href="<%= base %>/InputReport" class="img_delete" title="<%= v.delete %>" alt="[delete]" onclick="return display('DeleteDialog')"> </a></div>
+            <div id="riviveBox"><a href="<%= base %>/InputReport" class="img_rivive" title="<%= v.rivive %>" alt="[delete]" onclick="return removeAt('','');"> </a></div>
+          </li><% } %>
+        </ul>
+      </div>
+      <div id="SearchDialog">
+        <script type="text/javascript"><%- searchJs %></script>
+        <div class="DialogMargin">
+          <div class="DialogTitle"><%= r.Search %>:<% close('SearchDialog'); %></div>
+          <% for (const [field,label] of [['ReportId',r.Id],['ReportName',r.SearchReportName],['Remarks',r.SearchRemarks],...(settings.inputValue ? [['InputValue',r.SearchInputValue]] : []),['RegistUser',r.SearchRegistUser]]) { %>
+            <div class="DialogLabel"><label><%= label %></label></div><div class="DialogField"><% textInput(field,'',field === 'ReportId' ? "onkeyup=\"this.value=this.value.replace(/[^0-9]+/,'')\"" : ''); %></div>
+          <% } %>
+          <div class="DialogLabel"><label><%= r.SearchRegistTimeFrom %></label></div>
+          <div class="DialogField"><% textInput('RegistDateFrom','width:80px;',"onchange=\"fConMasTimeInitInput('RegistDateFrom','RegistTimeFrom')\""); %>&nbsp;<% textInput('RegistTimeFrom','width:60px;'); %> ～ <% textInput('RegistDateTo','width:80px;',"onchange=\"fConMasTimeInitInput('RegistDateTo','RegistTimeTo')\""); %>&nbsp;<% textInput('RegistTimeTo','width:60px;'); %></div>
+          <div class="DialogLabel"><label><%= r.SearchUpdateUser %></label></div><div class="DialogField"><% textInput('UpdateUser'); %></div>
+          <div class="DialogLabel"><label><%= r.SearchUpdateTimeFrom %></label></div>
+          <div class="DialogField"><% textInput('UpdateDateFrom','width:80px;',"onchange=\"fConMasTimeInitInput('UpdateDateFrom','UpdateTimeFrom')\""); %>&nbsp;<% textInput('UpdateTimeFrom','width:60px;'); %> ～ <% textInput('UpdateDateTo','width:80px;',"onchange=\"fConMasTimeInitInput('UpdateDateTo','UpdateTimeTo')\""); %>&nbsp;<% textInput('UpdateTimeTo','width:60px;'); %></div>
+          <div class="DialogLabel"><label><%= r.system_key.replace('{0}','') %></label></div><div class="DialogField"><% textInput('SystemKey'); %></div>
+          <p><input id="conmasSearchButton" type="submit" value="<%= r.Search %>" class="button_custom" style="padding:6px;" onclick="fConMasLockView();">
+            <input type="submit" value="<%= r.Clear %>" class="button_cancel_custom" style="padding:5px;" onclick="fConMasClearSearch(); return fConMasLockView();">
+            <label><% checkbox('IsLabelUnderSearch',state.IsLabelUnderSearch); %>&nbsp;<%= r.IsLabelUnderSearch %></label></p>
+        </div>
+      </div>
+      <div id="ApproveDialog"><div class="DialogMargin">
+        <div class="DialogTitle"><%= r.ApproveDialogTitle %>:<% close('ApproveDialog'); %></div>
+        <div class="DialogLabel"><label for="approveComment"><%= r.approveComment %></label></div><div><textarea id="approveComment" name="approveComment"></textarea></div>
+        <p><input type="submit" value="<%= v.approveTop %>" class="image-approve-btn" onclick="return approveAction('4', '');"><input type="submit" value="<%= v.remandInputReport %>" class="image-remand-btn" onclick="return approveAction('3', '');"></p>
+      </div></div>
+      <div id="DeleteDialog"><div class="DialogMargin">
+        <div class="DialogTitle"><%= r.Delete %><% close('DeleteDialog'); %></div>
+        <p><input type="submit" id="revDelete" value="<%= r.DeleteRevision %>" class="img_delete_rev" onclick="return removeAt('','REV');"></p>
+        <p><input type="submit" id="allDelete" value="<%= r.DeleteAllRevision %>" class="img_delete_all_rev" onclick="return removeAt('','ALL');"></p>
+      </div></div>
+      <hr><div id="GridSection"><div id="content"></div></div>
+    </div>
+  </form>
+  <div id="domMessage" style="display:none;"><h1><%= r.LockMessage %></h1></div>
+</div>
+<div id="conmasCopyReportDialog">
+  <form id="conmasReportCopyForm" action="<%= base %>/InputReport/CopyInputReport" method="post">
+    <% hiddenInput('__RequestVerificationToken',csrfToken); %><div class="DialogMarginMin"><div style="float:left; width:100%;">
+      <div style="float:right; text-align:right;"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="display('conmasCopyReportDialog');"></div>
+      <div style="display:none;"><input id="conmasCopyReportType" name="conmasCopyReportType" type="checkbox" checked="checked"><label for="conmasCopyReportType"><%= r.CopyReportModeDef %></label></div>
+      <p><% hiddenInput('conmasCopyReportMode',''); hiddenInput('conmasCopyReportIdList',''); %>
+        <input type="submit" value="<%= r.CopyReportSameDef %>" class="conmas_link_button_black" onclick="return fConMasReportCopy('DefRevision');">
+        <input type="submit" value="<%= r.CopyReportCurrentDef %>" class="conmas_link_button_black" onclick="return fConMasReportCopy('CurrentRevision');"></p>
+      <div><input id="isReportDocumentCopy" name="isReportDocumentCopy" type="checkbox"<% if (typeof copyDocuments !== 'undefined' && copyDocuments) { %> checked="checked"<% } %>><label for="isReportDocumentCopy"> <%= r.IsCopyReportLibrary %></label></div>
+    </div></div>
+  </form>
+</div>
+<form id="labelForm" action="<%= base %>/InputReport" method="post">
+  <% hiddenInput('__RequestVerificationToken',csrfToken); hiddenInput('LabelAct',''); hiddenInput('LabelSelectID',state.LabelID); hiddenInput('IsLabelError',formError ? '1' : ''); hiddenInput('LabelCreateMode',''); %>
+  <div id="labelManagementForm">
+    <div style="text-align:right; margin-bottom:2px;"><a class="modal_close" href="#"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]"></a></div>
+    <div style="width:100%; padding:0px;" class="label_create_label"><%= r.ConMasResource_Label.replace('{0}',r.Create) %></div>
+    <div class="DialogLabel"><label for="mst_label_label_name"><%= r.label_name %></label></div><div class="DialogField"><input id="mst_label_label_name" name="mst_label.label_name" type="text" class="EditValue1" value="<%= formValue('label_name') %>" data-val="true" data-val-required="<%= r.MSG_REQUIRED.replace('{0}',r.label_name) %>"><span class="<%= formError ? 'field-validation-error' : 'field-validation-valid' %>" data-valmsg-for="mst_label.label_name" data-valmsg-replace="true"><%= formError %></span></div>
+    <div class="DialogLabel"><label for="mst_label_label_remarks"><%= r.label_remarks %></label></div><div class="DialogField"><input id="mst_label_label_remarks" name="mst_label.label_remarks" type="text" class="EditValue1" value="<%= formValue('label_remarks') %>"><span class="field-validation-valid" data-valmsg-for="mst_label.label_remarks" data-valmsg-replace="true"></span></div>
+    <div class="DialogLabel"><% checkbox('mst_label.IsAutoDelete',formValue('IsAutoDelete').toLowerCase() === 'true',r.IsAutoDelete); %><div><%= r.AutoLabelDeleteMessage.replace('{0}',r.InputReport) %></div></div>
+    <br style="line-height:2px;">
+    <div class="DialogField"><ul class="Side"><% for (let icon = 1; icon <= 10; icon++) { %><li><input type="radio" id="label_icon_id<%= icon %>" name="mst_label.label_icon_id" value="<%= icon %>" data-val="true" data-val-required="<%= r.MSG_REQUIRED_ICON %>"<% if (icon === Number(formValue('label_icon_id') || 1)) { %> checked="checked"<% } %>> <label for="label_icon_id<%= icon %>"><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= icon %>.png" alt="[<%= v.iconField %><%= icon %>]"></label></li><% } %></ul><span class="field-validation-valid" data-valmsg-for="mst_label.label_icon_id" data-valmsg-replace="true"></span></div>
+    <br style="line-height:5px;"><p style="margin-bottom:1px;"><input type="submit" value="<%= r.LabelCreateMode0 %>" class="button_custom" onclick="return addConMasLabel('0')"><input type="submit" value="<%= r.LabelCreateMode1 %>" class="button_custom" onclick="return addConMasLabel('1')"><a href="<%= base %>/InputReport?act=BACK_INDEX" class="button_cancel_custom"><%= r.Cancel %></a></p>
+  </div>
+</form>
+<div id="contentTask" class="TaskDialog"></div>
+<form id="formLabelSelectListView" action="<%= base %>/Common/LabelSelectListView?reportMode=Rep&amp;LabelSelectPageIndex=1&amp;SearchNameLabelSelectView=&amp;excludeBinderLabel=true" method="post" data-ajax="true" data-ajax-update="#conmasLabelSelectListContent">
+  <% hiddenInput('__RequestVerificationToken',csrfToken); %>
+  <div id="LinkLabelDialog" style="width:300px; height:540px;"><div class="DialogMargin">
+    <div class="DialogTitle"><%= v.setLabel %>:<% close('LinkLabelDialog','fConMasLabelSelectDisplay();'); %></div>
+    <div><input type="button" value="<%= r.Clear %>" onclick="fConMasClearCheck();"></div><div id="conmasLabelSelectListContent"></div>
+    <input type="button" id="btnLinkLabelAdd" class="button_custom" value="<%= r.Add %>" onclick="return linkLabel('add');"><input type="button" id="btnLinkLabelDelete" class="button_custom_orange" value="<%= r.Delete %>" style="padding:10px 10px 10px 10px;" onclick="return linkLabel('delete');">
+  </div></div>
+</form>
+<div id="domMessage" style="display:none;"><h1><%= r.LockMessage %></h1></div>
+<div id="popUpDialogForm"><div id="contentTaskSearch"></div></div>
+<div style="display: none;"><a id="goIdentification" rel="leanModal" name="popUpIdentification" href="#Identification"></a><a id="conmasIdentificationCloseButton" class="modal_close" href="#"></a></div>
+<div id="Identification" style="display:none;">
+  <form id="GetIdentificationRequiredForm" action="<%= base %>/InputReport/GetIdentificationRequired" method="post"><% hiddenInput('__RequestVerificationToken',csrfToken); %></form>
+  <form id="IdentificationForm" action="<%= base %>/InputReport/Identification" method="post"><% hiddenInput('__RequestVerificationToken',csrfToken); %></form>
+  <div id="IdentificationDialog"><div class="DialogMargin">
+    <div class="DialogTitle"><%= r.IdentificationCode %><% close('Identification',"$('#conmasIdentificationCloseButton').trigger('click');"); %></div>
+    <div class="DialogLabel"><%= r.MessageInputIdentificationCode %><br><%= r.MessageSettingIdentificationCode %></div>
+    <input id="identificationCode" type="password"><div id="identificationCodeError" class="field-validation-error"></div>
+    <p><input type="button" class="image-approve-btn" value="<%= r.Approving %>" style="cursor:pointer" onclick="onClickIdentification();"></p>
+  </div></div>
+</div>

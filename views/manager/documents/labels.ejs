@@ -1,0 +1,23 @@
+<script type="text/javascript">
+  $(function () { fConMasInit(); $('#Labels').treeview({ collapsed:false,animated:'medium',control:'#sidetreecontrol',persist:'location' }); });
+  function fConMasNextLabel() { var index = parseInt($('#LabelPageIndex').val())+1; $('#LabelPageIndex').val(index); $('#LabelPageIndexBackup').val(index); }
+  function fConMasPageLabel(index) { $('#LabelPageIndex').val(index); $('#LabelPageIndexBackup').val(index); }
+  function fConMasBackLabel() { var index = parseInt($('#LabelPageIndex').val())-1; $('#LabelPageIndex').val(index); $('#LabelPageIndexBackup').val(index); }
+  function fConMasLabelSearch() { $('#SearchNameLabelViewBackup').val($('#SearchNameLabelView').val()); }
+</script>
+<div style="background-color:#F0F0F0; position:fixed; padding:0px; top:104px; width:235px; text-align:center;">
+  <div style="text-align:left;"><%= r.SearchLabel %></div>
+  <div style="width:100%;"><div style="float:left;"><input type="text" value="<%= search %>" id="SearchNameLabelView" name="SearchNameLabelView"></div><div style="float:right;"><input type="submit" value="<%= r.Search %>" onclick="fConMasLabelSearch();"></div><div style="clear:both;"></div></div>
+  <div><%= index %>-<%= lastCount %>/<%= pages %>(<%= total %>)</div>
+  <div><div style="float:left; text-align:left;"><input type="submit" value="|＜" onclick="fConMasPageLabel(1);"<% if (index <= 1) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>><input type="submit" value="＜" onclick="fConMasBackLabel();"<% if (index <= 1) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>></div>
+    <div style="float:right; text-align:right;"><input type="submit" value="＞" onclick="fConMasNextLabel();"<% if (index >= pages) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>><input type="submit" value="＞|" onclick="fConMasPageLabel(<%= pages %>);"<% if (index >= pages) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>></div></div>
+</div>
+<div id="sidetreecontrol" class="collapseBox"><a href="?#"><%= r.CollapsedFalse %></a> | <a href="?#"><%= r.CollapsedTrue %></a></div>
+<ul id="Labels" class="treeview">
+  <% const single = (id,name) => { %><li><a href="<%= base %>/InputReport" name="<%= id %>" onclick="return label('<%= id %>');"><%= name %></a></li><% };
+  if (allDisplay) single('All',r.allData); single('NoLabel',r.noLabel);
+  const renderNodes = items => { for (const item of items) { if (!visible.has(item.mst_label_id)) { renderNodes(item.children); continue; } %>
+    <li><a href="<%= base %>/InputReport" name="<%= item.mst_label_id %>" onclick="return label('<%= item.mst_label_id %>');"><% if (item.label_icon_id) { %><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id %>.png" alt="[label<%= item.label_icon_id %>]" class="labelPictureSize"> <% } %><%= item.label_name %></a><% if (item.children.length) { %><ul class="rank0"><% renderNodes(item.children); %></ul><% } %></li>
+  <% } }; renderNodes(nodes); single('Trash',r.trash); %>
+</ul>
+<input type="hidden" id="LabelPageIndex" name="LabelPageIndex" value="<%= index %>"><input type="hidden" id="LabelReportMode" name="LabelReportMode" value="Rep">

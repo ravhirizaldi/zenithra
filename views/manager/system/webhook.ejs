@@ -1,0 +1,96 @@
+<% const wp = webhookPage || {}; const setting = wp.setting || {}; const general = wp.general || {}; const root = '/ConMasManager/System'; const esc = value => value == null ? '' : String(value); const selected = (a, b) => String(a) === String(b) ? ' selected' : ''; const checked = value => value ? ' checked' : ''; const notifyNames = [['apply','Application'],['remand','Rejection'],['approve','Approval'],['edit','Save in editing'],['complete','Completion'],['change','Change'],['terminal','Device application'],['terminalapprove','Device approval'],['defapply','Form application'],['defremand','Form rejection'],['defapprove','Form approval'],['schedule','Schedule registration notice']]; const webhookTypeName = wp.targetName; const page = wp.page || {pageIndex:0,pageSize:20,sortColumn:'webhook_id',sortDirection:'ASC'}; %>
+<% if (wp.mode === 'denied') { %>
+<section><div id="DetailTop"><span id="infoTitle">Webhook notice setting</span></div><div class="info" role="alert"><%= wp.error || 'Role authority is insufficient.' %></div></section>
+<% } %>
+<% if (wp.mode === 'list') { %>
+<section>
+  <div id="DetailTop"><span id="infoTitle">Webhook List</span></div>
+  <div style="text-align:right;padding-right:3px;padding-top:0;padding-bottom:3px;"><% if (wp.canDataCreate) { %><a class="img_add" href="<%= root %>/Details?mode=webhook&amp;act=edit&amp;id=-1" title="Create webhook notification setting" aria-label="Create webhook notification setting"> </a><% } %><% if (wp.canDataDelete) { %><button type="button" class="img_delete2" title="Delete" aria-label="Delete selected webhooks" onclick="webhookDeleteSelected()"></button><% } %></div>
+  <% if (wp.error) { %><div class="info" role="alert"><%= wp.error %></div><% } %>
+  <form method="post" action="<%= root %>/WebhookList" id="webhookListForm"><div class="info">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken || '' %>"><input type="hidden" name="act" id="webhookListAct" value=""><input type="hidden" name="PageData.PageIndex" id="webhookListPageIndex" value="<%= page.pageIndex %>"><input type="hidden" name="PageData.SortColumn" id="webhookListSortColumn" value="<%= page.sortColumn %>"><input type="hidden" name="PageData.SortDirection" id="webhookListSortDirection" value="<%= page.sortDirection %>">
+    <%- include('webhook-pager', { selectId:'webhookListPageSizeTop',wp,page,selected,base }) %>
+    <table class="GridCommon" border="0" cellspacing="1" id="webhookDataTable">
+        <thead><tr><% if (wp.canDataDelete) { %><th scope="col" class="checkCol"><input type="checkbox" id="webhookSelectAll" aria-label="Select all webhooks"></th><% } %>
+          <% for (const [column,label] of [['webhook_to','Webhook notification address'],['webhook_url','Webhook URL'],['webhook_id','Setting name']]) { %><th scope="col" class="<%= page.sortColumn===column ? 'sorting' : '' %>"><span><%= label %></span><a class="sort <%= page.sortColumn===column ? page.sortDirection.toLowerCase() : '' %>" href="#" onclick="webhookSortList('<%= column %>');return false;" aria-label="Sort by <%= label %>">sort</a></th><% } %></tr></thead>
+        <tbody>
+        <% for (let i = 0; i < (wp.items || []).length; i++) { const item = wp.items[i]; %>
+          <tr class="<%= i % 2 ? 'even' : 'odd' %>"><% if (wp.canDataDelete) { %><td class="CenterCol"><input type="checkbox" name="webhookList[<%= i %>].IsSelect" value="true" aria-label="Select webhook <%= esc(item.webhook_name) %>"><input type="hidden" name="webhookList[<%= i %>].webhookId" value="<%= esc(item.webhook_id) %>"></td><% } %>
+            <td class="LeftCol"><a href="<%= root %>/WebhookChat?id=<%= encodeURIComponent(item.webhook_id) %>"><%= esc(webhookTypeName(item.webhook_to)) %></a></td><td class="LeftCol"><a href="<%= root %>/WebhookChat?id=<%= encodeURIComponent(item.webhook_id) %>"><%= esc(item.webhook_url) %></a></td><td class="LeftCol"><%= esc(item.webhook_name) %></td></tr>
+        <% } %>
+        </tbody>
+</table>
+
+    <%- include('webhook-pager', { selectId:'webhookListPageSize',wp,page,selected,base }) %>
+  </div></form>
+</section>
+<script>
+function webhookListPage(index){document.getElementById('webhookListPageIndex').value=String(index);document.getElementById('webhookListForm').submit()}
+function webhookListSize(select){const form=select.form;form.querySelectorAll('select[name="PageData.PageSize"]').forEach(item=>item.value=select.value);document.getElementById('webhookListAct').value='';webhookListPage(0)}
+function webhookSortList(column){const form=document.getElementById('webhookListForm');const sort=document.getElementById('webhookListSortColumn');const direction=document.getElementById('webhookListSortDirection');direction.value=sort.value===column&&direction.value==='ASC'?'DESC':'ASC';sort.value=column;document.getElementById('webhookListPageIndex').value='0';form.submit()}
+function webhookDeleteSelected(){if(!document.querySelector('#webhookListForm input[name$=".IsSelect"]:checked')){window.alert('Please select Webhook notice setting.');return}if(window.confirm('Do you want to delete?')){document.getElementById('webhookListAct').value='delete';document.getElementById('webhookListForm').submit()}}
+const webhookSelectAll=document.getElementById('webhookSelectAll');if(webhookSelectAll)webhookSelectAll.addEventListener('change',()=>document.querySelectorAll('#webhookListForm input[name$=".IsSelect"]').forEach(input=>input.checked=webhookSelectAll.checked));
+</script>
+<% } %>
+<% if (wp.mode === 'chat') { %>
+<%- include('webhook-chat', { wp,setting,general,root,selected,checked,notifyNames,csrfToken }) %>
+<script>
+function webhookToggle(el,id){const panel=document.getElementById(id);panel.hidden=!panel.hidden;el.setAttribute('aria-expanded',String(!panel.hidden))}
+function webhookIsLinked(id){if(id === -1){window.alert('Please set information of Application linkage setting');return false}return true}
+</script>
+<% } %>
+<% if (wp.mode === 'edit') { %>
+<%- include('webhook-regular', { wp,setting,general,root,selected,checked,notifyNames,csrfToken }) %>
+<script>
+function webhookTypeChanged(type){if(type==='General'){location.href='<%= root %>/EditWebhookSettingGeneral?id=<%= encodeURIComponent(setting.webhook_id) %>';return}const form=document.getElementById('webhookEditForm');document.getElementById('webhookEditAct').value='initParam';form.submit()}
+function webhookParamChanged(select){const input=select.nextElementSibling;if(select.value){input.style.display='inline-block';if(!input.value||/^\{.+\}$/.test(input.value))input.value=`{${select.value}}`}else{input.style.display='none';input.value=''}}
+function webhookInputCheck(){const types=Array.from(document.querySelectorAll('#webhookParams select[name$="paramType"]')).map(select=>select.value).filter(Boolean);if(new Set(types).size!==types.length){window.alert('A webhook parameter cannot be selected more than once.');return false}for(const select of document.querySelectorAll('#webhookParams select[name$="paramType"]'))if(select.value&&!select.nextElementSibling.value){window.alert('Webhook parameter content is required.');return false}return true}
+function webhookTestSend(){if(!webhookInputCheck())return false;document.getElementById('webhookEditAct').value='testSend';return true}
+document.querySelectorAll('#webhookParams select[name$="paramType"]').forEach(select=>{if(!select.value)select.nextElementSibling.style.display='none';select.addEventListener('change',()=>webhookParamChanged(select))});
+</script>
+<% } %>
+<% if (wp.mode === 'generalEdit') { const g=general.GeneralRequestItem || {}; %>
+<%- include('webhook-general', { wp,setting,general,root,selected,checked,notifyNames,csrfToken }) %>
+<script>
+function generalReindex(container){document.querySelectorAll(`#${container} .generalPairRow`).forEach((row,index)=>row.querySelectorAll('[name]').forEach(input=>input.name=input.name.replace(/\[\d+\]/,`[${index}]`)))}
+function generalAddRow(container,prefix){const index=document.querySelectorAll(`#${container} .generalPairRow`).length;const row=document.createElement('div');row.className='generalPairRow';row.style.cssText='width:610px;padding:4px 0;border-top:solid 1px #999';const key=document.createElement('input');key.className='EditValue1';key.style.width='280px';key.name=`${prefix}[${index}].Key`;key.setAttribute('aria-label','Key');const value=document.createElement('input');value.className='EditValue1';value.style.width='280px';value.name=`${prefix}[${index}].Value`;value.setAttribute('aria-label','Value');const remove=document.createElement('i');remove.className='fas fa-minus-square fa-lg';remove.style.cssText='margin-left:4px;color:#6c6c6c;cursor:pointer';remove.setAttribute('role','button');remove.setAttribute('tabindex','0');remove.setAttribute('aria-label','Remove row');remove.onclick=()=>generalRemoveRow(remove,container,prefix);remove.onkeydown=event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();generalRemoveRow(remove,container,prefix)}};row.append(key,value,remove);document.getElementById(container).append(row)}
+function generalRemoveRow(button,container,prefix){const rows=document.querySelectorAll(`#${container} .generalPairRow`);if(rows.length===1){rows[0].querySelectorAll('input').forEach(input=>{if(!input.readOnly)input.value=''})}else{button.closest('.generalPairRow').remove();generalReindex(container)}if(container==='generalParams')generalBuildUrl()}
+function generalUpdateAuthHeader(){const type=document.getElementById('GeneralRequestItem.Authentication.Type').value;const basic=document.getElementById('generalBasicAuth');const bearer=document.getElementById('generalBearerAuth');let value='';if(type==='BasicAuth'){const user=basic.querySelector('[name$=".Username"]').value;const password=document.getElementById('generalPassword').value;if(user&&password)value=`Basic ${btoa(unescape(encodeURIComponent(`${user}:${password}`)))}`}else if(type==='BearerToken'){const token=bearer.querySelector('[name$=".Token"]').value;if(token)value=`Bearer ${token}`}document.getElementById('generalAuthorizationValue').value=value;document.getElementById('generalAuthorizationHidden').value=value;document.getElementById('generalAuthorizationHeader').hidden=!value}
+function generalAuthChanged(type){const basic=type==='BasicAuth';const bearer=type==='BearerToken';const basicPanel=document.getElementById('generalBasicAuth');const bearerPanel=document.getElementById('generalBearerAuth');basicPanel.hidden=!basic;bearerPanel.hidden=!bearer;basicPanel.querySelectorAll('input[name]').forEach(input=>input.disabled=!basic);bearerPanel.querySelectorAll('input[name]').forEach(input=>input.disabled=!bearer);const password=document.getElementById('generalPassword');password.type=basic?'password':'text';if(basic)document.getElementById('generalShowPassword').checked=false;generalUpdateAuthHeader()}
+function generalShowPasswordChanged(show){document.getElementById('generalPassword').type=show?'text':'password'}
+function generalBodyChanged(type){document.getElementById('generalFormBody').hidden=!['FormData','XWwwFormURLEncoded'].includes(type);document.getElementById('generalRawBody').hidden=type!=='Raw';document.getElementById('generalFormContentTypeHeader').hidden=type!=='FormData';document.getElementById('generalUrlContentTypeHeader').hidden=type!=='XWwwFormURLEncoded';document.getElementById('generalRawContentTypeHeader').hidden=type!=='Raw';document.getElementById('generalFormContentType').value=type==='FormData'?'multipart/form-data; boundary=...':'application/x-www-form-urlencoded'}
+function generalBuildUrl(){const endpoint=document.getElementById('Endpoint');const question=endpoint.value.indexOf('?');const base=question<0?endpoint.value:endpoint.value.slice(0,question);let query='';document.querySelectorAll('#generalParams .generalPairRow').forEach(row=>{const inputs=row.querySelectorAll('input');const key=inputs[0].value;const value=inputs[1].value;if(key!==''||value!==''){query+=query===''?'?':'&';if(key!=='')query+=key;if(value!=='')query+=`=${value}`}});endpoint.value=base+query}
+function generalWebhookTypeChanged(type){if(type!=='General')location.href='<%= root %>/EditWebhookSetting?id=<%= encodeURIComponent(general.WebhookId) %>&webhookTo='+encodeURIComponent(type)}
+document.getElementById('Endpoint').addEventListener('change',event=>{const endpoint=event.target.value;const question=endpoint.indexOf('?');const raw=question<0?'':endpoint.slice(question+1);const container=document.getElementById('generalParams');container.replaceChildren();if(raw){for(const part of raw.split('&')){const equal=part.indexOf('=');generalAddRow('generalParams','GeneralRequestItem.Params');const row=container.lastElementChild;row.querySelectorAll('input')[0].value=equal<0?part:part.slice(0,equal);row.querySelectorAll('input')[1].value=equal<0?'':part.slice(equal+1)}}if(!container.children.length)generalAddRow('generalParams','GeneralRequestItem.Params')});
+document.getElementById('generalParams').addEventListener('change',event=>{if(event.target.matches('input'))generalBuildUrl()});
+document.getElementById('GeneralRequestItem.Authentication.Type').addEventListener('change',event=>generalAuthChanged(event.target.value));
+document.querySelectorAll('#generalBasicAuth input[name],#generalBearerAuth input[name]').forEach(input=>input.addEventListener('change',generalUpdateAuthHeader));
+document.getElementById('GeneralRequestItem.Body.Type').addEventListener('change',event=>generalBodyChanged(event.target.value));
+generalAuthChanged(document.getElementById('GeneralRequestItem.Authentication.Type').value);
+generalBodyChanged(document.getElementById('GeneralRequestItem.Body.Type').value);
+</script>
+<% } %>
+<% if (wp.mode === 'notificationEdit') { %>
+<%- include('webhook-notification', { wp,setting,general,root,selected,checked,notifyNames,csrfToken }) %>
+<% } %>
+<% if (wp.mode === 'sendLog') { const filters=wp.filters||{}; const logs=wp.logs||[]; %>
+<%- include('webhook-log',{wp,page,filters,logs,notifyNames,checked,selected,root,base,csrfToken}) %>
+<script>
+function webhookLogAction(action){document.getElementById('webhookLogAction').value=action;document.getElementById('webhookResendId').value='';if(action==='SearchType')document.getElementById('webhookLogPageIndex').value='0';webhookLogSubmit()}
+function webhookLogPage(index){document.getElementById('webhookLogAction').value='PageType';document.getElementById('webhookResendId').value='';document.getElementById('webhookLogPageIndex').value=String(index);webhookLogSubmit()}
+function webhookLogSize(select){select.form.querySelectorAll('select[name="PageData.PageSize"]').forEach(item=>item.value=select.value);webhookLogPage(0)}
+function webhookLogSaveScroll(){document.getElementById('ScrollXPoint').value=window.scrollX;document.getElementById('ScrollYPoint').value=window.scrollY}
+function webhookLogSubmit(){webhookLogSaveScroll();document.getElementById('webhookSendLogForm').submit()}
+function webhookToggle(el,id){const panel=document.getElementById(id);panel.hidden=!panel.hidden;el.setAttribute('aria-expanded',String(!panel.hidden))}
+function webhookSortLog(column){const sort=document.getElementById('webhookLogSortColumn');const direction=document.getElementById('webhookLogSortDirection');direction.value=sort.value===column&&direction.value==='ASC'?'DESC':'ASC';sort.value=column;webhookLogPage(0)}
+function webhookDeleteLogs(){if(!document.querySelector('#webhookSendLogForm input[name$=".IsSelect"]:checked')){window.alert('Please check on the target logs to be deleted');return}if(window.confirm('Delete the checked logs. Contine?'))webhookLogAction('DeleteType')}
+function webhookResend(id){if(!window.confirm('Is it ok to resend?'))return;document.getElementById('webhookLogAction').value='';document.getElementById('webhookResendId').value=id;webhookLogSubmit()}
+function webhookCheckAll(master,container){document.querySelectorAll(`#${container} input[type="checkbox"]`).forEach(input=>input.checked=master.checked)}
+function webhookCheckDefault(id,container){const boxes=Array.from(document.querySelectorAll(`#${container} input[type="checkbox"]`));document.getElementById(id).checked=boxes.length>0&&boxes.every(input=>input.checked)}
+function webhookTimeInitFrom(){const date=document.getElementById('WhereData_SendTimeFrom');const hour=document.getElementById('WhereData_SendTimeFromHour');if(date.value&& !hour.value)hour.value='00:00:00'}
+function webhookTimeInitTo(){const date=document.getElementById('WhereData_SendTimeTo');const hour=document.getElementById('WhereData_SendTimeToHour');if(date.value&& !hour.value)hour.value='00:00:00'}
+webhookCheckDefault('webhookStatusCheck','webhookLogStatus');webhookCheckDefault('webhookNotificationTypeCheck','webhookLogTypes');
+$(function(){if($.fn.datepicker){$('#WhereData_SendTimeFrom,#WhereData_SendTimeTo').datepicker({dateFormat:'yy/mm/dd'});}if($.fn.timepicker){$('#WhereData_SendTimeFromHour,#WhereData_SendTimeToHour').timepicker({timeFormat:'H:i:s'});}window.scrollTo(Number(document.getElementById('ScrollXPoint').value)||0,Number(document.getElementById('ScrollYPoint').value)||0);});
+const webhookLogSelectAll=document.getElementById('webhookLogSelectAll');if(webhookLogSelectAll)webhookLogSelectAll.addEventListener('change',()=>document.querySelectorAll('#sendLogDataTable input[name$=".IsSelect"]').forEach(input=>input.checked=webhookLogSelectAll.checked));
+</script>
+<% } %>

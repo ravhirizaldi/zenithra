@@ -1,0 +1,39 @@
+<%
+  const isForm = catalog.kind === 'form';
+  const route = isForm ? 'DefReport' : 'InputReport';
+  const urlFor = changes => `${base}/${route}/Index?${new URLSearchParams({ ...catalog.filters, ...changes })}`;
+%>
+<div id="Wrap" class="catalog-workspace">
+  <div id="SideWrap">
+    <% if (!isForm) { %><div class="catalog-label-search"><label for="label-search">Search label:</label><input id="label-search" type="search" oninput="document.querySelectorAll('#Labels .catalog-label').forEach(x => x.hidden = !x.textContent.toLowerCase().includes(this.value.toLowerCase()))"></div><% } %>
+    <div id="LabelSection"><ul id="Labels" class="treeview">
+      <li><a class="<%= catalog.filters.label === 'all' ? 'current' : '' %>" href="<%= urlFor({ label: 'all', page: '1' }) %>">All</a></li>
+      <li><a class="<%= catalog.filters.label === 'none' ? 'current' : '' %>" href="<%= urlFor({ label: 'none', page: '1' }) %>">No Label</a></li>
+      <% for (const label of catalog.labels) { %>
+        <li class="catalog-label"><a class="<%= catalog.filters.label === String(label.id) ? 'current' : '' %>" href="<%= urlFor({ label: String(label.id), page: '1' }) %>"><%= label.name %></a></li>
+      <% } %>
+    </ul></div>
+  </div>
+  <div id="MainWrap">
+    <form class="catalog-filters" method="get" action="<%= base %>/<%= route %>/Index">
+      <input type="hidden" name="label" value="<%= catalog.filters.label %>">
+      <label for="catalog-status">Status</label>
+      <select id="catalog-status" name="status"><option value="published"<%= catalog.filters.status === 'published' ? ' selected' : '' %>>Published</option><option value="all"<%= catalog.filters.status === 'all' ? ' selected' : '' %>>All</option></select>
+      <label for="catalog-search">Name</label><input id="catalog-search" name="search" value="<%= catalog.filters.search %>">
+      <button type="submit">Search</button>
+    </form>
+    <div class="catalog-pagination">Displayed number 20 &nbsp; <%= catalog.filters.page %> / <%= catalog.pages %> (<%= catalog.total %>)
+      <% if (catalog.filters.page > 1) { %><a href="<%= urlFor({ page: String(catalog.filters.page - 1) }) %>">Previous</a><% } %>
+      <% if (catalog.filters.page < catalog.pages) { %><a href="<%= urlFor({ page: String(catalog.filters.page + 1) }) %>">Next</a><% } %>
+    </div>
+    <div id="GridSection" class="catalog-grid"><table class="GridCommon" cellspacing="1">
+      <thead><tr><th>ID</th><th><%= isForm ? 'Form name' : 'Document name' %></th><th>Original ID</th><th>REV</th><th><%= isForm ? 'Automatic' : 'Status' %></th><th>Registration date and time</th><th>Registrant</th><th>Last update date and time</th><th>Last updated by</th></tr></thead>
+      <tbody>
+      <% for (const row of catalog.rows) { %>
+        <tr><td><%= row.id %></td><td><a href="<%= base %>/<%= route %>/Details?<%= isForm ? 'defTopId' : 'repTopId' %>=<%= row.id %>"><%= row.name %></a><% if (row.is_sample) { %><small class="sample-badge"><%= isForm ? 'Imported sample' : 'Generated blank sample' %></small><% } %></td><td><%= row.original_id ?? '' %></td><td><%= row.rev_no ?? '' %></td><td><%= isForm ? (String(row.auto_gen ?? '0') === '1' ? 'Yes' : 'No') : row.public_status %></td><td><%= row.registered ?? '' %></td><td><%= row.registered_by ?? '' %></td><td><%= row.updated ?? '' %></td><td><%= row.updated_by ?? '' %></td></tr>
+      <% } %>
+      <% if (!catalog.rows.length) { %><tr><td colspan="9">No records match these filters.</td></tr><% } %>
+      </tbody>
+    </table></div>
+  </div>
+</div>

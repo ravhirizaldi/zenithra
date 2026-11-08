@@ -1,0 +1,4 @@
+<div class="PageSection"><%= p.labels.DisplayCount %>&nbsp;<select onchange="edgePageSize(this.value)"><% for(const size of p.sizes){ %><option value="<%= size %>" <%= size===p.pageSize?'selected':'' %>><%= size %></option><% } %></select>&nbsp;
+<% if(p.index>0){ %><a href="#" onclick="return edgePage(0)"><%= p.labels.FirstPage %></a><a href="#" class="img_page_prev_e" onclick="return edgePage(<%= p.index-1 %>)"> </a><% }else{ %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+&nbsp;<%= p.index+1 %>&nbsp;/&nbsp;<%= p.pages %>&nbsp;
+<% if(p.index+1<p.pages){ %><a href="#" class="img_page_next_e" onclick="return edgePage(<%= p.index+1 %>)"> </a><a href="#" onclick="return edgePage(<%= p.pages-1 %>)"><%= p.labels.LastPage %></a><% }else{ %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %></div>

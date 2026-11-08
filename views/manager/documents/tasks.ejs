@@ -1,0 +1,29 @@
+<script type="text/javascript">
+  $(function () {
+    $('#MessageWrap .PartialViewMessage').empty();
+    if ($('.PartialViewMessage li').length === 1 && $('.PartialViewMessage li').css('display') === 'none') $('.PartialViewMessage').css('display','none');
+    else $('.PartialViewMessage').appendTo('#MessageWrap');
+  });
+  function onTaskComplete() { $('#chkFiles').val(''); $('#act').val(''); }
+  function filterTask() { $('#form0.Task').trigger('submit'); return false; }
+  function pageSizeFilterTask(obj) { $('#pageSize').val($(obj).val()); return filterTask(); }
+  function pageTask(index) { $('#pageIndex.Task').val(index); return filterTask(); }
+</script>
+<div class="PartialViewMessage"><div class="validation-summary-valid"><ul><li style="display:none"></li></ul></div></div>
+<form id="form0" class="Task" action="<%= base %>/Common/TaskList" method="post" data-ajax="true" data-ajax-update="#contentTaskSearch" data-ajax-complete="onTaskComplete">
+  <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" id="chkFiles" name="chkFiles" value=""><input type="hidden" id="act" name="act" value="">
+  <div id="DetailTop"><span id="infoTitle"><%= r.TASK_LIST %></span></div>
+  <div style="text-align:right; padding-right:3px; padding-top:0px;padding-bottom:3px;"><%= r.task_name %> <input class="text-box single-line" id="searchName" name="searchName" value="<%= searchName %>" type="text"> <%= r.task_remark %> <input class="text-box single-line" id="searchRemark" name="searchRemark" value="<%= searchRemark %>" type="text"> <input type="submit" value="<%= r.Search %>" class="image-search_user"></div>
+  <% const paging = bottom => { %><div class="PageSection">
+    <%= r.DisplayCount %>&nbsp;<select id="pageSize" name="pageSize" onchange="return <%= bottom ? 'pageSizeFilterTask(this)' : 'filterTask()' %>;"><% for (const size of pageSizes) { %><option value="<%= size %>"<% if (size === pageSize) { %> selected="selected"<% } %>><%= size %></option><% } %></select>&nbsp;
+    <% if (pageIndex > 0) { %><a href="<%= base %>/Common/TaskList" onclick="return pageTask(0);" style="padding-right:5px;"><%= r.FirstPage %></a><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pageIndex-1 %>);" class="img_page_prev_e"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>&nbsp;
+    <%= pageIndex+1 %>&nbsp;/&nbsp;<%= pages %> (<%= total %>)&nbsp;
+    <% if (pageIndex+1 < pages) { %><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pageIndex+1 %>);" class="img_page_next_e"> </a><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pages-1 %>);" style="padding-left:5px;"><%= r.LastPage %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+  </div><% }; %>
+  <div id="GridSection" style="height:324px;"><div class="info">
+    <% paging(false); %><input type="hidden" id="pageIndex" name="pageIndex" value="0" class="Task">
+    <table cellpadding="0" cellspacing="0" class="table_information verticality"><thead><tr><th scope="col" style="width:30px;"><%= r.Id %></th><th scope="col"><%= r.task_name %></th><th scope="col"><%= r.task_remark %></th><th scope="col"><%= r.task_display_number %></th></tr></thead><tbody>
+      <% for (const row of rows) { %><tr><td><input type="button" id="selectTaskButton" name="selectTaskButton" value="<%= row.task_id %>" onclick="fConMasSelectTask(<%= row.task_id %>,<%= JSON.stringify(row.task_name) %>,<%= JSON.stringify(row.task_remark) %>);"></td><td><%= row.task_name %></td><td><%= row.task_remark %></td><td><%= row.display_number %></td></tr><% } %>
+    </tbody></table><% paging(true); %>
+  </div></div>
+</form>

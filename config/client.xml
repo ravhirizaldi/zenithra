@@ -1,0 +1,85 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Node-owned native-client protocol settings, based on the installed ConMasWeb contract.
+     serverVersion is the compatibility version advertised to Designer, not the Node package version.
+     License entitlements remain in the existing effective License.node.xml/License.xml reader. -->
+<ConMasWeb authType="STD" serverVersion="8.2.25101" sessionTimeoutMinutes="60" defaultRoleMode="All">
+  <versions Designer="7.2.13950" DesignerDisplay="7.2.20060" iPad="4.3" ScanDesigner="8.1.20495" EdgeOCRDesigner="8.2.25070" />
+  <commands>
+    <command>Login</command>
+    <command>Logout</command>
+    <command>GetUserInfo</command>
+    <command>RegistTerminal</command>
+    <command>ApprovalTerminal</command>
+    <command>GetDefinitionList</command>
+    <command>GetDefinitionUpdateList</command>
+    <command>GetDefinitionDetail</command>
+    <command>GetReportList</command>
+    <command>GetReportDetail</command>
+    <command>GetDefinitionData</command>
+    <command>GetReportData</command>
+    <command>GetDefinitionPreview</command>
+    <command>MakeReportFromDefinition</command>
+    <command>RegistReport</command>
+    <command>RegistDefinition</command>
+    <command>UnlockReport</command>
+    <command>UnlockDefinition</command>
+    <command>GetEdgeOCRCertificate</command>
+    <command>MakeReportFromDefinitionTop</command>
+    <command>GetReportDataTop</command>
+    <command>MakeReportFromDefinitionSheet</command>
+    <command>GetReportDataSheet</command>
+    <command>RegistReportTop</command>
+    <command>RegistReportSheet</command>
+    <command>RegistReportFinish</command>
+    <command>GetSheetBackgroundImage</command>
+    <command>GetSheetBinaries</command>
+    <command>GetBackgroundImage</command>
+    <command>GetLocalReferenceList</command>
+    <command>GetLocalReference</command>
+    <command>GetCalendarList</command>
+    <command>GetMasterList</command>
+    <command>RegistDocumentMaster</command>
+    <command>GetCustomMasterLabel</command>
+    <command>GetMasterImage</command>
+    <command>GetMasterRecordList</command>
+    <command>GetLicense</command>
+    <command>GetUser</command>
+    <command>GetDefinitionExcel</command>
+    <command>GetCustomMenuSettings</command>
+    <command>GetMessageImage</command>
+    <command>GetVoiceGrammar</command>
+    <command>PutLog</command>
+    <command>GetVoiceCommonGrammar</command>
+    <command>GetCustomMultiMenuSettings</command>
+    <command>RegistFile</command>
+    <command>DownloadReportList</command>
+    <command>PickOutReportTopData</command>
+    <command>GetReportFile</command>
+    <command>GetDesignerInstallerUrl</command>
+    <command>RemoveTerminal</command>
+    <command>DocumentRegistration</command>
+    <command>GetDocumentList</command>
+    <command>UnlockDocument</command>
+    <command>RegistReportFreeDrawSheet</command>
+    <command>GetReportFreeDrawSheet</command>
+    <command>RegistFreeDrawSheetInfo</command>
+    <command>GetFreeDrawSheetInfo</command>
+    <command>GetDocumentInfo</command>
+    <command>IdentifyApprover</command>
+    <command>GetAuthenticationType</command>
+    <command>GetUserId</command>
+  </commands>
+  <!-- Direct pages absent from CommandMapping.xml remain recognized but explicitly unfinished. -->
+  <directHandlers>
+    <handler>FollowLogin</handler>
+    <handler>GeneralProcess</handler>
+    <handler>GetReportPreview</handler>
+    <handler>EditReport</handler>
+    <handler>Test/GetTest</handler>
+    <handler>Test/PostTest</handler>
+    <handler>Test/Sample</handler>
+    <handler>Test/SessionTest</handler>
+    <handler>Test/UploadTest</handler>
+    <handler>Test/Uploader</handler>
+  </directHandlers>
+</ConMasWeb>

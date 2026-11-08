@@ -1,0 +1,42 @@
+<% const page = systemDataPage; const route = base + '/System'; %>
+<% if (page.mode === 'input') { %>
+<div class="PartialViewMessage"><% if (page.error) { %><ul><li><%= page.error %></li></ul><% } %></div>
+<div id="DetailTop"><span id="infoTitle"><%= page.labels.dataInput %></span></div>
+<form method="post" enctype="multipart/form-data" action="<%= route %>/DataInput"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+<div id="DetailSection"><div class="info"><div id="inputForm" style="<%= page.results.length ? 'display:none' : '' %>"><table cellpadding="5">
+<tr><td><label for="DataInputType"><%= page.labels.DataInputType %></label></td><td><select name="DataInputType" id="DataInputType"><% for (const option of page.commands) { %><option value="<%= option.value %>" <%= option.value===page.command ? 'selected' : '' %>><%= option.text %></option><% } %></select></td></tr>
+<tr><td><label for="type"><%= page.labels.FileType %></label></td><td><select name="type" id="type"><% for (const value of ['csv','xml','csvZip','xmlZip','csvSimple','csvZipSimple']) { %><option value="<%= value %>" <%= page.format===value ? 'selected' : '' %>><%= ({csv:'CSV',xml:'XML',csvZip:'CSV_ZIP',xmlZip:'XML_ZIP',csvSimple:'CSV_SIMPLE',csvZipSimple:'CSV_ZIP_SIMPLE'})[value] %></option><% } %></select></td></tr>
+<tr><td><label for="encoding"><%= page.labels['SystemResource-Encoding'] %></label></td><td><select name="encoding" id="encoding"><option value=""></option><% for (const option of page.encodings) { %><option value="<%= option.com_value %>" <%= page.encoding===option.com_value ? 'selected' : '' %>><%= option.com_name %></option><% } %></select></td></tr>
+<tr><td><label for="file1"><%= page.labels.file %></label></td><td><input type="file" name="file1" id="file1" class="EditValue1"></td></tr></table>
+<p><input type="submit" value="<%= page.labels.Fix %>" class="image-ok_btn"><a href="<%= route %>/DataInput" id="image-cancel_btn" class="image-cancel_label"><%= page.labels.Cancel %></a></p></div>
+<div id="resultForm"><% if (page.results.length) { %><div class="toggle" onclick="fConMasToggle('resultInfo')"><h2>▼<%= page.labels.resultForm %></h2></div><table id="resultInfo" cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th style="text-align:center;width:30px;"><%= page.labels.DataInputResultCode %></th><th style="text-align:center;"><%= page.labels.DataInputResultRemark %></th></tr><% for (const result of page.results) { %><tr><td style="text-align:center;width:30px;"><%= result.code %></td><td><%= result.remark %></td></tr><% } %></table><p><input type="button" value="<%= page.labels.SystemDataInput_ok %>" class="image-ok_btn" onclick="$('#resultForm,#inputForm').toggle()"></p><% } %></div>
+</div></div></form>
+<% } else if (page.mode === 'output') { %>
+<% if (!page.fragment) { %>
+<div id="DetailTop"><span id="infoTitle"><%= page.labels.DataOutput %></span></div>
+<form method="post" action="<%= route %>/DataOutput"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+<div id="DetailSection"><div class="info"><div id="inputForm">
+<% } %>
+<table cellpadding="5">
+<tr><td><%= page.labels.TargetToOutput %></td><td><select name="DataOutputType" id="DataOutputType"><% page.outputTypes.forEach((name,index) => { %><option value="<%= index %>" <%= page.command === index ? 'selected' : '' %>><%= page.labels[name] %></option><% }); %></select></td></tr>
+<tr><td><%= page.labels.FileFormat %></td><td><select name="type" id="type"><option value="csv">CSV</option><option value="xml">XML</option></select></td></tr>
+<tr id="trEncoding"><td><%= page.labels.ConMasResource_Encoding %></td><td><select name="encoding" id="encoding"><option value="932">shift_jis</option><option value="65001">utf-8</option></select></td></tr>
+<input type="hidden" name="deleted" value="0">
+</table>
+<% if (!page.fragment) { %>
+</div><p><input type="submit" value="<%= page.labels.DataOutput %>" class="image-ok_btn"></p></div></div></form>
+<script>
+document.addEventListener('change', async function (event) {
+  if (event.target.id === 'type') document.getElementById('trEncoding').style.visibility = event.target.value === 'xml' ? 'hidden' : 'visible';
+  if (event.target.id === 'DataOutputType') {
+    const target = document.getElementById('inputForm');
+    try {
+      const response = await fetch('<%= route %>/DataOutputView?command=' + encodeURIComponent(event.target.value), { headers: { 'X-Requested-With': 'XMLHttpRequest' } });
+      if (!response.ok) throw new Error('Data export options failed.');
+      target.innerHTML = await response.text();
+    } catch { target.textContent = 'System error.'; }
+  }
+});
+</script>
+<% } %>
+<% } else { %><div class="info" role="alert"><h2><%= page.message %></h2></div><% } %>

@@ -1,0 +1,33 @@
+<% const p=edgeOcrPage; const l=p.labels; const route=base+'/System'; const columns=[['term_id',l.term_id],['physical_id',l.physical_id],['term_name',l.term_name],['term_remarks',l.term_remarks],['applicant_name',l.applicant_name],['applicant_comment',l.applicant_comment],['use_edgeocr',l.EdgeOCRUse]]; %>
+<% if(p.mode==='denied'){ %><div><%= l.RoleError %></div><% }else{ %>
+<div class="PartialViewMessage"><% if(p.errors?.length){ %><ul><% for(const error of p.errors){ %><li><%= error %></li><% } %></ul><% } %></div>
+<% if(p.mode==='confirm'){ %>
+<div id="DetailSection"><div class="info"><div id="infoTitle"><%= l.EdgeOCRMessageConfirmExportTerminals %></div><br>
+<table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><% for(const [,label] of columns){ %><th scope="col"><%= label %></th><% } %></tr><% for(const row of p.rows){ %><tr><% for(const [key] of columns){ %><td><%= key==='use_edgeocr'?(row[key]?l.YES_NO_STATE_YES:l.YES_NO_STATE_NO):row[key] ?? '' %></td><% } %></tr><% } %></table>
+<a class="button_custom" href="<%= route %>/ExportEdgeOCRCertificateFile"><%= l.EdgeOCRExport %></a><a class="button_cancel_custom" href="<%= route %>/EdgeOCRCredentialSetting?act=back"><%= l.Cancel %></a></div></div>
+<% }else if(p.mode==='list'){ %>
+<div id="DetailTop"><span id="infoTitle"><%= l.EdgeOCRLinkageSetting %></span></div>
+<form id="conmasPageForm" method="post" enctype="multipart/form-data" action="<%= route %>/EdgeOCRCredentialSetting" onsubmit="edgeSaveSelection()" data-confirm="<%= l.EdgeOCRMessageConfirmImportFile %>" data-file-label="<%= l.EdgeOCRFileName %>">
+<input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="ChkStatusTermIdList" id="ChkStatusTermIdList"><input type="hidden" name="act" id="act"><input type="hidden" name="pageIndex" id="pageIndex" value="<%= p.index %>"><input type="hidden" name="pageSize" id="pageSize" value="<%= p.pageSize %>">
+<input type="file" id="edgeOCRCredentialFile" name="file1" accept=".json" hidden onchange="edgeUpload()">
+<div id="DetailSection"><div class="info">
+<div class="toggle" onclick="fConMasToggle('edgeOCRInfo')"><h2 style="margin-top:5px;margin-bottom:10px;">▼<%= l.EdgeOCRLinkageSetting %></h2></div>
+<div id="edgeOCRInfo"><h4 style="margin-bottom:10px;"><%= l.EdgeOCRLicenseInformation %></h4>
+<table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal"><tr><th scope="row"><%= l.EdgeOCRTokenId %></th><td><%= p.license.token %></td></tr><tr><th scope="row"><%= l.TerminalCount %> (<%= l.EdgeOCRUseTerminalCount %> / <%= l.EdgeOCRContractedTerminalCount %>)</th><td><%= p.used %>&nbsp;/&nbsp;<%= p.license.limit ?? 0 %></td></tr><tr><th scope="row"><%= l.ConMasResource_Expire %></th><td><%= p.license.expires?.replace(/^(\d{4})(\d{2})(\d{2})$/,'$1/$2/$3') ?? '' %></td></tr></table>
+<h4 style="margin-bottom:10px;"><%= l.EdgeOCRConfigurationFileIntegration %></h4><table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal"><tr><th scope="row"><%= l.EdgeOCRUploadDate %></th><td><%= p.info?.uploaded_at ?? '' %></td></tr><tr><th scope="row"><%= l.EdgeOCRUploadUser %></th><td><%= p.info?.sys_regist_user ?? '' %></td></tr></table></div>
+<div class="toggle" onclick="fConMasToggle('SearchTerminalBox')"><h2 style="margin-top:5px;margin-bottom:10px;">▼<%= l.Search %><%= l.Filter %></h2></div>
+<div id="SearchTerminalBox"><table style="font-size:14px;"><% for(const pair of [[['SearchTermId',l.term_id],['SearchPhysicalId',l.physical_id]],[['SearchTermName',l.term_name],['SearchTermRemarks',l.term_remarks]],[['SearchAppricantName',l.applicant_name],['SearchAppricantComment',l.applicant_comment]]]){ %><tr><% for(const [key,label] of pair){ %><td><label for="<%= key %>"><%= label %></label></td><td><input id="<%= key %>" name="<%= key %>" value="<%= p.filters[key] %>"></td><td>&nbsp;</td><% } %></tr><% } %><tr><td><%= l.EdgeOCRUse %></td><td><select name="SearchUseEdgeOCR"><option value=""></option><option value="1" <%= p.filters.SearchUseEdgeOCR==='1'?'selected':'' %>><%= l.YES_NO_STATE_YES %></option><option value="0" <%= p.filters.SearchUseEdgeOCR==='0'?'selected':'' %>><%= l.YES_NO_STATE_NO %></option></select></td></tr></table><div style="text-align:left;"><button type="submit" class="image-ok_btn" onclick="document.getElementById('act').value='SEARCH'"><%= l.Search %></button></div></div><br>
+<% for(let section=0;section<2;section++){ %>
+<div class="fileControlButtons"><button type="button" class="button_custom" onclick="edgeSubmit('EXPORT')"><%= l.EdgeOCRButtonMessageExport %></button><button type="button" class="button_custom_orange" onclick="<%= p.license.enabled?"document.getElementById('edgeOCRCredentialFile').click()":'return false' %>"><%= l.EdgeOCRButtonMessageImport %></button></div>
+<%- include('edge-ocr-pager',{p,base}) %>
+<% if(section===0){ %><table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col" class="checkCol"><input type="checkbox" id="headChk" onclick="document.querySelectorAll('.edge-select').forEach(box=>box.checked=this.checked)"></th><% for(const [,label] of columns){ %><th scope="col"><%= label %></th><% } %></tr><% for(const row of p.rows){ %><tr><td class="center"><input type="checkbox" class="edge-select" name="item.ConMasCheckBoxValue" value="<%= row.term_id %>" <%= p.selected.includes(Number(row.term_id))?'checked':'' %>></td><% for(const [key] of columns){ %><td><%= key==='use_edgeocr'?(row[key]?l.YES_NO_STATE_YES:l.YES_NO_STATE_NO):row[key] ?? '' %></td><% } %></tr><% } %></table><% } %>
+<% } %>
+</div></div></form>
+<script>
+function edgeSaveSelection(){document.getElementById('ChkStatusTermIdList').value=Array.from(document.querySelectorAll('.edge-select')).map(box=>box.value+':'+box.checked).join(',');}
+function edgeSubmit(action){document.getElementById('act').value=action;document.getElementById('conmasPageForm').requestSubmit();}
+function edgePage(index){document.getElementById('pageIndex').value=index;edgeSubmit('PAGE');return false;}
+function edgePageSize(size){document.getElementById('pageSize').value=size;edgeSubmit('FILTER');}
+function edgeUpload(){const file=document.getElementById('edgeOCRCredentialFile');if(!file.files.length)return;const form=document.getElementById('conmasPageForm');if(confirm(form.dataset.confirm+'\r\n'+form.dataset.fileLabel+': '+file.files[0].name))edgeSubmit('IMPORT');else file.value='';}
+</script>
+<% } %><% } %>

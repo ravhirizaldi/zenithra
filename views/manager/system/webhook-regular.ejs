@@ -1,0 +1,21 @@
+<div class="PartialViewMessage"><% if(wp.error){ %><ul><li><%= wp.error %></li></ul><% } %><% if(wp.errors?.length){ %><ul><% for(const error of wp.errors){ %><li><%= error %></li><% } %></ul><% } %></div>
+<div id="DetailTop"><span id="infoTitle">Application linkage settingEdit</span><span id="functionBar"><input type="submit" form="webhookEditForm" value="Test  Notify" class="image-ok_btn" onclick="return webhookTestSend()"></span></div>
+<form method="post" action="<%= root %>/EditWebhookSetting" id="webhookEditForm">
+  <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="webhook_id" value="<%= setting.webhook_id %>"><input type="hidden" name="act" id="webhookEditAct" value="">
+  <div id="DetailSection"><div class="info"><table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+    <tbody>
+      <tr><th scope="row"><label for="webhook_to">Webhook notification address</label></th><td><select id="webhook_to" name="webhook_to" onchange="webhookTypeChanged(this.value)"><% for(const kind of (setting.webhook_id===-1 ? ['General','Other','Workflow','Nocoder'] : wp.regularTargets)){ %><option value="<%= kind %>"<%- selected(kind,setting.webhook_to||wp.selectedType) %>><%= wp.targetName(kind) %></option><% } %></select></td></tr>
+      <tr><th scope="row"><label for="webhook_name">Webhook notification setting name</label></th><td><input id="webhook_name" name="webhook_name" class="EditValue1" value="<%= setting.webhook_name %>"></td></tr>
+      <tr><th scope="row"><label for="webhook_url">Webhook URL</label></th><td><input id="webhook_url" name="webhook_url" class="EditValue1" value="<%= setting.webhook_url %>"></td></tr>
+      <tr><th scope="row"><label for="webhook_request">Webhook request</label></th><td><select id="webhook_request" name="webhook_request"><% for(const method of wp.regularMethods){ %><option value="<%= method %>"<%- selected(method,setting.webhook_request) %>><%= method %></option><% } %></select></td></tr>
+    </tbody>
+    <tbody id="webhookParams"><% for(let i=0;i<setting.webhookParams.length;i++){const item=setting.webhookParams[i]; %>
+      <tr><th scope="row"><% if(i===0){ %>Webhook parameter<% }else{ %>&nbsp;<% } %></th><td><div style="float:left;"><select name="webhookParameter.parameters[<%= i %>].paramType" aria-label="Parameter type <%= i+1 %>"><option value=""></option><% for(const option of wp.paramOptions){ %><option value="<%= option.value %>"<%- selected(option.value,item.paramType) %>><%= option.label %></option><% } %></select><input name="webhookParameter.parameters[<%= i %>].paramContent" value="<%= item.paramContent %>" style="width:150px;margin-left:<%= i===0 ? 0 : 4 %>px;" aria-label="Parameter content <%= i+1 %>"></div><% if(i===0){ %><div style="float:right;"><input type="submit" class="img_add_min" value="" aria-label="Add parameter" <%= setting.webhookParams.length>=20 ? 'disabled' : '' %> onclick="document.getElementById('webhookEditAct').value='addParam';" formnovalidate></div><% } %></td></tr>
+    <% } %></tbody>
+    <tbody>
+      <tr><th scope="row"><label for="token">Token</label></th><td><input id="token" class="EditValue1" name="token" value="<%= setting.token %>" autocomplete="off"></td></tr>
+      <tr><th scope="row"><label for="retry_cnt">Retry count</label></th><td><select id="retry_cnt" name="retry_cnt"><% for(const count of wp.retryRegular){ %><option value="<%= count %>"<%- selected(count,setting.retry_cnt) %>><%= count %></option><% } %></select></td></tr>
+      <tr style="display:none;"><th scope="row"><label for="error_occur">When  error occurs</label></th><td><input id="error_occur" name="error_occur" class="EditValue1" value="<%= setting.error_occur %>"></td></tr>
+    </tbody>
+  </table><p><input type="submit" value="Confirm" class="image-ok_btn" onclick="if(!webhookInputCheck())return false;document.getElementById('webhookEditAct').value='';"><a class="image-cancel_btn" style="text-align:center;" href="<%= root %>/WebhookChat?id=<%= setting.webhook_id %>">Cancel</a></p></div></div>
+</form>

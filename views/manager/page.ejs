@@ -1,0 +1,220 @@
+<% if (active === 'InputReport') { %><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><% } else { %><!doctype html><% } %>
+<html lang="en">
+<head>
+  <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8">
+  <meta charset="utf-8">
+  <% if (active !== 'InputReport') { %><meta name="viewport" content="width=device-width, initial-scale=1"><% } %>
+  <meta name="robots" content="noindex">
+  <meta http-equiv="Pragma" content="no-cache">
+  <meta http-equiv="Cache-Control" content="no-cache">
+  <meta http-equiv="Expires" content="0">
+  <title><%= title %></title>
+  <link rel="shortcut icon" href="<%= base %>/Content/ConMas/images/base/conmas.ico">
+  <link rel="stylesheet" href="<%= base %>/Content/ConMas/styles.css?20250901-01">
+  <link rel="stylesheet" href="<%= base %>/Content/ConMas/grid.css?20250901-01">
+  <link rel="stylesheet" href="<%= base %>/Content/themes/base/jquery-ui.min.css?20250901-01">
+  <link rel="stylesheet" href="<%= base %>/Content/ConMas/jquery.treeview.css?20250901-01">
+  <link rel="stylesheet" href="<%= base %>/Content/ConMas/jquery.timepicker.css?20250901-01">
+  <% if (webhookPage?.mode === 'generalEdit') { %><link rel="stylesheet" href="<%= base %>/Content/fontawesome-free-5.14.0-web/css/all.min.css"><% } %>
+  <% if (!['System', 'Label', 'Library', 'DataOutput', 'InputReport'].includes(active)) { %><link rel="stylesheet" href="<%= base %>/preview.css"><% } %>
+  <% if (['System', 'Label', 'Library', 'DataOutput', 'InputReport'].includes(active)) { const fileVer = '20250901-01'; %>
+    <script src="<%= base %>/Scripts/jquery-3.7.1.min.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.ui.datepicker-ja.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.ui.datepicker-en.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.ui.datepicker-en-GB.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.blockUI.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.treeview.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.leanModal.min.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/jquery.timepicker.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/conmas.paging.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/conmas.paging.action.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/conmas.paging.sort.js?<%= fileVer %>"></script>
+    <script src="<%= base %>/Scripts/conmas.util.js?<%= fileVer %>"></script>
+    <script>
+      function browserLanguage() {
+        try {
+          var defaultLang = 'en';
+          if (navigator.userLanguage) return navigator.userLanguage.substr(0, 2);
+          if (navigator.browserLanguage) return navigator.browserLanguage.substr(0, 2);
+          if (navigator.language) return navigator.language.substr(0, 2);
+          return defaultLang;
+        } catch (e) {
+          return undefined;
+        }
+      }
+    </script>
+  <% } %>
+</head>
+<body id="conmasmanagermain">
+  <div id="Header" class="HeaderNormal">
+    <div id="title"><a id="Logo" class="LogoNormal" href="<%= active === 'InputReport' ? '#' : `${base}/System` %>"<% if (active === 'InputReport') { %> style="width:295px"<% } %>>ConMas Manager</a></div>
+    <div id="LoginStatus">
+      <% if (userName && active === 'InputReport') { %><div><%= documentPage.r.LoggedIn %>：<strong><a href="<%= base %>/Account/PasswordChange" style="color:#FFFFFF; text-decoration:underline;"><%= userName %></a></strong> [ <a class="a2" href="<%= base %>/Account/LogOff"><%= documentPage.r.Logout %></a> ]</div>
+      <% } else if (userName) { %>Logged-in : <strong><%= userName %></strong> [ <a class="a2" href="<%= base %>/Account/LogOff">Logout</a> ]
+      <% } else if (!authEnabled && !login) { %>Logged-in : <strong>Local preview</strong> [ <a class="a2" href="<%= base %>/Account/LogOff">Logout</a> ]<% } %>
+      <div id="ManagerVersion">Version:8.2.25101</div>
+    </div>
+    <% if (!login) { %>
+      <% const customMenu = active === 'InputReport' ? documentPage.settings.menu : {};
+      const menuNumber = (name,fallback) => /^[+-]?\d+$/.test((customMenu[name] ?? '').trim()) && Number(customMenu[name]) >= -2147483648 && Number(customMenu[name]) <= 2147483647 ? Number(customMenu[name]) : fallback;
+      const menuKeys = { DefReport:'DEF_REPORT',InputReport:'REP_REPORT',DataOutput:'OUTPUT',AutoGenerate:'AUTO_GENERATE',Label:'LABEL',Library:'LIBRALY',Schedule:'SCHEDULE',CustomMaster:'CustomMaster',CustomMenu:'CustomMenu',Binder:'Binder',System:'SYSTEM' }; %>
+      <div id="GMenu"<% if (active === 'InputReport') { %> style="font-size:<%= menuNumber('FONT_SIZE',14) %>px;"<% } %>><ul>
+        <% for (const [label, route] of menus) { %>
+          <% if (label === 'Labels' && !labelPermissions?.refer) continue; %>
+          <% const key = menuKeys[route.split(/[/?]/)[0]], text = customMenu[key] ?? label;
+          const wideDefault = ['Master Manager','Custom menu','Binder'].includes(label) && !Object.hasOwn(customMenu,key);
+          const width = wideDefault ? 120 : menuNumber('WIDTH',100); %>
+          <li class="<%= route.split(/[/?]/)[0] === active ? 'current' : '' %>"><% if (['System','Labels','Library','Data Output','Documents'].includes(label)) { %><a href="<%= base %>/<%= route %>"<% if (label !== 'System' || active === 'InputReport') { %> style="width:<%= width %>px;"<% } %>><%= text %></a><% } else { %><a class="disabled-menu" aria-disabled="true" tabindex="-1" style="width:<%= width %>px;"><%= text %></a><% } %></li>
+        <% } %>
+      </ul></div>
+    <% } %>
+  </div>
+  <div id="Main">
+    <% if (login) { %>
+      <div id="LoginWrap">
+        <% if (loginError) { %><p class="login-error" role="alert"><%= loginError %></p><% } %>
+        <% if (authEnabled) { %>
+          <form method="post" action="<%= base %>/Account/LogOn">
+            <div id="LoginField"><div><div><label for="UserName">User name</label></div><div><label for="Password">Password</label></div></div>
+              <div><div><input id="UserName" name="UserName" autocomplete="username" required autofocus></div><div><input id="Password" name="Password" type="password" autocomplete="current-password" required></div></div>
+            </div>
+            <p><button id="image-login_btn" type="submit">Log-in</button></p>
+          </form>
+        <% } else { %>
+          <p><%= loggedOut ? 'Local preview closed.' : 'Authentication is pending migration.' %></p>
+          <p>Authentication is disabled, so this does not restrict access.</p>
+          <p><a class="local-enter" href="<%= base %>/DefReport/Index">Open read-only Manager</a></p>
+        <% } %>
+      </div>
+    <% } else if (documentPage) { %>
+      <%- include('documents/index', documentPage) %>
+    <% } else if (labelPage) { %>
+      <%- include('labels/index', labelPage) %>
+    <% } else if (libraryPage) { %>
+      <%- include('library/index', libraryPage) %>
+    <% } else if (outputPage) { %>
+      <%- include('data-output/index', outputPage) %>
+    <% } else if (catalog) { %>
+      <%- include('catalog/catalog', { base, catalog }) %>
+    <% } else if (detail) { %>
+      <%- include('catalog/detail', { base, detail }) %>
+    <% } else if (active === 'System') { %>
+      <% const pageBackHref = userPage || adminForm ? `${base}/System/UserList`
+        : userAccountLogPage ? `${base}/System/UserList`
+        : systemGroupPage && systemGroupPage.mode !== 'list' ? `${base}/System/GroupList`
+        : devicePage && devicePage.mode !== 'list' ? `${base}/System/TermList`
+        : settings && settings.mode !== 'list' ? `${base}/System/ComList`
+        : taskPage && taskPage.mode === 'edit' ? `${base}/System/TaskList`
+        : mailPage && mailPage.mode === 'edit' ? `${base}/System/MailList`
+        : mailTemplatePage && mailTemplatePage.mode !== 'list' ? `${base}/System/MailList`
+        : systemDataPage?.backHref ?? systemLocksPage?.backHref ?? systemMaintenancePage?.backHref
+          ?? systemUploadsPage?.backHref ?? systemLicensePage?.backHref ?? systemLogsPage?.backHref
+          ?? systemFilesPage?.backHref ?? mailLogPage?.backHref ?? directPage?.backHref
+          ?? webhookPage?.backHref ?? cloudCredentialsPage?.backHref ?? irfdPage?.backHref
+          ?? mbCloudPage?.backHref ?? meIdPage?.backHref ?? iwproPage?.backHref ?? edgeOcrPage?.backHref ?? ''; %>
+      <% const pageOwnsMessageWrap = Boolean(
+        userAccountLogPage || systemLocksPage || systemLogsPage || mailLogPage || systemMaintenancePage ||
+        (mailPage && ['list', 'edit'].includes(mailPage.mode)) ||
+        (mbCloudPage && mbCloudPage.kind === 'sendLog') ||
+        (meIdPage && meIdPage.mode !== 'roleError') ||
+        (systemUploadsPage && systemUploadsPage.mode === 'create') ||
+        (systemLicensePage && ['upload', 'error'].includes(systemLicensePage.mode))
+      ); %>
+      <% if (!pageOwnsMessageWrap) { %><div id="MessageWrap"></div><% } %>
+      <div id="Wrap">
+        <div id="SideWrap">
+          <% if (pageBackHref) { %><div id="BackIndex"><a href="<%= pageBackHref %>">BACK</a></div><% } %>
+          <div id="LabelSection">
+            <ul id="Labels" class="treeview">
+              <li><span>System Manager</span><ul class="rank1">
+                <% const renderSystemMenu = (items) => { for (const item of items ?? []) { %>
+                  <li>
+                    <% if (item.href) { %><a id="<%= item.id %>" href="<%= item.href %>" class="<%= item.key === section || item.activeSections?.includes(section) ? 'current' : '' %>"><%= item.label %></a><% } else { %><div><%= item.label %></div><% } %>
+                    <% if (item.children?.length) { %><ul><% renderSystemMenu(item.children); %></ul><% } %>
+                  </li>
+                <% } }; renderSystemMenu(systemMenu); %>
+              </ul></li>
+            </ul>
+          </div>
+        </div>
+        <div id="MainWrap"><div id="content">
+          <% if (userPage) { %>
+            <%- include('system/user-form', { base, userPage, csrfToken }) %>
+          <% } else if (systemGroupPage) { %>
+            <% if (['create', 'edit'].includes(systemGroupPage.mode)) { %><%- include('system/group-form', { base, systemGroupPage, csrfToken }) %><% } else { %><%- include('system/groups', { base, systemGroupPage, csrfToken }) %><% } %>
+          <% } else if (devicePage) { %>
+            <% if (['create', 'edit'].includes(devicePage.mode)) { %><%- include('system/device-form', { base, devicePage, csrfToken }) %><% } else { %><%- include('system/devices', { base, devicePage, csrfToken }) %><% } %>
+          <% } else if (userAccountLogPage) { %>
+            <%- include('system/user-account-log', { base, userAccountLogPage, csrfToken }) %>
+          <% } else if (mailLogPage) { %>
+            <%- include('system/mail-logs', { base, mailLogPage, csrfToken }) %>
+          <% } else if (mailTemplatePage) { %>
+            <%- include('system/mail-templates', { base, mailTemplatePage, csrfToken }) %>
+          <% } else if (mailPage) { %>
+            <%- include('system/mail', { base, mailPage, csrfToken }) %>
+          <% } else if (directPage) { %>
+            <%- include('system/direct', { base, directPage, csrfToken }) %>
+          <% } else if (webhookPage) { %>
+            <%- include('system/webhook', { base, webhookPage, csrfToken }) %>
+          <% } else if (settings) { %>
+            <%- include('system/common', { base, settings, csrfToken }) %>
+          <% } else if (systemDataPage) { %>
+            <%- include('system/data', { base, systemDataPage, csrfToken }) %>
+          <% } else if (taskPage) { %>
+            <%- include('system/tasks', { base, taskPage, csrfToken }) %>
+          <% } else if (systemLocksPage) { %>
+            <%- include('system/locks', { base, systemLocksPage, csrfToken }) %>
+          <% } else if (systemMaintenancePage) { %>
+            <%- include('system/maintenance', { base, systemMaintenancePage, csrfToken }) %>
+          <% } else if (systemUploadsPage) { %>
+            <%- include('system/uploads', { base, systemUploadsPage, csrfToken }) %>
+          <% } else if (systemLicensePage) { %>
+            <%- include('system/license', { base, systemLicensePage, csrfToken }) %>
+          <% } else if (systemLogsPage) { %>
+            <%- include('system/logs', { base, systemLogsPage, csrfToken }) %>
+          <% } else if (systemFilesPage) { %>
+            <%- include('system/files', { base, systemFilesPage, csrfToken }) %>
+          <% } else if (cloudCredentialsPage) { %>
+            <%- include('system/cloud-credentials', { base, cloudCredentialsPage, csrfToken }) %>
+          <% } else if (irfdPage) { %>
+            <%- include('system/irfd', { base, irfdPage, csrfToken }) %>
+          <% } else if (mbCloudPage) { %>
+            <%- include('system/mbcloud', { base, mbCloudPage, csrfToken }) %>
+          <% } else if (meIdPage) { %>
+            <%- include('system/meid', { base, meIdPage, csrfToken }) %>
+          <% } else if (iwproPage) { %>
+            <%- include('system/iwpro', { base, iwproPage, csrfToken }) %>
+          <% } else if (edgeOcrPage) { %>
+            <%- include('system/edge-ocr', { base, edgeOcrPage, csrfToken }) %>
+          <% } else if (adminForm) { %>
+            <% if (adminForm.error) { %><p class="login-error" role="alert"><%= adminForm.error %></p><% } %>
+            <form method="post" action="<%= base %>/System/EditAdmin">
+              <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+              <table class="table_information horizontal"><tr><th>Administrator ID</th><td>conmasadmin</td></tr><tr><th><label for="new_password">New password</label></th><td><input id="new_password" name="new_password" type="password" required autocomplete="new-password"></td></tr><tr><th><label for="confirm_password">Confirm password</label></th><td><input id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password"></td></tr></table>
+              <p><button class="image-ok_btn" type="submit">Fix</button> <a href="<%= base %>/System/UserList">Cancel</a></p>
+            </form>
+          <% } else if (section === 'UserList') { %>
+            <%- include('system/users') %>
+          <% } %>
+        </div></div>
+      </div>
+    <% } else { %>
+      <div id="Wrap" class="preview-workspace">
+        <div id="SideWrap"><div id="LabelSection"><strong><%= title %></strong></div></div>
+        <div id="MainWrap"><h2><%= title %></h2><p class="migration-state">This section's data and actions are pending migration.</p></div>
+      </div>
+    <% } %>
+  </div>
+  <div id="Footer"></div>
+  <% if (active === 'System') { %>
+    <script>
+      $(function () {
+        $('#MainWrap').css('margin-left', $('#SideWrap').width());
+        $(window).on('resize', function () { $('#MainWrap').css('margin-left', $('#SideWrap').width()); });
+        $('#Labels').treeview({ collapsed: false, animated: 'medium', control: '#sidetreecontrol', persist: 'location' });
+      });
+    </script>
+  <% } %>
+</body>
+</html>

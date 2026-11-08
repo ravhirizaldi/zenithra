@@ -1,0 +1,12 @@
+<% if(!hideHead){ %><div class="generalPairHead"><span style="display:inline-block;width:280px;text-align:center;">Key</span> <span style="display:inline-block;width:280px;text-align:center;">Value</span></div><% } %>
+<div id="<%= container %>">
+  <% for(let i=0;i<pairs.length;i++){const item=pairs[i];const errorKey=prefix.replace('GeneralRequestItem.','').replace('Body.Items','Body');const messages=(wp.errors||[]).filter(error=>error.startsWith(`${errorKey}[${i}]:`));const invalid=messages.length>0; %>
+  <div class="generalPairRow" style="width:<%= invalid ? 770 : 610 %>px;padding:4px 0;border-top:solid 1px #999;">
+    <input name="<%= prefix %>[<%= i %>].Key" value="<%= item.Key %>" style="width:280px;" aria-label="Key <%= i+1 %>">
+    <input name="<%= prefix %>[<%= i %>].Value" value="<%= item.Value %>" style="width:280px;" aria-label="Value <%= i+1 %>">
+    <i class="fas fa-minus-square fa-lg" style="margin-left:4px;color:#6c6c6c;cursor:pointer;" role="button" tabindex="0" aria-label="Remove row" onclick="generalRemoveRow(this,'<%= container %>','<%= prefix %>')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();generalRemoveRow(this,'<%= container %>','<%= prefix %>')}"></i>
+    <% for(const message of messages){ %><span class="field-validation-error"><%= message.slice(message.indexOf(':')+1).trim() %></span><% } %>
+  </div>
+  <% } %>
+</div>
+<input type="button" class="img_add_min" style="margin-top:4px;" aria-label="Add row" onclick="generalAddRow('<%= container %>','<%= prefix %>')">

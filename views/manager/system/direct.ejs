@@ -1,0 +1,335 @@
+<% const page = directPage || {}; const systemRoot = `${base}/System`; const user = page.user || { userId: '', userName: '', directUser: {} }; const directUser = user.directUser || {}; const canSystemEdit = page.permissions?.edit === true; const canSystemCreate = page.permissions?.create === true; const canSystemDelete = page.permissions?.delete === true; const canUserEdit = page.permissions?.edit === true; %>
+<style>.selected td{background-color:#39F;color:#FFF;}</style>
+<% if (page.error) { %><div class="PartialViewMessage" role="alert"><%= page.error %></div><% } %>
+
+<% if (page.mode === 'chat') { %>
+  <div id="DetailTop"><span id="infoTitle">Direct chat setting</span></div>
+  <div id="DetailSection"><div class="info">
+    <div class="toggle" onclick="toggleDirectSection('directSetting')"><h2 style="margin-top:5px;margin-bottom:10px">▼Direct app linkage</h2></div>
+    <div id="directSetting">
+      <div style="text-align:right;padding-bottom:5px;">
+        <% if (canSystemEdit) { %><a class="img_edit" title="Edit" href="<%= systemRoot %>/EditDirectSetting"> </a><% } %>
+        <% if (page.linked && canSystemDelete) { %>
+          <button type="submit" form="directLinkDelete" class="img_delete" title="Delete" aria-label="Delete Direct link" onclick="return confirm('Delete the Direct link?')"></button>
+          <form id="directLinkDelete" method="post" action="<%= systemRoot %>/DirectChat" hidden><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="act" value="delete"></form>
+        <% } %>
+      </div>
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <tr><th scope="row">Status</th><td><%= page.linked ? 'Linked' : 'Not linked' %></td></tr>
+        <tr><th scope="row">Direct user</th><td><%= page.setting?.directUserName || '' %></td></tr>
+      </table>
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <tr><th scope="row">Client ID</th><td><%= page.setting?.clientId || '' %></td></tr>
+        <tr><th scope="row">Client Secret</th><td><%= page.setting?.clientSecret || '' %></td></tr>
+        <tr><th scope="row">Redirect URL</th><td><%= page.setting?.redirectUrl || '' %></td></tr>
+      </table>
+    </div>
+
+    <div class="toggle" onclick="toggleDirectSection('directNotification')"><h2 style="margin-bottom:10px">▼Notification Settings</h2></div>
+    <div id="directNotification">
+      <% if (canSystemEdit) { %><div style="text-align:right;padding-bottom:5px;"><a class="img_edit" title="Edit" href="<%= systemRoot %>/EditDirectNotification"> </a></div><% } %>
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <% for (const item of page.notifications || []) { %><tr><th scope="row"><%= item.label %></th><td><%= item.enabled ? 'Notify' : 'Do not notify' %></td></tr><% } %>
+      </table>
+    </div>
+
+    <% for (const setting of page.templates || []) { %>
+      <div class="toggle" onclick="toggleDirectSection('template-<%= setting.key %>')">
+        <h2>▼<%= setting.label %> setting <span style="float:right;margin-top:-6px;">
+          <% if (canSystemCreate) { %><a class="img_add" title="Add" href="<%= systemRoot %>/EditDirectTemplate?id=<%= encodeURIComponent(setting.key) %>"> </a><% } %>
+        </span></h2>
+      </div>
+      <div id="template-<%= setting.key %>">
+        <% if (setting.templates?.length) { %>
+          <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information verticality">
+            <tr><th scope="col">Name of template</th><th scope="col">Default</th></tr>
+            <% for (const template of setting.templates) { %>
+              <tr><td><a href="<%= systemRoot %>/DetailsDirectTemplate?id=<%= encodeURIComponent(`${setting.key},${template.templateId}`) %>"><%= template.templateName %></a></td><td class="center"><%= template.templateId === setting.defaultTemplateId ? '○' : '' %></td></tr>
+            <% } %>
+          </table>
+        <% } %>
+      </div>
+    <% } %>
+  </div></div>
+<% } else if (page.mode === 'settingEdit') { %>
+  <div id="DetailTop"><span id="infoTitle">Direct app linkage Edit</span></div>
+  <form method="post" action="<%= systemRoot %>/EditDirectSetting" enctype="multipart/form-data">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <div id="DetailSection"><div class="info">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <tr><th scope="row">Client ID</th><td><input class="EditValue1" name="clientId" value="<%= page.model?.clientId || '' %>" required><% if (page.errors?.clientId) { %><span class="field-validation-error"><%= page.errors.clientId %></span><% } %></td></tr>
+        <tr><th scope="row">Client Secret</th><td><input class="EditValue1" name="clientSecret" value="<%= page.model?.clientSecret || '' %>" required><% if (page.errors?.clientSecret) { %><span class="field-validation-error"><%= page.errors.clientSecret %></span><% } %></td></tr>
+        <tr><th scope="row">Redirect URL</th><td><input class="EditValue1" name="redirectUrl" value="<%= page.model?.redirectUrl || '' %>" required><% if (page.errors?.redirectUrl) { %><span class="field-validation-error"><%= page.errors.redirectUrl %></span><% } %></td></tr>
+      </table>
+      <p><button type="submit" class="image-ok_btn">Fix</button> <a href="<%= systemRoot %>/DirectChat" id="image-cancel_btn" class="image-cancel_label">Cancel</a></p>
+    </div></div>
+  </form>
+<% } else if (page.mode === 'notificationEdit') { %>
+  <div id="DetailTop"><span id="infoTitle">Notification settings Edit</span></div>
+  <form method="post" action="<%= systemRoot %>/EditDirectNotification">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <div id="DetailSection"><div class="info">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <% for (const item of page.notifications || []) { %>
+          <tr><th scope="row"><%= item.label %></th><td>
+            <label><input type="radio" name="notification.<%= item.key %>" value="true" <%= item.enabled ? 'checked' : '' %>>Notify</label>
+            <label><input type="radio" name="notification.<%= item.key %>" value="false" <%= !item.enabled ? 'checked' : '' %>>Not notify</label>
+          </td></tr>
+        <% } %>
+      </table>
+      <p><button type="submit" class="image-ok_btn">Fix</button> <a href="<%= systemRoot %>/DirectChat" id="image-cancel_btn" class="image-cancel_label">Cancel</a></p>
+    </div></div>
+  </form>
+<% } else if (page.mode === 'templateEdit') { %>
+  <div id="DetailTop">
+    <span id="infoTitle"><%= page.label || page.key %> <%= page.template?.templateId ? 'Edit template' : 'Register template' %></span>
+    <span id="functionBar">
+      <% if (canSystemEdit) { %>
+        <form id="directTestForm" method="post" action="<%= systemRoot %>/TestSendDirect" style="display:inline;">
+          <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+          <input type="hidden" name="key" value="<%= page.key %>">
+          <input type="hidden" name="template.templateId" value="<%= page.template?.templateId || '' %>">
+          <input type="hidden" name="testTemplateName" value="">
+          <input type="hidden" name="testContent" value="">
+          <label style="margin-right:10px;">Test destination</label>
+          <label for="testDomainId">Organization</label>
+          <select id="testDomainId" name="testDomainId" style="margin-left:10px;margin-right:10px;">
+            <% for (const domain of page.testDomainSelectList || []) { %><option value="<%= domain.value %>" <%= domain.selected ? 'selected' : '' %>><%= domain.label %></option><% } %>
+          </select>
+          <label for="testMailAddress">Mail address</label>
+          <input id="testMailAddress" name="testMailAddress" style="width:250px;margin-left:10px;">
+          <button type="button" class="image-ok_btn" onclick="testDirectMessage()">Test sending</button>
+        </form>
+      <% } %>
+    </span>
+  </div>
+  <form method="post" action="<%= systemRoot %>/EditDirectTemplate">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <input type="hidden" name="key" value="<%= page.key %>">
+    <input type="hidden" name="template.templateId" value="<%= page.template?.templateId || '' %>">
+    <div id="DetailSection"><div class="info">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <tr><th scope="row">Name of template</th><td><input class="EditValue1" name="template.templateName" id="template_templateName" value="<%= page.template?.templateName || '' %>"><% if (page.error) { %><span class="field-validation-error"><%= page.error %></span><% } %></td></tr>
+        <tr><th scope="row">Message</th><td><textarea class="EditValue3" name="template.content" id="template_content"><%= page.template?.content || '' %></textarea></td></tr>
+        <tr><th scope="row">Default template</th><td><input type="hidden" name="isDefaultTemplate" value="false"><input type="checkbox" name="isDefaultTemplate" value="true" <%= page.isDefaultTemplate ? 'checked' : '' %>> <label>Set as the default template.</label></td></tr>
+      </table>
+      <div class="toggle" onclick="toggleDirectSection('destinations')"><h2>▼Destination</h2></div>
+      <table id="destinations" style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <% for (let index = 0; index < (page.template?.destinations || []).length; index++) { const destination = page.template.destinations[index]; %>
+          <tr><th scope="row">Destination<%= index + 1 %></th><td>
+            <select name="template.destinations[<%= index %>].destinationType" class="direct-destination-type">
+              <% for (const option of page.destinationOptions || []) { %><option value="<%= option.value %>" <%= option.value === destination.destinationType ? 'selected' : '' %>><%= option.label %></option><% } %>
+            </select>
+            <select name="template.destinations[<%= index %>].domainId" class="direct-destination-domain">
+              <% for (const domain of (page.domainLists || [])[index] || []) { %><option value="<%= domain.value %>" <%= domain.selected ? 'selected' : '' %>><%= domain.label %></option><% } %>
+            </select>
+            <input name="template.destinations[<%= index %>].destinationDirect" value="<%= destination.destinationDirect || '' %>" style="width:250px;">
+          </td></tr>
+        <% } %>
+      </table>
+      <p><button type="submit" class="image-ok_btn">Fix</button>
+        <% if (!page.template?.templateId) { %><a href="<%= systemRoot %>/DirectChat" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+        <% } else { %><a href="<%= systemRoot %>/DetailsDirectTemplate?id=<%= encodeURIComponent(`${page.key},${page.template.templateId}`) %>" id="image-cancel_btn" class="image-cancel_label">Cancel</a><% } %>
+      </p>
+    </div></div>
+  </form>
+<% } else if (page.mode === 'templateDetails') { %>
+  <div id="DetailTop"><span id="infoTitle"><%= page.label || page.key %> template details</span><span id="functionBar">
+    <% if (canSystemEdit) { %><a class="img_edit" title="Edit" href="<%= systemRoot %>/EditDirectTemplate?id=<%= encodeURIComponent(page.key) %>&amp;templateId=<%= encodeURIComponent(page.template?.templateId || '') %>"> </a><% } %>
+    <% if (canSystemDelete) { %><button type="submit" form="deleteDirectTemplate" class="img_delete" title="Delete" aria-label="Delete template" onclick="return confirm('Delete this template?')"></button><% } %>
+  </span></div>
+  <% if (canSystemDelete) { %><form id="deleteDirectTemplate" method="post" action="<%= systemRoot %>/DetailsDirectTemplate" hidden><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="id" value="<%= `${page.key},${page.template?.templateId || ''}` %>"><input type="hidden" name="act" value="delete"></form><% } %>
+  <div id="DetailSection"><div class="info">
+    <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+      <tr><th scope="row">Name of template</th><td><%= page.template?.templateName || '' %></td></tr>
+      <tr><th scope="row">Message</th><td style="white-space:pre-wrap"><%= page.template?.content || '' %></td></tr>
+      <tr><th scope="row">Default template</th><td><%= page.isDefaultTemplate ? '○' : '' %></td></tr>
+    </table>
+    <div class="toggle" onclick="toggleDirectSection('templateDestinations')"><h2>▼Destination</h2></div>
+    <table id="templateDestinations" style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+      <% for (let index = 0; index < (page.template?.destinations || []).length; index++) { const destination = page.template.destinations[index]; %>
+        <tr><th scope="row">Destination<%= index + 1 %></th><td><%= destination.destinationType ? (page.destinationNames?.[destination.destinationType] || destination.destinationType) : '' %><% if (destination.domainName) { %>&nbsp;&nbsp;<%= destination.domainName %><% } %><% if (destination.destinationDirect) { %>&nbsp;&nbsp;<%= destination.destinationDirect %><% } %></td></tr>
+      <% } %>
+    </table>
+    <p><a href="<%= systemRoot %>/DirectChat" id="image-cancel_btn" class="image-cancel_label">Back</a></p>
+  </div></div>
+<% } else if (page.mode === 'sendLog') { %>
+  <div id="DetailTop"><span id="infoTitle">Direct send log</span></div>
+  <div id="DetailSection"><div class="info">
+    <form id="directSendLogForm" method="post" action="<%= systemRoot %>/DirectSendLog" onsubmit="setDirectLogScroll()">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" id="ActionCommonType" name="ActionCommonType" value="">
+      <input type="hidden" name="ScrollXPoint" value="0"><input type="hidden" name="ScrollYPoint" value="0">
+      <input type="hidden" id="resendLogId" name="resendLogId" value="">
+      <input type="hidden" id="WhereData_DateFormat" name="WhereData.DateFormat" value="">
+      <div class="toggle" onclick="toggleDirectSection('SearchLogLibraryBox')"><h2 style="margin-top:5px">▼Search Filter</h2></div>
+      <div id="SearchLogLibraryBox">
+        <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+          <tr><th scope="row">Send date and time</th><td>
+            <div class="datetime" style="float:left;padding:3px"><input id="WhereData_SendTimeFrom" name="WhereData.SendTimeFrom" value="<%= page.filters?.SendTimeFrom || '' %>" style="width:90px" onchange="initDirectTime('WhereData_SendTimeFromHour')"></div>
+            <div style="float:left;padding:3px"><input id="WhereData_SendTimeFromHour" name="WhereData.SendTimeFromHour" value="<%= page.filters?.SendTimeFromHour || '' %>" style="width:70px"></div>
+            <div class="datetime" style="float:left;padding:3px">～</div>
+            <div class="datetime" style="float:left;padding:3px"><input id="WhereData_SendTimeTo" name="WhereData.SendTimeTo" value="<%= page.filters?.SendTimeTo || '' %>" style="width:90px" onchange="initDirectTime('WhereData_SendTimeToHour')"></div>
+            <div style="float:left;padding:3px"><input id="WhereData_SendTimeToHour" name="WhereData.SendTimeToHour" value="<%= page.filters?.SendTimeToHour || '' %>" style="width:70px"></div>
+          </td></tr>
+          <tr><th scope="row"><label>Status <input id="statusCheck" type="checkbox" onclick="checkDirectGroup(this,'whereDataStatus')"></label></th><td id="whereDataStatus">
+            <% for (const [key,label] of [['StatusSuccess','Succeeded to send'],['StatusFailure','Failed to send']]) { %><label><input type="checkbox" name="WhereData.<%= key %>" value="true" <%= page.filters?.[key] ? 'checked' : '' %>><%= label %></label><% } %>
+          </td></tr>
+          <tr><th scope="row"><label>Notification type <input id="notificationTypeCheck" type="checkbox" onclick="checkDirectGroup(this,'whereDataNotificationType')"></label></th><td id="whereDataNotificationType">
+            <% for (const [type,key] of [['Apply','NotificationTypeApply'],['Remand','NotificationTypeRemand'],['Approve','NotificationTypeApprove'],['Edit','NotificationTypeEdit'],['Complete','NotificationTypeComplete'],['Change','NotificationTypeChange'],['Terminal','NotificationTypeTerminal'],['TerminalApprove','NotificationTypeTerminalApprove'],['DefApply','NotificationTypeDefApply'],['DefRemand','NotificationTypeDefRemand'],['DefApprove','NotificationTypeDefApprove'],['Schedule','NotificationTypeSchedule']]) { %>
+              <label><input type="checkbox" name="WhereData.<%= key %>" value="true" <%= page.filters?.[key] ? 'checked' : '' %>><%= ({Apply:'Application',Remand:'Rejection',Approve:'Approval',Edit:'Save in editing',Complete:'Completion',Change:'Change',Terminal:'Device application',TerminalApprove:'Device approval',DefApply:'Form application',DefRemand:'Form rejection',DefApprove:'Form approval',Schedule:'Schedule registration notice'})[type] %></label>
+            <% } %>
+          </td></tr>
+          <tr><th scope="row">Name of template</th><td><input name="WhereData.TemplateName" value="<%= page.filters?.TemplateName || '' %>"></td></tr>
+          <tr><th scope="row"><label>Destination type <input id="destinationTypeCheck" type="checkbox" onclick="checkDirectGroup(this,'whereDataDestinationType')"></label></th><td id="whereDataDestinationType">
+            <% for (const [type,key,label] of [['direct','DestinationTypeDirect','Direct input'],['login_user','DestinationTypeLoginUser','Log-in user'],['applicant','DestinationTypeApplicant','Applicant ID'],['approver','DestinationTypeApprover','Approver'],['cluster_role_holder','DestinationTypeClusterRoleHolder','Authority group for cluster.'],['report_role_holder','DestinationTypeReportRoleHolder','Authority group for document.'],...Array.from({length:10},(_,i)=>[`report_remarks${i+1}`,`DestinationTypeReportRemarks${i+1}`,`Document remarks ${i+1}`]),['report_cluster_value','DestinationTypeReportClusterValue','Inpput value'],['def_applicant','DestinationTypeDefApplicant','Form applicant'],['def_approver','DestinationTypeDefApprover','Form approver'],['def_update_role','DestinationTypeDefUpdateRole','User having authority of editing form'],['rep_create_role','DestinationTypeRepCreateRole','User having authority of issuing'],['terminal_applicant','DestinationTypeTerminalApplicant','Applicant of device'],['schedule_user','DestinationTypeScheduleUser','Schedule person'],['talk_name','DestinationTypeTalkName','direct group talk name']]) { %>
+              <label><input type="checkbox" name="WhereData.<%= key %>" value="true" <%= page.filters?.[key] ? 'checked' : '' %>><%= label %></label>
+            <% } %>
+          </td></tr>
+        </table>
+        <div style="text-align:right"><button type="submit" class="image-ok_btn" onclick="return setDirectLogAction('SearchType')">Search</button></div>
+      </div>
+      <div class="toggle" onclick="toggleDirectSection('resultList')"><h2>▼Search Result</h2></div>
+      <div id="resultList" style="overflow:auto">
+        <div style="float:left;padding-bottom:8px">
+          <% if (page.permissions?.delete) { %><button type="submit" class="img_delete2" title="Delete" onclick="return deleteDirectLogs()"></button><% } %>
+          <button type="submit" class="img_output_csv2" title="CSV" onclick="return setDirectLogAction('CsvType')">CSV</button>
+        </div>
+        <div class="PageSection">Display count <select name="PageData.PageSize" onchange="return setDirectLogPageSize(this.value)"><% for (const size of page.pageSizes || []) { %><option value="<%= size %>" <%= size === page.pageSize ? 'selected' : '' %>><%= size %></option><% } %></select>
+          <% if (page.pageIndex > 0) { %><button type="button" onclick="setDirectLogPage(0)">First</button><button type="button" class="img_page_prev_e" onclick="setDirectLogPage(<%= page.pageIndex - 1 %>)" aria-label="Previous page"></button><% } else { %><span class="img_page_prev_d" aria-hidden="true"></span><% } %>
+          <%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>
+          <% if (page.pageIndex + 1 < page.totalPages) { %><button type="button" class="img_page_next_e" onclick="setDirectLogPage(<%= page.pageIndex + 1 %>)" aria-label="Next page"></button><button type="button" onclick="setDirectLogPage(<%= page.totalPages - 1 %>)">Last</button><% } else { %><span class="img_page_next_d" aria-hidden="true"></span><% } %>
+        </div>
+        <% if (page.limit > 0) { %><div style="clear:left;padding-bottom:8px">CSV download limit: <%= Number(page.limit).toLocaleString('en-US') %></div><% } %>
+        <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= page.pageIndex %>">
+        <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= page.sortColumn %>">
+        <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= page.sortDirection %>">
+        <table class="GridCommon" border="0" cellspacing="1" id="sendLogDataTable">
+          <tr><th class="checkCol" style="width:20px"><input type="checkbox" onclick="checkDirectGroup(this,'sendLogDataTable')"></th>
+            <% for (const [column,label] of [['send_time','Send date and time'],['status','Status'],['notification_type','Notification type'],['template_id','Name of template'],['destination_type','Destination type'],['destination_mail_address','Destination user email address'],['destination_group_talk_id','Destination group talk ID'],['content','Message'],['error_message','Error message']]) { %><th class="<%= page.sortColumn === column ? 'sort-column' : '' %>" scope="col"><span><%= label %></span> <button type="button" class="<%= page.sortColumn === column ? page.sortDirection.toLowerCase() : '' %>" onclick="sortDirectLog('<%= column %>')" aria-label="Sort by <%= label %>">sort</button></th><% } %><th></th>
+          </tr>
+          <% for (let index = 0; index < (page.rows || []).length; index++) { const row = page.rows[index]; %>
+            <tr class="<%= index % 2 === 0 ? 'odd' : 'even' %>"><td class="CenterCol"><input type="checkbox" name="SendLogList[<%= index %>].IsSelect" value="true"><input type="hidden" name="SendLogList[<%= index %>].LogId" value="<%= row.log_id %>"></td>
+              <td class="CenterCol"><%= row.SendTime %></td><td class="CenterCol"><%= row.Status %></td><td class="CenterCol"><%= row.NotificationType %></td><td class="CenterCol"><%= row.template_name %></td><td class="CenterCol"><%= row.DestinationType %></td><td class="LeftCol"><%= row.destination_mail_address || '' %></td><td class="LeftCol"><%= row.destination_group_talk_id || '' %></td><td class="LeftCol" title="<%= row.Content %>"><%= row.ContentShortend %></td><td class="LeftCol"><%= row.error_message || '' %></td><td class="CenterCol"><% if (page.permissions?.edit) { %><button type="button" onclick="resendDirectLog('<%= row.log_id %>')">Resend</button><% } %></td></tr>
+          <% } %>
+        </table>
+        <div class="PageSection">Display count <select onchange="return setDirectLogPageSize(this.value)"><% for (const size of page.pageSizes || []) { %><option value="<%= size %>" <%= size === page.pageSize ? 'selected' : '' %>><%= size %></option><% } %></select>
+          <% if (page.pageIndex > 0) { %><button type="button" onclick="setDirectLogPage(0)">First</button><button type="button" class="img_page_prev_e" onclick="setDirectLogPage(<%= page.pageIndex - 1 %>)" aria-label="Previous page"></button><% } else { %><span class="img_page_prev_d" aria-hidden="true"></span><% } %>
+          <%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>
+          <% if (page.pageIndex + 1 < page.totalPages) { %><button type="button" class="img_page_next_e" onclick="setDirectLogPage(<%= page.pageIndex + 1 %>)" aria-label="Next page"></button><button type="button" onclick="setDirectLogPage(<%= page.totalPages - 1 %>)">Last</button><% } else { %><span class="img_page_next_d" aria-hidden="true"></span><% } %>
+        </div>
+      </div>
+    </form>
+  </div></div>
+<% } else if (page.mode === 'userList') { %>
+  <div style="padding-top:10px" id="infoTitle">User management - Direct linkage</div>
+  <form method="get" action="<%= systemRoot %>/UserDirectList" style="text-align:right;padding-top:1px;padding-right:2px;padding-bottom:1px">
+    <input type="hidden" name="pageSize" value="<%= page.filters?.pageSize || 20 %>">
+    <label for="searchId">ID</label> <input id="searchId" name="searchId" value="<%= page.filters?.searchId || '' %>">
+    <label for="searchName">Name</label> <input id="searchName" name="searchName" value="<%= page.filters?.searchName || '' %>">
+    <select name="searchGroupId" onchange="this.form.submit()"><% for (const group of page.groups || []) { %><option value="<%= group.group_id %>" <%= String(group.group_id) === String(page.filters?.searchGroupId) ? 'selected' : '' %>><%= group.group_name_path %></option><% } %></select>
+    <input type="submit" value="Search" class="image-search_user">
+  </form>
+  <div id="DetailSection"><div>&nbsp;</div><div class="info">
+    <% if (page.error) { %><div role="alert" class="PartialViewMessage"><%= page.error %></div><% } %>
+    <form id="copyDirectUserMail" method="post" action="<%= systemRoot %>/UserDirectList">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="act" value=""><input type="hidden" name="searchId" value="<%= page.filters?.searchId || '' %>"><input type="hidden" name="searchName" value="<%= page.filters?.searchName || '' %>"><input type="hidden" name="searchGroupId" value="<%= page.filters?.searchGroupId || '-1' %>"><input type="hidden" name="pageIndex" value="<%= page.pageIndex %>"><input type="hidden" name="pageSize" value="<%= page.filters?.pageSize || 20 %>">
+      <div class="PageSection"><div style="text-align:left">
+        <% if (canUserEdit) { %>Copy destination organization: <select id="copyDomainId" name="copyDomainId"><% for (const domain of page.domains || []) { %><option value="<%= domain.value %>"><%= domain.label %></option><% } %></select> <button type="button" onclick="copyDirectMailAddresses()">Copy user mail address</button><% } %>
+      </div><span style="float:left;padding-left:5px;font-weight:bold"><%= page.filters?.groupName || 'All groups' %></span>Display count <select onchange="window.location.href=directUserListUrl({pageSize:this.value,pageIndex:0})"><% for (const size of page.pageSizes || []) { %><option value="<%= size %>" <%= size === page.filters?.pageSize ? 'selected' : '' %>><%= size %></option><% } %></select>
+        <% if (page.pageIndex > 0) { %><button type="button" onclick="window.location.href=directUserListUrl({pageIndex:0})">First</button><button type="button" class="img_page_prev_e" onclick="window.location.href=directUserListUrl({pageIndex:<%= page.pageIndex - 1 %>})" aria-label="Previous page"></button><% } else { %><span class="img_page_prev_d" aria-hidden="true"></span><% } %>
+        <%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>
+        <% if (page.pageIndex + 1 < page.totalPages) { %><button type="button" class="img_page_next_e" onclick="window.location.href=directUserListUrl({pageIndex:<%= page.pageIndex + 1 %>})" aria-label="Next page"></button><button type="button" onclick="window.location.href=directUserListUrl({pageIndex:<%= page.totalPages - 1 %>})">Last</button><% } else { %><span class="img_page_next_d" aria-hidden="true"></span><% } %>
+      </div>
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information verticality">
+        <tr><th scope="col">ID</th><th scope="col">User name</th>
+          <% for (let index = 1; index <= 5; index++) { %><th scope="col">Direct user<%= index %><% if (canUserEdit) { %> <input type="checkbox" name="isCopyMailAddressDirectUser[<%= index - 1 %>]" value="true" aria-label="Copy to Direct user <%= index %>"><% } %></th><% } %><th scope="col">Direct group talk</th>
+        </tr>
+        <% for (const item of page.users || []) { %><tr><td><a href="<%= systemRoot %>/DetailsUserDirect?id=<%= encodeURIComponent(item.userId) %>"><%= item.userId %></a></td><td><%= item.userName %></td>
+          <% for (let index = 1; index <= 5; index++) { %><td><%= item.directUser?.[`direct_user${index}_mail_address`] || '' %></td><% } %><td><%= item.directUser?.direct_group_talk_id || '' %></td></tr><% } %>
+      </table>
+      <div class="PageSection">Display count <select onchange="window.location.href=directUserListUrl({pageSize:this.value,pageIndex:0})"><% for (const size of page.pageSizes || []) { %><option value="<%= size %>" <%= size === page.filters?.pageSize ? 'selected' : '' %>><%= size %></option><% } %></select>
+        <% if (page.pageIndex > 0) { %><button type="button" onclick="window.location.href=directUserListUrl({pageIndex:0})">First</button><button type="button" class="img_page_prev_e" onclick="window.location.href=directUserListUrl({pageIndex:<%= page.pageIndex - 1 %>})" aria-label="Previous page"></button><% } else { %><span class="img_page_prev_d" aria-hidden="true"></span><% } %>
+        <%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>
+        <% if (page.pageIndex + 1 < page.totalPages) { %><button type="button" class="img_page_next_e" onclick="window.location.href=directUserListUrl({pageIndex:<%= page.pageIndex + 1 %>})" aria-label="Next page"></button><button type="button" onclick="window.location.href=directUserListUrl({pageIndex:<%= page.totalPages - 1 %>})">Last</button><% } else { %><span class="img_page_next_d" aria-hidden="true"></span><% } %>
+      </div>
+    </form>
+  </div></div>
+<% } else if (page.mode === 'userDetails') { %>
+  <div id="DetailTop"><span id="infoTitle">User direct linkage details</span><span id="functionBar"><% if (canUserEdit) { %><a class="img_edit" title="Edit" href="<%= systemRoot %>/EditUserDirect?id=<%= encodeURIComponent(user.userId) %>"> </a><% } %></span></div>
+  <div id="DetailSection"><div class="info">
+    <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal"><tr><th scope="row">ID</th><td><%= user.userId %></td></tr><tr><th scope="row">User name</th><td><%= user.userName %></td></tr></table>
+    <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+      <% for (const recipient of page.recipients || []) { %><tr><th scope="row"><%= recipient.label %></th><td><% if (recipient.mailAddress) { %>Organization: <%= recipient.domainName %>&nbsp;&nbsp;Mail address: <%= recipient.mailAddress %><% } %></td></tr><% } %>
+      <tr><th scope="row">Direct group talk</th><td><% if (page.talk?.talkId) { %>Organization: <%= page.talk.domainName %>&nbsp;&nbsp;Talk ID: <%= page.talk.talkId %><% } %></td></tr>
+    </table>
+    <p><a href="<%= systemRoot %>/UserDirectList" id="image-cancel_btn" class="image-cancel_label">Back</a></p>
+  </div></div>
+<% } else if (page.mode === 'userEdit') { %>
+  <div id="DetailTop"><span id="infoTitle">User direct linkage Edit</span></div>
+  <form method="post" action="<%= systemRoot %>/EditUserDirect">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <div id="DetailSection"><div class="info">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <tr><th scope="row">ID</th><td><%= user.userId %><input type="hidden" name="user.userId" value="<%= user.userId %>"><input type="hidden" name="user.directUser.user_id" value="<%= directUser.user_id || user.userId %>"></td></tr>
+        <tr><th scope="row">User name</th><td><%= user.userName %><input type="hidden" name="user.userName" value="<%= user.userName %>"></td></tr>
+      </table>
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
+        <% for (let index = 1; index <= 5; index++) { const number = index; const domainField = `direct_user${number}_domain_id`; const mailField = `direct_user${number}_mail_address`; %>
+          <tr><th scope="row">Direct user<%= number %></th><td><label for="user_directUser_<%= domainField %>">Organization:</label>
+            <select id="user_directUser_<%= domainField %>" name="user.directUser.<%= domainField %>"><% for (const domain of (page.domainLists || [])[index - 1] || []) { %><option value="<%= domain.value %>" <%= domain.selected ? 'selected' : '' %>><%= domain.label %></option><% } %></select>
+            <button type="button" onclick="openDirectUserSearch(<%= number %>)">Search</button>
+            <label for="user_directUser_<%= mailField %>">Mail address:</label><input id="user_directUser_<%= mailField %>" class="EditValueName1" name="user.directUser.<%= mailField %>" value="<%= directUser[mailField] || '' %>">
+          </td></tr>
+        <% } %>
+        <tr><th scope="row">Direct group talk</th><td><label for="user_directUser_direct_group_talk_domain_id">Organization:</label>
+          <select id="user_directUser_direct_group_talk_domain_id" name="user.directUser.direct_group_talk_domain_id"><% for (const domain of (page.domainLists || [])[5] || []) { %><option value="<%= domain.value %>" <%= domain.selected ? 'selected' : '' %>><%= domain.label %></option><% } %></select>
+          <button type="button" onclick="openDirectTalkSearch()">Search</button><label for="user_directUser_direct_group_talk_id">Talk ID:</label><input id="user_directUser_direct_group_talk_id" class="EditValueName1" name="user.directUser.direct_group_talk_id" value="<%= directUser.direct_group_talk_id || '' %>">
+        </td></tr>
+      </table>
+      <p><button type="submit" class="image-ok_btn">Fix</button> <a href="<%= systemRoot %>/DetailsUserDirect?id=<%= encodeURIComponent(user.userId) %>" id="image-cancel_btn" class="image-cancel_label">Cancel</a></p>
+    </div></div>
+  </form>
+  <div id="searchUser" style="display:none" aria-labelledby="searchUserTitle"><h2 id="searchUserTitle">Direct user search</h2>
+    <form id="searchUserForm" method="post" action="<%= systemRoot %>/SearchDirectUser" data-direct-search="user">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal"><tr><th>Organization</th><td><span id="searchUserDomainName"></span><input type="hidden" id="searchUserDomainId" name="searchUserDomainId" value=""></td></tr><tr><th>User name</th><td><input id="searchUserName" name="searchUserName"></td></tr><tr><th>Mail address</th><td><input id="searchMailAddress" name="searchMailAddress"></td></tr></table>
+      <p><input type="submit" value="Search" class="image-ok_btn"><input type="button" value="Cancel" class="image-cancel_btn" onclick="closeDirectSearchDialog('searchUser')"></p>
+      <div id="resultSearchUser" style="display:none"><table id="userList" class="GridCommon" border="0" cellspacing="1"><thead><tr><th>User name</th><th>Mail address</th></tr></thead><tbody></tbody></table><p><input type="button" value="OK" class="image-ok_btn" onclick="selectDirectUser()"></p><input type="hidden" id="searchUserNo"><input type="hidden" id="selectedMailAddress"></div>
+    </form>
+  </div>
+  <div id="searchTalk" style="display:none" aria-labelledby="searchTalkTitle"><h2 id="searchTalkTitle">Direct group talk search</h2>
+    <form id="searchTalkForm" method="post" action="<%= systemRoot %>/SearchDirectGroupTalk" data-direct-search="talk">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal"><tr><th>Organization</th><td><span id="searchTalkDomainName"></span><input type="hidden" id="searchTalkDomainId" name="searchTalkDomainId" value=""></td></tr><tr><th>Group talk name</th><td><input id="searchTalkName" name="searchTalkName"></td></tr></table>
+      <p><input type="submit" value="Search" class="image-ok_btn"><input type="button" value="Cancel" class="image-cancel_btn" onclick="closeDirectSearchDialog('searchTalk')"></p>
+      <div id="resultSearchTalk" style="display:none"><table id="talkList" class="GridCommon" border="0" cellspacing="1"><thead><tr><th>Talk ID</th><th>Talk name</th><th>Joined users</th></tr></thead><tbody></tbody></table><p><input type="button" value="OK" class="image-ok_btn" onclick="selectDirectTalk()"></p><input type="hidden" id="selectedTalkId"></div>
+    </form>
+  </div>
+<% } %>
+<script>
+function toggleDirectSection(id){const section=document.getElementById(id);if(section)section.hidden=!section.hidden;}
+function checkDirectGroup(source,id){document.querySelectorAll(`#${id} input[type="checkbox"]`).forEach(item=>item.checked=source.checked);}
+function setDirectLogAction(action){document.getElementById('ActionCommonType').value=action;return true;}
+function setDirectLogPage(index){document.getElementById('PageData_PageIndex').value=index;setDirectLogAction('PageType');document.getElementById('directSendLogForm').requestSubmit();}
+function setDirectLogPageSize(value){document.querySelector('#directSendLogForm [name="PageData.PageSize"]').value=value;setDirectLogPage(0);return false;}
+function sortDirectLog(column){const current=document.getElementById('PageData_SortColumn');const direction=document.getElementById('PageData_SortDirection');direction.value=current.value===column&&direction.value==='ASC'?'DESC':'ASC';current.value=column;setDirectLogPage(0);}
+function setDirectLogScroll(){document.cookie=document.documentElement.scrollTop||document.body.scrollTop;}
+function initDirectTime(id){const input=document.getElementById(id);if(input&&input.value==='')input.value='00:00:00';}
+function deleteDirectLogs(){if(!document.querySelector('#sendLogDataTable input[type="checkbox"][name$=".IsSelect"]:checked')){alert('Select at least one log.');return false;}if(!confirm('Delete the checked logs?'))return false;return setDirectLogAction('DeleteType');}
+function resendDirectLog(id){if(!confirm('Resend this message?'))return;document.getElementById('resendLogId').value=id;document.getElementById('directSendLogForm').requestSubmit();}
+function directUserListUrl(overrides={}){const form=document.querySelector('form[action$="/UserDirectList"][method="get"]');const query=new URLSearchParams(new FormData(form));for(const [key,value] of Object.entries(overrides))query.set(key,String(value));return `${form.action}?${query}`;}
+function copyDirectMailAddresses(){const form=document.getElementById('copyDirectUserMail');if(!document.getElementById('copyDomainId')?.value){alert('Select an organization.');return;}if(!form.querySelector('input[name^="isCopyMailAddressDirectUser"]:checked')){alert('Select at least one Direct user slot.');return;}if(confirm('Copy user mail addresses to Direct users?')){form.querySelector('[name="act"]').value='copyMailAddress';form.requestSubmit();}}
+function testDirectMessage(){const form=document.getElementById('directTestForm');const domain=document.getElementById('testDomainId').value;const address=document.getElementById('testMailAddress').value;const content=document.getElementById('template_content').value;const name=document.getElementById('template_templateName').value;if(!domain){alert('Select an organization.');return;}if(!address){alert('Enter a mail address.');return;}if(!content){alert('Enter a message.');return;}form.elements.testContent.value=content;form.elements.testTemplateName.value=name;fetch(form.action,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(form))}).then(async response=>{const result=await response.json();if(!response.ok||result.result!=='OK')throw new Error(result.error_message||'Send failed.');alert('Message sent.');}).catch(error=>alert(`Send failed. ${error.message}`));}
+function openDirectUserSearch(slot){const select=document.getElementById(`user_directUser_direct_user${slot}_domain_id`);if(!select?.value){alert('Select an organization.');return;}document.getElementById('searchUserDomainId').value=select.value;document.getElementById('searchUserDomainName').textContent=select.selectedOptions[0]?.textContent||'';document.getElementById('searchUserName').value='';document.getElementById('searchMailAddress').value='';document.getElementById('searchUserNo').value=String(slot);document.getElementById('selectedMailAddress').value='';document.getElementById('resultSearchUser').style.display='none';jQuery('#searchUser').dialog({modal:true,title:'Direct user search',width:'600px'});}
+function openDirectTalkSearch(){const select=document.getElementById('user_directUser_direct_group_talk_domain_id');if(!select?.value){alert('Select an organization.');return;}document.getElementById('searchTalkDomainId').value=select.value;document.getElementById('searchTalkDomainName').textContent=select.selectedOptions[0]?.textContent||'';document.getElementById('searchTalkName').value='';document.getElementById('selectedTalkId').value='';document.getElementById('resultSearchTalk').style.display='none';jQuery('#searchTalk').dialog({modal:true,title:'Direct group talk search',width:'600px'});}
+function closeDirectSearchDialog(id){jQuery(`#${id}`).dialog('close');}
+function bindDirectSearch(formId,type){const form=document.getElementById(formId);if(!form)return;form.addEventListener('submit',async event=>{event.preventDefault();try{const response=await fetch(form.action,{method:'POST',headers:{'Content-Type':'application/x-www-form-urlencoded'},body:new URLSearchParams(new FormData(form))});const data=await response.json();if(!response.ok||data.error)throw new Error(data.error||'Search failed.');const body=document.querySelector(type==='user'?'#userList tbody':'#talkList tbody');body.replaceChildren();if(type==='user')document.getElementById('selectedMailAddress').value='';else document.getElementById('selectedTalkId').value='';data.forEach((item,index)=>{const row=document.createElement('tr');row.className=type==='user'?(index%2===0?'odd':'even'):'';row.tabIndex=0;row.setAttribute('role','button');const cells=type==='user'?[item.name,item.email]:[item.talk_id,item.name,item.users];cells.forEach(value=>{const cell=document.createElement('td');cell.textContent=value||'';row.appendChild(cell);});const select=()=>{body.querySelectorAll('tr').forEach(other=>other.classList.remove('selected'));row.classList.add('selected');if(type==='user')document.getElementById('selectedMailAddress').value=item.email||'';else document.getElementById('selectedTalkId').value=item.talk_id||'';};row.addEventListener('click',select);row.addEventListener('keydown',key=>{if(key.key==='Enter'||key.key===' '){key.preventDefault();select();}});body.appendChild(row);});if(type==='user')document.getElementById('resultSearchUser').style.display='block';else document.getElementById('resultSearchTalk').style.display='block';}catch(error){alert(`Search failed. ${error.message}`);}});}
+bindDirectSearch('searchUserForm','user');bindDirectSearch('searchTalkForm','talk');
+function selectDirectUser(){const slot=document.getElementById('searchUserNo').value;const email=document.getElementById('selectedMailAddress').value;if(!slot||!email){alert('Select a user.');return;}document.getElementById(`user_directUser_direct_user${slot}_mail_address`).value=email;closeDirectSearchDialog('searchUser');}
+function selectDirectTalk(){const talkId=document.getElementById('selectedTalkId').value;if(!talkId){alert('Select a group talk.');return;}document.getElementById('user_directUser_direct_group_talk_id').value=talkId;closeDirectSearchDialog('searchTalk');}
+for(const select of document.querySelectorAll('.direct-destination-type')){const fields=select.parentElement.querySelectorAll('.direct-destination-domain, input[name$="destinationDirect"]');const domain=fields[0];const address=fields[1];const initialDirect=select.value==='direct'||select.value==='talk_name';domain.hidden=!initialDirect;address.hidden=!initialDirect;select.addEventListener('change',()=>{const type=select.value;const groupField=type==='direct'||type==='talk_name';const reportField=type==='report_cluster_value'||type.startsWith('report_remarks');domain.hidden=!(groupField||reportField);address.hidden=!groupField;});}
+if(window.jQuery){const regional=jQuery.datepicker.regional[browserLanguage()]||jQuery.datepicker.regional[''];const dateFormat=document.getElementById('WhereData_DateFormat');if(dateFormat)dateFormat.value=regional?.dateFormat||'yy/mm/dd';jQuery('#WhereData_SendTimeFromHour,#WhereData_SendTimeToHour').timepicker({'timeFormat':'H:i:s'});jQuery(document).on('mousedown','.datetime input',function(){jQuery(this).datepicker(regional);});}
+function initializeDirectLog(){const form=document.getElementById('directSendLogForm');if(!form)return;for(const [masterId,groupId] of [['statusCheck','whereDataStatus'],['notificationTypeCheck','whereDataNotificationType'],['destinationTypeCheck','whereDataDestinationType']]){const master=document.getElementById(masterId);const items=document.querySelectorAll(`#${groupId} input[type="checkbox"]`);master.checked=items.length>0&&items.length===Array.from(items).filter(item=>item.checked).length;}document.querySelectorAll('#sendLogDataTable input[type="checkbox"]').forEach(item=>item.checked=false);document.getElementById('resendLogId').value='';window.scrollBy(0,Number(document.cookie)||0);document.cookie=0;}
+initializeDirectLog();
+</script>

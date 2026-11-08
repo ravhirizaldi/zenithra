@@ -1,0 +1,28 @@
+<% const l = license; const quotaOnly = typeof uploadPreview !== 'undefined' && uploadPreview; const u = { user: 0, designer: 0, ipad: 0, definition: 0, report: 0, document: 0, amiVoice: 0, freeDraw: 0, scandit: 0, iRepoChat: 0, edgeOCR: 0, ...used }; const userOver = u.user >= l.user; %>
+<table cellpadding="0" cellspacing="0" class="table_information horizontal">
+  <tr class="<%= userOver ? 'field-validation-error' : '' %>"><th scope="row"><%= l.freeDrawOnly ? 'i-Repo FreeDraw ' : '' %>Number of users</th><td style="width:400px;"><% if (!quotaOnly) { %><%= u.user %> / <% } %><%= l.user %></td><td style="width:200px;"><%= userOver ? 'Reached upper limit.' : 'OK' %></td></tr>
+  <% if (l.type !== '1') { const designerOver = u.designer >= (l.designer ?? 0); const ipadOver = u.ipad >= (l.ipad ?? 0); %>
+    <tr class="<%= designerOver ? 'field-validation-error' : '' %>"><th scope="row">Number of Designer devices</th><td><%= u.designer %> / <%= l.designer ?? '' %></td><td><%= designerOver ? 'Reached upper limit.' : 'OK' %></td></tr>
+    <tr class="<%= ipadOver ? 'field-validation-error' : '' %>"><th scope="row">Number of tablets</th><td><%= u.ipad %> / <%= l.ipad ?? '' %></td><td><%= ipadOver ? 'Reached upper limit.' : 'OK' %></td></tr>
+  <% } %>
+  <% for (const [key, label, count] of [['definition', 'Definition', u.definition], ['report', 'Report', u.report], ['document', 'Document', u.document]]) { const limit = l[key]; if (limit !== null) { const over = count >= limit; %>
+    <tr class="<%= over ? 'field-validation-error' : '' %>"><th scope="row"><%= label %></th><td><% if (!quotaOnly || key !== 'definition') { %><%= count %> / <% } %><%= limit %></td><td><%= over ? 'Reached upper limit.' : 'OK' %></td></tr>
+  <% } } %>
+  <% if (!l.excel) { %><tr class="field-validation-error"><th scope="row">Limitation of excel form creation</th><td colspan="2">Not available</td></tr><% } %>
+  <% if (l.tab) { %>
+    <tr><th>Tab menu</th><td colspan="2"><table class="table_information verticality"><tr><th scope="col">Menu name</th><th scope="col" style="width:50px;">Display On/Off</th></tr>
+      <% for (const name of ['Data Output', 'Automatic report creation', 'Library', 'Schedule', 'Custom Master']) { %><tr><td><%= name %></td><td class="CenterCol"><%= l.tabOptions.includes(name) ? '◯' : '×' %></td></tr><% } %>
+    </table></td></tr>
+  <% } %>
+  <% if (l.expiration) { %><tr class="<%= l.expirationExpired ? 'field-validation-error' : '' %>"><th scope="row">Expiration</th><td><%= l.expiration %></td><td><%= l.expirationExpired ? 'Expiration has passed' : 'Normal' %></td></tr><% } %>
+  <tr><th>Option license</th><td colspan="2">
+    <% for (const feature of l.features) { const tracked = ['Voice Input Option','i-Repo FreeDraw option','i-Repo Scan option','i-Repo Chat Option','EdgeOCR Option'].includes(feature.name); const usedCount = feature.name === 'Voice Input Option' ? u.amiVoice : feature.name === 'i-Repo FreeDraw option' ? u.freeDraw : feature.name === 'i-Repo Scan option' ? u.scandit : feature.name === 'i-Repo Chat Option' ? u.iRepoChat : feature.name === 'EdgeOCR Option' ? u.edgeOCR : 0; const over = feature.name === 'i-Repo Scan option' && feature.limit !== null && usedCount > feature.limit; %>
+      <div class="<%= over ? 'field-validation-error' : '' %>"><%= feature.name %>
+        <% if (tracked && feature.limit !== null) { %>&nbsp; <%= feature.name === 'i-Repo Scan option' || feature.name === 'EdgeOCR Option' ? 'Number of terminals' : 'Number of users' %> : <% if (!quotaOnly) { %><%= usedCount %> / <% } %><%= feature.limit %><% } else if (feature.limit !== null) { %>&nbsp; License count: <%= feature.limit %><% } %>
+        <% if (feature.name === 'EdgeOCR Option' && l.edgeOCRTokenId) { %>&nbsp; Token ID: <%= l.edgeOCRTokenId %><% } %>
+        <% if (feature.expires) { %> (Subscription ends:<%= feature.expires %>)<% } %>
+        <% if (over) { %>&nbsp; ※The number of devices exceeds the number of authorized devices. Please adjust the number of devices used to within the number of authorizations in "Devices"<% } %>
+      </div>
+    <% } %>
+  </td></tr>
+</table>

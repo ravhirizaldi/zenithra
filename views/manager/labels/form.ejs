@@ -1,0 +1,148 @@
+<script src="<%= base %>/Scripts/jquery.validate.min.js" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/jquery.selection.js" type="text/javascript"></script>
+<script type="text/javascript">
+  $.ajaxSetup({ cache: false });
+  $(function () {
+    $('#MessageWrap .PartialViewMessage').empty(); $('.PartialViewMessage').appendTo('#MessageWrap');
+    <% if (create) { %>fConMasInit();<% } else { %>$('#formLabelView').trigger('submit');<% } %>
+    $('#lean_overlay').remove(); $('a[rel*=leanModal]').leanModal({ top: 200, closeButton: '.modal_close' });
+  });
+  function fConMasInit() {
+    if ($('#mode').val() !== 'Def') { setAutoLabelEnable(); changeType(); }
+    displayAllRoleLegend(); SetGroupRoleEnable();
+  }
+  function onComplete() { $('#act').val(''); }
+  function onSuccess() { <% if (create) { %>if ($('#result').val()) document.location = $('#image-cancel_btn').attr('href');<% } %> }
+  function insertText() {
+    $('#errorAutoLabelText').empty().hide();
+    var selectListItem = changeType(), position = $('#mst_label_auto_label_name').selection('getPos');
+    if (position.start !== position.end) {
+      var text = $('#mst_label_auto_label_name').val();
+      $('#mst_label_auto_label_name').val(text.substring(0, position.start) + text.substring(position.end));
+    }
+    $('#mst_label_auto_label_name').selection('setPos', { start: position.start, end: position.start });
+    $('#mst_label_auto_label_name').selection('insert', { text: selectListItem, mode: 'before' });
+    return false;
+  }
+  function selectedText() {
+    $('#errorAutoLabelText').empty().hide();
+    var position = $('#mst_label_auto_label_name').selection('getPos');
+    if (position.start !== position.end) return;
+    var text = $('#mst_label_auto_label_name').val(), from = text.substring(0, position.start).lastIndexOf('{');
+    if (from === -1) return;
+    var to = text.substring(from).indexOf('}');
+    if (from + to < position.start) return;
+    var picked = text.substring(from, from + to + 1);
+    var items = $('#AutoLabelItemString').val().split(',').filter(function (item) { return !item.includes('clusterDisplayValue') && !item.includes('clusterValue'); });
+    for (var i = 0; i < items.length; i++) if (picked === items[i]) {
+      $('#mst_label_auto_label_name').selection('setPos', { start: from, end: from + to + 1 }); return;
+    }
+  }
+  function setAutoLabelEnable() { $('#autoLabelBox').toggle($('#mst_label_IsAutoCreation').prop('checked') === true); return true; }
+  function changeType() {
+    var type = $('#AutoLabelSelectTypeString').val();
+    $('#dateTypeList').toggle(type === 'AutoLabelItemTypeDateInfo');
+    $('#userTypeList').toggle(type === 'AutoLabelItemTypeUserInfo');
+    $('#reportTypeList').toggle(type !== 'AutoLabelItemTypeDateInfo' && type !== 'AutoLabelItemTypeUserInfo');
+    return $(type === 'AutoLabelItemTypeDateInfo' ? '#AutoLabelSelectStringDate' : type === 'AutoLabelItemTypeUserInfo' ? '#AutoLabelSelectStringUser' : '#AutoLabelSelectStringReport').val();
+  }
+  function isValid() {
+    $('#ActionCommonType').val('SaveType');
+    if ($('#mode').val() === 'Def' || !$('#mst_label_IsAutoCreation').prop('checked')) return true;
+    var text = jsTrim($('#mst_label_auto_label_name').val()), error = '';
+    if (!text.length) error = 'No value for Naming rule of label name.';
+    else if (text.indexOf(';') > -1) error = 'Not available to use ","';
+    else if (text.indexOf('/') === 0) error = 'Not available to use "/" for initial letter of value.';
+    else if (text.lastIndexOf('/') === text.length - 1) error = 'Not available to use "/" for end letter of value.';
+    if (error) { $('#errorAutoLabelText').text(error).show(); return false; }
+    return true;
+  }
+  function jsTrim(value) { return value.replace(/^[\s]*/, '').replace(/[\s]*$/, ''); }
+  function SetGroupRoleEnable() {
+    if (!$('#IsRoleNone').length || !$('#GruopRoleTable tbody tr').length) return;
+    var checked = $('#IsRoleNone').prop('checked');
+    $('#referRolecheckboxAll, #GruopRoleTable input[type=checkbox]').prop('readOnly', checked).prop('disabled', checked);
+  }
+  function fConMasGroupEditFlgON(cnt, checkId, inputId) { $('#' + inputId).val($('#' + checkId).prop('checked')); displayAllRoleLegend(); }
+  function fConMasGroupEditAllFlgON() {
+    for (var i = 0; i < $('#GruopRoleTable tbody tr').length - 1; i++) fConMasGroupEditFlgON(i, 'conmas_check_role_' + i, 'mst_label_GroupRolePages_' + i + '__IsReferRole');
+  }
+</script>
+<div class="PartialViewMessage"><% if (error) { %><div class="validation-summary-errors"><ul><li><%= error %></li></ul></div><% } %></div>
+<div id="DetailTop">
+  <span id="infoTitle"><%= mode === 'Def' ? 'Form' : mode === 'Rep' ? 'Document' : modeTitle %>:<%= record.auto_creation ? (create ? 'Auto. Label Registration' : 'Auto. Label Edit') : (create ? 'Register label' : 'Edit label') %></span>
+  <% if (!create && record.mst_label_id !== -1 && permissions.delete) { %><span id="functionBar"><a href="<%= base %>/Label/Delete?mode=<%= mode %>&amp;id=<%= record.mst_label_id %>" class="img_delete" title="Delete" onclick="return removeAt(<%= JSON.stringify(deleteNames) %>);"> </a></span><% } %>
+</div>
+<% if (!create) { %>
+<div id="DetailSection"><div class="info" style="padding:2px;"><table cellpadding="0" cellspacing="0" style="width:100%;"><tr>
+  <td class="labelEditTreeView"><div id="labelEditTreeView" style="overflow:auto; background-color:#FFFFFF; font-size:14px;">
+    <form method="post" action="<%= base %>/Common/LabelManagerListView?reportMode=<%= mode %>&amp;LabelPageIndex=<%= source.LabelPageIndex ?? source.LabelPageIndexBackup ?? 1 %>&amp;isLink=true&amp;SelectedId=<%= record.mst_label_id %>&amp;SearchNameLabelView=<%= encodeURIComponent(source.SearchLabelName ?? source.SearchNameLabelViewBackup ?? '') %>" data-ajax="true" data-ajax-mode="replace" data-ajax-update="#conmasLabelContent" id="formLabelView">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><div id="conmasLabelContent"></div>
+    </form>
+  </div></td><td class="labelEditView">
+<% } %>
+<form method="post" action="<%= base %>/Label/<%= create ? 'Create' : 'Edit' %>" data-ajax="true" data-ajax-mode="replace" data-ajax-update="#content" data-ajax-complete="onComplete" data-ajax-success="onSuccess" id="conmasPageForm">
+  <% for (const [name, value] of Object.entries({ act: '', mode, ActionCommonType: '', LabelPageIndexBackup: source.LabelPageIndex ?? source.LabelPageIndexBackup ?? 1, SearchNameLabelViewBackup: source.SearchLabelName ?? source.SearchNameLabelViewBackup ?? '', result, __RequestVerificationToken: csrfToken })) { %><input type="hidden" id="<%= name %>" name="<%= name %>" value="<%= value %>"><% } %>
+  <% if (create) { %><div id="DetailSection"><div class="info"><% } %>
+  <% const buttons = () => { %><p<% if (!create) { %> style="margin:3px;"<% } %>><input type="submit" value="Confirm" class="image-ok_btn" onclick="return isValid();"> <a href="<%= base %>/Label?mode=<%= mode %>" id="image-cancel_btn" class="image-cancel_label" onclick="return fConMasPageSubmitAction('CancelType');">Cancel</a></p><% }; %>
+  <% const checkbox = (name, checked, extra = '') => { %><input type="checkbox" id="mst_label_<%= name %>" name="mst_label.<%= name %>" value="true"<% if (checked) { %> checked<% } %><%- extra %>><input type="hidden" name="mst_label.<%= name %>" value="false"><% }; %>
+  <% if (record.mst_label_id !== -1) { buttons(); %>
+  <div class="toggle" onclick="fConMasToggle('LabelEditSection');"><h2<% if (!create) { %> style="margin:15px;"<% } %>>▼Label Information</h2></div>
+  <% if (!create) { %><div id="LabelEditSection"><% if (record.binder_rep_id != null) { %><div style="margin:0 0 4px 18px;">Binder label</div><% } %><input type="hidden" name="mst_label.binder_rep_id" value="<%= record.binder_rep_id ?? '' %>"><% } %>
+  <table<% if (create) { %> id="LabelEditSection"<% } %> cellpadding="0" cellspacing="0" class="table_information horizontal">
+    <% if (!create) { %><tr><th scope="row">Label ID</th><td><%= record.mst_label_id %><input type="hidden" id="mst_label_mst_label_id" name="mst_label.mst_label_id" value="<%= record.mst_label_id %>"></td></tr><% } %>
+    <tr><th scope="row"><%= record.auto_creation ? 'Name of Auto. Labeling' : 'Label Name' %></th><td>
+      <input id="mst_label_label_name" name="mst_label.label_name" value="<%= source['mst_label.label_name'] ?? record.label_name %>"<% if (create) { %> class="EditValue1"<% } else { %> style="width:90%;"<% } %> data-val="true" data-val-required="Please enter Label name."<% if (record.binder_rep_id != null) { %> disabled readonly<% } %>>
+      <% if (record.binder_rep_id != null) { %><input type="hidden" name="mst_label.label_name" value="<%= record.label_name %>"><% } %><span class="field-validation-valid" data-valmsg-for="mst_label.label_name" data-valmsg-replace="true"></span>
+    </td></tr>
+    <tr><th scope="row">Parent label<div><input type="button" value="Clear" onclick="return onClearUpperLabel();"></div></th><td>
+      <a id="go" rel="leanModal" name="LinkLabelDialog" href="#LinkLabelDialog" class="img_label" onclick="return fConMasLabelSelectDisplay();"></a>
+      <input type="hidden" id="mst_label_upper_label_id" name="mst_label.upper_label_id" value="<%= record.upper_label_id ?? -1 %>"><div id="parentLabelDisplay"><%= parentName %></div>
+    </td></tr>
+    <tr><th scope="row">Icon</th><td><ul class="Side"><% for (let icon = 1; icon <= 10; icon++) { %><li><input type="radio" id="label_icon_id<%= icon %>" name="mst_label.label_icon_id" value="<%= icon %>"<% if (record.label_icon_id === icon) { %> checked<% } %>><label for="label_icon_id<%= icon %>"><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= icon %>.png" alt="[Icon<%= icon %>]"></label></li><% } %></ul><br><span class="field-validation-valid" data-valmsg-for="mst_label.label_icon_id"></span></td></tr>
+    <tr><th scope="row">Remarks</th><td><input id="mst_label_label_remarks" name="mst_label.label_remarks" value="<%= source['mst_label.label_remarks'] ?? record.label_remarks %>"<% if (create) { %> class="EditValue1"<% } else { %> style="width:90%;"<% } %>></td></tr>
+    <tr><th scope="row">Display sequence</th><td><input class="text-box single-line" type="number" id="mst_label_diplay_number" name="mst_label.diplay_number" value="<%= source['mst_label.diplay_number'] ?? record.diplay_number %>"<% if (settings.nameSort && ['Def', 'Rep'].includes(mode)) { %> disabled<% } %>><span class="field-validation-valid" data-valmsg-for="mst_label.diplay_number"></span></td></tr>
+    <% if (!create && settings.keyMode) { %><tr><th scope="row">System key </th><td><input id="mst_label_systemKey" name="mst_label.systemKey" style="width:90%;" value="<%= record.system_key ?? '' %>"></td></tr><% } %>
+    <% if (['Def', 'Rep'].includes(mode)) { %><tr><th scope="row">Automatic deletion</th><td><% checkbox('IsAutoDelete', record.auto_delete); %><div>*If it's checked, when <%= mode === 'Def' ? 'Form' : 'Document' %> is deleted, it is automatically deleted in case there is no <%= mode === 'Def' ? 'Form' : 'Document' %> belonging to this label.</div></td></tr><% } %>
+    <% if (mode === 'Rep' && record.auto_creation) { %>
+      <tr><th scope="row">Label location setting</th><td><% checkbox('IsBottomLayer', record.bottom_layer); %><div>*To check, attach the bottom label only.</div></td></tr>
+      <tr><th scope="row">Also adapting when updating document data.</th><td><% checkbox('IsReportUpdateType', record.report_update_type); %></td></tr>
+      <tr><th scope="row"><% checkbox('IsAutoCreation', true, ' onclick="return setAutoLabelEnable();" style="visibility:hidden"'); %>Naming rule of label name</th><td>
+        <div id="autoLabelBox" style="padding-right:10px;"><div style="float:left;">
+          <div style="float:left"><label for="AutoLabelItemTypeList">Category</label> <select id="AutoLabelSelectTypeString" name="AutoLabelSelectTypeString" style="margin:3px 3px 3px 3px;" onchange="changeType();"><% for (const [key, text] of [['Report', 'Document information'], ['Date', 'Date'], ['User', 'User information']]) { %><option value="AutoLabelItemType<%= key === 'Report' ? 'ReportInfo' : key === 'Date' ? 'DateInfo' : 'UserInfo' %>"><%= text %></option><% } %></select></div>
+          <% for (const [key, category] of [['Report', 'Document information'], ['Date', 'Date'], ['User', 'User information']]) { %><div style="float:left" id="<%= key.toLowerCase() %>TypeList">&nbsp;&nbsp;<label for="AutoLabelItemList<%= key %>">Value</label> <select id="AutoLabelSelectString<%= key %>" name="AutoLabelSelectString<%= key %>" style="margin:3px 3px 3px 3px;"><% for (const [, text] of autoLabelItems.filter(item => item[0] === category)) { %><option value="{<%= text %>}"><%= text %></option><% } %></select></div><% } %>
+          <input onclick="return insertText();" class="img_add_min" title="Add">
+        </div><div><input id="mst_label_auto_label_name" name="mst_label.auto_label_name" class="AutoLabelEdit" value="<%= record.auto_label_name ?? '' %>" onclick="selectedText();" onkeyup="selectedText();" onkeydown="selectedText();"><span class="field-validation-valid" data-valmsg-for="mst_label.auto_label_name"></span></div>
+        <div id="errorAutoLabelText" style="display:none" class="field-validation-error"></div>
+        <div><% checkbox('IsSlashHierarchy', record.auto_slash_hierarchy); %>*To check, not being hierarchically by "/" using into { }.</div>
+        <div style="background-color:#DAE8FC; padding-top:5px;"><p style="margin:0px auto;"><img src="<%= base %>/Content/ConMas/images/function/alert-info.png" class="labelPictureSize" style="padding-left:5px;">For the cluster value, set "clusterValue_S_C" or "clusterDisplayValue_S_C" where "S" is the sheet No. and "C" is the cluster index.</p>
+          <p style="margin:5px 25px 0px;">Example 1)<br>In case of setting the input value for sheet No. "2" and cluster index "15": {clusterValue_2_15}</p>
+          <p style="margin:5px 25px 0px;">Example 2)<br>In case of setting the display value for sheet No. "3" and cluster index "7": {clusterDisplayValue_3_7}</p>
+        </div></div><input type="hidden" id="AutoLabelItemString" name="AutoLabelItemString" value="<%= autoLabelItems.map(item => '{' + item[1] + '}').join(',') %>">
+      </td></tr>
+    <% } %>
+    <% if (create && mode === 'Def') { %><tr><th scope="row">Copy to label of documents.</th><td><% checkbox('IsRepCopy', source['mst_label.IsRepCopy'] === undefined || [].concat(source['mst_label.IsRepCopy'])[0] === 'true'); %></td></tr><% } %>
+  </table><% if (!create) { %></div><% } %>
+  <div class="toggle" onclick="fConMasToggle('GruopRoleSection');"><h2>▼Another group permission settings</h2></div>
+  <div id="GruopRoleSection">
+    <div>Group ID&nbsp;<input id="GroupSearchData_GroupId" name="GroupSearchData.GroupId" value="<%= groupId %>">&nbsp;&nbsp;Group name&nbsp;<input id="GroupSearchData_GroupName" name="GroupSearchData.GroupName" value="<%= groupName %>">&nbsp;&nbsp;<input type="button" value="Search" class="image-search_user" onclick="return fConMasPageSubmitAction('PageType');"></div>
+    <% const paging = bottom => { %><div class="PageSection">Display count&nbsp;<select id="PageData_PageSize<%= bottom ? 'Bottom' : '' %>" name="<%= bottom ? '' : 'PageData.PageSize' %>" onchange="$('#PageData_PageSize').val($(this).val()); return fConMasPageSubmitAction('PageType');"><% for (const size of [...new Set([...(settings.pageSizes.length ? settings.pageSizes : [20, 50, 100]), pageSize])]) { %><option value="<%= size %>"<% if (size === pageSize) { %> selected<% } %>><%= size %></option><% } %></select>&nbsp;
+      <% if (pageIndex > 0) { %><a href="#" onclick="return fConMasPageAction(0,'PageType');" style="padding-right:5px;">First</a><a href="#" onclick="return fConMasPageAction(<%= pageIndex - 1 %>,'PageType');" class="img_page_prev_e"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+      &nbsp;<%= pageIndex + 1 %>&nbsp;/&nbsp;<%= pages %>&nbsp;
+      <% if (pageIndex + 1 < pages) { %><a href="#" onclick="return fConMasPageAction(<%= pageIndex + 1 %>,'PageType');" class="img_page_next_e"> </a><a href="#" onclick="return fConMasPageAction(<%= pages - 1 %>,'PageType');" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+    </div><% }; paging(false); %>
+    <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= pageIndex %>">
+    <div><input type="checkbox" id="IsRoleNone" name="IsRoleNone" value="true" onclick="SetGroupRoleEnable();"<% if (noRoles) { %> checked<% } %>><input type="hidden" name="IsRoleNone" value="false"><label for="IsRoleNone">No role settings</label></div>
+    <div style="padding-left:3px;">●Check "Yes" : Available to view.&nbsp;&nbsp;&nbsp;Check "No" : Not available to view.</div>
+    <table id="GruopRoleTable" cellpadding="0" cellspacing="0" class="table_information verticality">
+      <% if (groups.length) { %><tr><th scope="col" style="width:30px;">ID</th><th scope="col">Group name</th><th scope="col" class="checkCol" style="white-space:nowrap;"><input id="referRolecheckboxAll" type="checkbox" onclick="checkAll(this, 'GruopRoleTable'); fConMasGroupEditAllFlgON();"></th></tr><% } %>
+      <% groups.forEach((group, index) => { %><tr><td class="CenterCol"><input type="hidden" id="mst_label_GroupRolePages_<%= index %>__group_id" name="mst_label.GroupRolePages[<%= index %>].group_id" value="<%= group.group_id %>"><input type="hidden" name="mst_label.GroupRolePages[<%= index %>].group_name" value="<%= group.group_name %>"><%= group.group_id %></td><td class="LeftCol"><%= group.group_name_path %></td><td class="CenterCol"><p style="white-space:nowrap;">
+        <input type="hidden" id="mst_label_GroupRolePages_<%= index %>__IsReferRole" name="mst_label.GroupRolePages[<%= index %>].IsReferRole" class="role_post_class" value="<%= group.refer %>"><input type="checkbox" id="conmas_check_role_<%= index %>" value="<%= group.refer %>"<% if (group.refer) { %> checked<% } %> onclick="fConMasGroupEditFlgON(<%= index %>, 'conmas_check_role_<%= index %>', 'mst_label_GroupRolePages_<%= index %>__IsReferRole');"><span id="legend<%= index %>"></span><% if (!create) { %>&nbsp;&nbsp;&nbsp;<% } %>
+      </p></td></tr><% }); %>
+    </table><% paging(true); %>
+  </div><% buttons(); %>
+  <% } else { %><div class="toggle"><h2>▼Label Edit</h2></div><div></div><div class="toggle"><h2>▼Another group permission settings</h2></div><div></div><% } %>
+  <% if (create) { %></div></div><% } %>
+</form>
+<% if (!create) { %></td></tr></table></div></div><% } %>

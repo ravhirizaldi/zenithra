@@ -1,0 +1,189 @@
+<% const page = userPage; const record = page.record; const details = page.mode === 'DetailsUser'; const create = page.mode === 'CreateUser'; const root = base + '/System'; %>
+<% const dateInput = value => String(value ?? '').slice(0, 16); const dateText = value => dateInput(value).replace('T', ' ').replaceAll('-', '/'); %>
+<% if (page.error) { %><p class="login-error" role="alert"><%= page.error %></p><% } %>
+
+<form id="conmasPageForm" method="post" enctype="multipart/form-data" action="<%= root %>/<%= page.mode %>">
+  <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+  <% if (!create) { %><input type="hidden" name="mst_user.user_id" value="<%= record.user_id %>"><% } %>
+
+  <% if (details) { %>
+    <div id="DetailTop">
+      <span id="infoTitle">User preview</span>
+      <span id="functionBar">
+        <% if (record.has_lock) { %>
+          <input type="hidden" name="act" value="unlock">
+          <input type="submit" value="" class="img_locked_acc" title="Unlock account" aria-label="Unlock account" onclick="return confirm('Release the lock. Are you sure you want to unlock?')">
+          <label class="user_lock_label">Locked</label>
+        <% } else { %>
+          <a class="img_edit" href="<%= root %>/EditUser?id=<%= encodeURIComponent(record.user_id) %>" title="Edit" aria-label="Edit user"> </a>
+          <input type="hidden" name="act" value="delete">
+          <a class="img_delete" href="#" title="Delete" aria-label="Delete user" onclick="if (!confirm('Delete the user. Are you sure you want to delete it?')) return false; this.closest('form').requestSubmit(); return false;"> </a>
+        <% } %>
+      </span>
+    </div>
+  <% } else { %>
+    <div id="DetailTop"><span id="infoTitle"><%= create ? 'Register user' : 'Edit user' %></span></div>
+    <p class="user-form-actions">
+      <input type="submit" value="Confirm" class="image-ok_btn">
+      <a id="image-cancel_btn" class="image-cancel_label" href="<%= create ? root + '/UserList' : root + '/DetailsUser?id=' + encodeURIComponent(record.user_id) %>">Cancel</a>
+    </p>
+  <% } %>
+
+  <div id="DetailSection"><div class="info">
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <% if (details) { %>
+        <tr><th scope="row">User ID</th><td><%= record.user_id %></td></tr>
+        <tr><th scope="row">User name</th><td><%= record.user_name %></td></tr>
+        <tr><th scope="row">E-mail account</th><td><%= record.e_mail %></td></tr>
+        <tr><th scope="row">Starting date</th><td><%= dateText(record.use_start_time) %></td></tr>
+        <tr><th scope="row">Expire date</th><td><%= dateText(record.use_end_time) %></td></tr>
+        <tr><th scope="row">Name stamp image</th><td><% if (record.approval_sign) { %><img src="<%= root %>/GetStamp?userId=<%= encodeURIComponent(record.user_id) %>" alt="[sign]"><% } %></td></tr>
+        <tr><th scope="row">Identity verification code</th><td><%= record.identification_code ? 'Configured' : '' %></td></tr>
+      <% } else { %>
+        <tr><th scope="row"><label for="user-id">User ID</label></th><td>
+          <% if (create) { %><input id="user-id" class="EditValue1" name="mst_user.user_id" value="<%= record.user_id ?? '' %>" required><% } else { %><%= record.user_id %><% } %>
+        </td></tr>
+        <% if (create) { %>
+          <tr><th scope="row"><label for="user-password">Password</label></th><td><input id="user-password" class="EditValue1" name="mst_user.password" type="password" autocomplete="new-password" required></td></tr>
+          <tr><th scope="row"><label for="user-confirm">Enter the password for confirmation</label></th><td><input id="user-confirm" class="EditValue1" name="confirm_password" type="password" autocomplete="new-password" required></td></tr>
+          <tr><th scope="row"><label for="user-identification">Identity verification code</label></th><td><input id="user-identification" class="EditValue1" name="mst_user.IdentificationCode" type="password" autocomplete="new-password"></td></tr>
+        <% } else { %>
+          <tr><th scope="row"><label for="user-password">New password</label></th><td><input id="user-password" class="EditValue1" name="new_password" type="password" autocomplete="new-password"></td></tr>
+          <tr><th scope="row"><label for="user-confirm">Enter the password for confirmation</label></th><td><input id="user-confirm" class="EditValue1" name="confirm_password" type="password" autocomplete="new-password"></td></tr>
+          <tr><th scope="row"><label for="user-identification">New identity verification code</label></th><td><input id="user-identification" class="EditValue1" name="NewIdentificationCode" type="password" autocomplete="new-password"><%= record.identification_code ? ' Configured' : '' %></td></tr>
+        <% } %>
+        <tr><th scope="row"><label for="user-name">User name</label></th><td><input id="user-name" class="EditValue1" name="mst_user.user_name" value="<%= record.user_name ?? '' %>" required></td></tr>
+        <tr><th scope="row"><label for="user-email">E-mail account</label></th><td><input id="user-email" class="EditValue1" name="mst_user.e_mail" type="email" value="<%= record.e_mail ?? '' %>"></td></tr>
+        <tr><th scope="row"><label for="user-start">Starting date</label></th><td class="datetime"><input id="user-start" class="text-box single-line" name="mst_user.use_start_time" type="text" value="<%= dateText(record.use_start_time) %>" required></td></tr>
+        <tr><th scope="row"><label for="user-end">Expire date</label></th><td class="datetime"><input id="user-end" class="text-box single-line" name="mst_user.use_end_time" type="text" value="<%= dateText(record.use_end_time) %>" required></td></tr>
+        <tr><th scope="row"><label for="signature-file">Name stamp image</label></th><td>
+          <input id="signature-file" type="file" name="file" class="EditValue1" accept="image/png,image/jpeg,image/gif,image/bmp,image/tiff">
+          <% if (record.temporary_sign) { %><div><img id="signature-preview" src="<%= root %>/GetTemporaryUserSign" alt="[image]"></div><% } else if (record.approval_sign) { %><div><img id="signature-preview" src="<%= root %>/GetStamp?userId=<%= encodeURIComponent(record.user_id) %>" alt="[image]"></div><% } else { %><img id="signature-preview" alt="[image]" hidden><% } %>
+          <% if (!create) { %><div><label><input type="checkbox" name="IsClearImage" value="true" <%= record.clear_sign === 'true' ? 'checked' : '' %>> Clear</label></div><% } %>
+        </td></tr>
+      <% } %>
+    </table>
+
+    <% if (!details) { %>
+      <div class="toggle" onclick="fConMasToggle('toggle1');"><h2>▼Authority group</h2></div>
+      <div id="toggle1">
+        <div class="user-group-search">
+          <label for="group-search-id">Group ID</label>&nbsp;<input id="group-search-id">
+          &nbsp;&nbsp;
+          <label for="group-search-name">Group Name</label>&nbsp;<input id="group-search-name">
+          &nbsp;&nbsp;
+          <input type="button" value="Search" class="image-search_user" onclick="return filterUserGroups(true);">
+        </div>
+        <div class="PageSection">
+          Displayed number
+          <select id="group-page-size" aria-label="Displayed number" onchange="return filterUserGroups(false);">
+            <% for (const size of [10, 20, 50, 100]) { %><option value="<%= size %>" <%= size === 20 ? 'selected' : '' %>><%= size %></option><% } %>
+          </select>
+          &nbsp;<a href="#" id="group-first" onclick="return moveUserGroups(0);" style="display:none;padding-right:5px">First</a>
+          <a href="#" id="group-prev" class="img_page_prev_e" aria-label="Previous page" onclick="return moveUserGroups(-1);" style="display:none"></a>
+          <img id="group-prev-disabled" src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page unavailable">
+          &nbsp;<span id="group-page-current">1</span>&nbsp;/&nbsp;<span id="group-page-count">1</span>&nbsp;
+          <a href="#" id="group-next" class="img_page_next_e" aria-label="Next page" onclick="return moveUserGroups(1);" style="display:none"></a>
+          <a href="#" id="group-last" onclick="return moveUserGroups(999999);" style="display:none;padding-left:5px">Last</a>
+          <img id="group-next-disabled" src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page unavailable">
+        </div>
+        <input type="hidden" name="PageData.PageIndex" value="0">
+        <table cellpadding="0" cellspacing="0" class="table_information verticality" id="GruopRoleTable">
+          <thead><tr>
+            <th scope="col"><input type="checkbox" id="HeadCbx" aria-label="Select all groups" onclick="setAllUserGroups(this);"></th>
+            <th scope="col">Group Name</th>
+          </tr></thead>
+          <tbody>
+          <% for (const [index, group] of page.groups.entries()) { const prefix = 'userGroupsPage[' + index + ']'; %>
+            <tr class="user-group-row" data-group-id="<%= group.group_id %>" data-group-name="<%= group.group_name_path %>">
+              <td class="checkCol">
+                <input type="hidden" name="<%= prefix %>.group_id" value="<%= group.group_id %>">
+                <input type="hidden" name="<%= prefix %>.group_name" value="<%= group.group_name_path %>">
+                <input type="hidden" id="userGroupsPage_<%= index %>__chk" name="<%= prefix %>.chk" class="role_post_class" value="<%= group.chk ? 'true' : 'false' %>">
+                <input type="checkbox" <%= group.chk ? 'checked' : '' %> id="conmas_check_role_<%= index %>" class="conmas_check_type" aria-label="Member of <%= group.group_name_path %>" onchange="setUserGroup(<%= index %>,this.checked);">
+              </td>
+              <td><%= group.group_name_path %></td>
+            </tr>
+          <% } %>
+          </tbody>
+        </table>
+      </div>
+    <% } else { %>
+      <div class="toggle" onclick="fConMasToggle('toggle1');"><h2>▼Authority group</h2></div>
+      <div id="toggle1"><table cellpadding="0" cellspacing="0" class="table_information verticality">
+        <tr><th scope="col">Group Name</th></tr>
+        <% for (const group of page.groups) { if (group.chk) { %><tr><td><%= group.group_name_path %></td></tr><% } } %>
+      </table></div>
+    <% } %>
+
+    <div class="toggle" onclick="fConMasToggle('meid');"><h2>▼Microsoft Entra ID Login Setting</h2></div>
+    <div id="meid">
+      <div style="font-size:11px;white-space:pre-wrap;margin-left:12px;margin-bottom:14px">The Microsoft account the user uses for login. (Valid if you have already switched to Microsoft Entra ID login in the system settings)
+Either User Principal Name" or "Object ID" must be set. If both are set, "Object ID" takes precedence. Please refer to the manual for detailed behavior."</div>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row">User Principal Name</th><td><% if (details) { %><%= record.meid_upn ?? '' %><% } else { %><input class="EditValue1" name="mst_user.MeIdUpn" value="<%= record.meid_upn ?? '' %>"><% } %></td></tr>
+        <tr><th scope="row">Object ID</th><td><% if (details) { %><%= record.meid_oid ?? '' %><% } else { %><input class="EditValue1" name="mst_user.MeIdOid" value="<%= record.meid_oid ?? '' %>"><% } %></td></tr>
+      </table>
+    </div>
+
+    <% if (!details) { %>
+      <p class="user-form-actions">
+        <input type="submit" value="Confirm" class="image-ok_btn">
+        <a id="image-cancel_btn" class="image-cancel_label" href="<%= create ? root + '/UserList' : root + '/DetailsUser?id=' + encodeURIComponent(record.user_id) %>">Cancel</a>
+      </p>
+    <% } %>
+  </div></div>
+</form>
+
+<% if (!details) { %>
+<script>
+  function setUserGroup(index, checked) {
+    const value = document.getElementById('userGroupsPage_' + index + '__chk');
+    if (value) value.value = checked ? 'true' : 'false';
+  }
+  function setAllUserGroups(source) {
+    document.querySelectorAll('#GruopRoleTable .conmas_check_type').forEach((box, index) => {
+      box.checked = source.checked;
+      setUserGroup(index, source.checked);
+    });
+  }
+  let userGroupPage = 0;
+  function filterUserGroups(reset) {
+    if (reset) userGroupPage = 0;
+    const id = document.getElementById('group-search-id').value.trim();
+    const name = document.getElementById('group-search-name').value;
+    const size = Number(document.getElementById('group-page-size').value) || 20;
+    const rows = [...document.querySelectorAll('#GruopRoleTable .user-group-row')];
+    const matching = rows.filter(row => (!id || Number(row.dataset.groupId) === Number(id)) && row.dataset.groupName.includes(name));
+    const pages = Math.max(1, Math.ceil(matching.length / size));
+    userGroupPage = Math.min(Math.max(0, userGroupPage), pages - 1);
+    const visible = new Set(matching.slice(userGroupPage * size, (userGroupPage + 1) * size));
+    rows.forEach(row => { row.hidden = !visible.has(row); });
+    document.getElementById('group-page-current').textContent = String(userGroupPage + 1);
+    document.getElementById('group-page-count').textContent = String(pages);
+    const previous = userGroupPage > 0;
+    const next = userGroupPage + 1 < pages;
+    document.getElementById('group-first').style.display = previous ? '' : 'none';
+    document.getElementById('group-prev').style.display = previous ? '' : 'none';
+    document.getElementById('group-prev-disabled').hidden = previous;
+    document.getElementById('group-next').style.display = next ? '' : 'none';
+    document.getElementById('group-last').style.display = next ? '' : 'none';
+    document.getElementById('group-next-disabled').hidden = next;
+    return false;
+  }
+  function moveUserGroups(page) {
+    if (page === 999999) userGroupPage = Number(document.getElementById('group-page-count').textContent) - 1;
+    else userGroupPage = page < 0 ? userGroupPage - 1 : page > 0 ? userGroupPage + 1 : 0;
+    return filterUserGroups(false);
+  }
+  $(document).on('mousedown', '.datetime input', function () { $(this).datepicker($.datepicker.regional[browserLanguage()]); });
+  filterUserGroups(false);
+  document.getElementById('signature-file').addEventListener('change', event => {
+    const file = event.target.files[0];
+    const image = document.getElementById('signature-preview');
+    if (!file) return;
+    image.src = URL.createObjectURL(file);
+    image.hidden = false;
+  });
+</script>
+<% } %>

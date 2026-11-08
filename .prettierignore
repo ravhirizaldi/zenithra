@@ -1,0 +1,10 @@
+/node_modules/
+/dist/
+/legacy/
+/public/
+/logs/
+/config/
+/views/
+/docs/*.json
+.env*
+/pnpm-lock.yaml

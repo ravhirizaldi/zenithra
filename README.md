@@ -137,6 +137,45 @@ The registration check constructs the app with a throw-on-query/connect database
 
 <sub>Snapshot: 8 November 2026 · Current priority: Manager Documents Index</sub>
 
+### Server-side indicators
+
+<table>
+  <tr>
+    <th align="left">Component</th>
+    <th align="left">Approximate indicator</th>
+    <th align="left">What the percentage measures</th>
+  </tr>
+  <tr>
+    <td><strong>Manager server</strong></td>
+    <td><strong>≈54%</strong> route registration</td>
+    <td>250 / 461 source action signatures have matching Node routes. Includes partial, blocked and explicitly unsupported handlers—not completed workflows.</td>
+  </tr>
+  <tr>
+    <td><strong>Native REST server</strong></td>
+    <td><strong>≈81%</strong> with local or partial paths</td>
+    <td>(23 local + 27 partial) / 62 in-scope mapped commands have some migrated implementation. The single scope-excluded command is omitted; direct-only handlers and GeneralProcess are tracked separately.</td>
+  </tr>
+  <tr>
+    <td><strong>Business API / WebAPI server</strong></td>
+    <td><strong>≈36%</strong> with partial paths</td>
+    <td>35 / 97 supplied mapped commands have partial implementations. Twelve unavailable targets are omitted; direct-only handlers and GeneralProcess are tracked separately.</td>
+  </tr>
+</table>
+
+**These are coverage indicators, not “percent finished.”** Manager uses the full source-action baseline; native REST and the business API use their respective eligible mapped commands. Their denominators and maturity differ, so they are not averaged into an overall server-completion score. Full behavior, UI parity, permissions, licensing and acceptance remain unfinished.
+
+### Client application migration
+
+| Application     | Migration | Current state                                                         |
+| :-------------- | --------: | :-------------------------------------------------------------------- |
+| **Windows app** |    **0%** | Application migration not started; original client remains unchanged. |
+| **Android app** |    **0%** | Application migration not started; original client remains unchanged. |
+| **Designer**    |    **0%** | Application migration not started; original client remains unchanged. |
+
+Working server communication with an existing client does **not** mean that client application has been migrated. Current implementation work is server-side; these 0% figures describe the separate client applications, not server endpoint coverage.
+
+### Feature-level progress
+
 **All areas below remain partial.** “Available” identifies implemented paths, not full feature parity. There is no verified overall completion percentage yet.
 
 <table>

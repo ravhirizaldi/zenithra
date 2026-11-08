@@ -12,7 +12,7 @@
 
 <p><code>Node.js</code> &nbsp; / &nbsp; <code>Strict TypeScript</code> &nbsp; / &nbsp; <code>Express</code> &nbsp; / &nbsp; <code>EJS</code> &nbsp; / &nbsp; <code>PostgreSQL</code></p>
 
-<p><a href="#architecture">Architecture</a> &nbsp; · &nbsp; <a href="#migration-by-the-numbers">Numbers</a> &nbsp; · &nbsp; <a href="#migration-progress">Progress</a> &nbsp; · &nbsp; <a href="#next-milestones">Next milestones</a> &nbsp; · &nbsp; <a href="#development">Development</a></p>
+<p><a href="#architecture">Architecture</a> &nbsp; · &nbsp; <a href="#migration-by-the-numbers">Numbers</a> &nbsp; · &nbsp; <a href="#migration-progress">Progress</a> &nbsp; · &nbsp; <a href="#next-milestones">Next milestones</a> &nbsp; · &nbsp; <a href="#api-documentation">API docs</a> &nbsp; · &nbsp; <a href="#development">Development</a></p>
 
 </div>
 
@@ -217,7 +217,7 @@ Working server communication with an existing client does **not** mean that clie
   <tr>
     <td><strong>Business API</strong></td>
     <td>Account, list/import/master paths and shared GeneralProcess workflows.</td>
-    <td>Many mapped commands and branches; the separate DocumentRegistration command and unresolved deployed-source gaps.</td>
+    <td>Many mapped commands and branches; the separate RegistDocument command and unresolved deployed-source gaps.</td>
   </tr>
 </table>
 
@@ -241,6 +241,17 @@ Working server communication with an existing client does **not** mean that clie
 | **Business API**       | `/ConMasAPI`     | Separate business API sessions and contracts      |
 
 These are separate application surfaces, not aliases. Migration scope excludes AD/MEID authentication and the Manager External system linkage settings subtree; shared user/device/license management and native GetEdgeOCRCertificate remain in scope.
+
+## API documentation
+
+**[Public API guide](docs/api/README.md)** — exact URL paths, calling conventions, authentication boundaries and migration limits.
+
+| Guide                                             | Entry URL                                            | Documented migration paths                                                                      |
+| :------------------------------------------------ | :--------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
+| [Native-client REST](docs/api/native-rest.md)     | `/ConMasWeb/Rests/ConMasIReporter.aspx?command=NAME` | 23 local + 27 partial mapped commands, 7 local GeneralProcess operations and direct diagnostics |
+| [Business API / WebAPI](docs/api/business-api.md) | `/ConMasAPI/Rests/APIExecute.aspx?command=NAME`      | 35 partial mapped commands and 7 partial shared GeneralProcess operations                       |
+
+Both guides also show direct `/Rests/NAME.aspx` URLs and distinguish migrated paths from recognized-but-unimplemented endpoints. These are protocol guides, not claims of complete parity. Private source evidence, installation settings and customer data are not published.
 
 ## Development
 

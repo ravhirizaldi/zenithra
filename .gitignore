@@ -7,7 +7,12 @@ logs/
 
 # Private migration references, working notes and original vendor assets.
 /AGENTS.md
-/docs/
+/docs/*
+!/docs/api/
+/docs/api/*
+!/docs/api/README.md
+!/docs/api/native-rest.md
+!/docs/api/business-api.md
 /legacy/
 /public/Content/
 /public/Scripts/

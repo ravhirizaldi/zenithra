@@ -64,7 +64,7 @@ export function formatServerBanner(origin: string, width = terminalWidth(), colo
       90,
     ),
     border(width, colour),
-    row(center('Credit: NaVhi', width), width, colour, 95),
+    row(center('Credit: Ravhi Rizaldi', width), width, colour, 95),
     border(width, colour),
   ];
   return '\n' + lines.join('\n') + '\n';

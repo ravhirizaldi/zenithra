@@ -84,7 +84,8 @@ test('dashboard keeps its header fixed and credit in the footer while requests s
   try {
     let text = capture();
     assert(text.includes('ZENITHRA SERVER'));
-    assert(text.includes('Credit: NaVhi'));
+    assert(text.includes('Credit: Ravhi Rizaldi'));
+    assert(!text.includes('NaVhi'));
     assert(text.includes('Waiting for requests'));
     assert(text.includes('ANIMATION ON'));
     const header = text.split('\n').slice(0, 3).join('\n');
@@ -132,7 +133,7 @@ test('dashboard keeps its header fixed and credit in the footer while requests s
     output.rows = 18;
     output.emit('resize');
     text = capture();
-    assert(text.includes('Credit: NaVhi'));
+    assert(text.includes('Credit: Ravhi Rizaldi'));
     assert(text.includes('LIVE REQUESTS'));
     for (const line of text.split('\n')) assert(line.length <= 60, line);
     output.columns = 120;
@@ -170,7 +171,7 @@ test('NO_COLOR uses the credited plain banner and logs without alternate-screen 
     terminal.start('http://127.0.0.1:3000');
     terminal.request(entry);
     terminal.stop();
-    assert(lines.join('\n').includes('Credit: NaVhi'));
+    assert(lines.join('\n').includes('Credit: Ravhi Rizaldi'));
     assert(lines.join('\n').includes('GetUserInfo'));
     assert(!lines.join('\n').includes('\x1b'));
   } finally {
@@ -259,7 +260,8 @@ test('expanded banner uses ASCII artwork, real traffic and committed-save feedba
     assert(!capture().includes('LIVE SCAN'));
     assert(capture().includes('WAITING FOR FIRST REQUEST'));
     assert.match(capture(), /REQ\/S \(5s\)\s+0\.0/);
-    assert(!capture().includes('NaVhi'));
+    assert(!capture().includes('Credit:'));
+    assert((screen.children[2] as blessed.Widgets.BoxElement).getContent().includes('Credit: Ravhi Rizaldi'));
     assert.match(capture(), /^[\x20-\x7e\n]*$/);
     dashboard.request({
       ...entry,

@@ -107,6 +107,11 @@ export function createDashboard(
       history: DashboardEntry[] = [];
     const traffic = Array.from({ length: 24 }, () => ({ second: -1, count: 0 }));
     const glyphs: Record<string, string[]> = {
+      Z: ['#####', '   # ', '  #  ', ' #   ', '#####'],
+      N: ['#   #', '##  #', '# # #', '#  ##', '#   #'],
+      I: ['#####', '  #  ', '  #  ', '  #  ', '#####'],
+      T: ['#####', '  #  ', '  #  ', '  #  ', '  #  '],
+      H: ['#   #', '#   #', '#####', '#   #', '#   #'],
       R: ['#### ', '#   #', '#### ', '# #  ', '#  ##'],
       E: ['#####', '#    ', '#### ', '#    ', '#####'],
       K: ['#   #', '#  # ', '###  ', '#  # ', '#   #'],
@@ -359,7 +364,7 @@ export function createDashboard(
             ['  |  ', 94],
             [motion ? 'ANIMATION ON' : 'ANIMATION OFF', 96],
             ['  |  ', 94],
-            ['Credit: NaVhi', 95],
+            ['Credit: Ravhi Rizaldi', 95],
           ],
           footerWidth,
         ) +

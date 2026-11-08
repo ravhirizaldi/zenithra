@@ -27,7 +27,8 @@ test('startup and live request panels stay aligned with and without colour', () 
   for (const width of [40, 80, 104, 116])
     for (const colour of [false, true]) {
       const banner = formatServerBanner('http://127.0.0.1:3000', width, colour);
-      assert(banner.includes('Credit: NaVhi'));
+      assert(banner.includes('Credit: Ravhi Rizaldi'));
+      assert(!banner.includes('NaVhi'));
       assert.equal(banner.includes('\x1b[1;97;41m'), colour);
       const output = formatConsoleRequest(request, width, colour);
       for (const line of strip(banner + '\n' + output)

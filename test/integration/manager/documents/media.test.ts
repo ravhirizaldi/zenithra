@@ -96,7 +96,7 @@ test(
         [pdf, irfd],
       );
       const app = express();
-      app.set('views', 'views');
+      app.set('views', 'src/views');
       app.set('view engine', 'ejs');
       app.use(express.urlencoded({ extended: false }));
       app.use(session({ secret: 'documents-media-fixture', resave: false, saveUninitialized: true }));

@@ -180,7 +180,7 @@ test('Documents no-count paging skips COUNT and retains source next-page and las
   assert.equal(queries.length - before, 1);
   assert.doesNotMatch(queries[before], /COUNT\(/);
   const render = (rows: typeof list.rows) =>
-    ejs.renderFile('views/manager/documents/list.ejs', {
+    ejs.renderFile('src/views/manager/documents/list.ejs', {
       base: '/ConMasManager',
       ...source,
       ...list,
@@ -193,7 +193,7 @@ test('Documents no-count paging skips COUNT and retains source next-page and las
   assert(!full.includes('(1000)'));
   assert.match(full, /onchange="return pageSizeFilter\(this\);"/);
   for (const rows of [[], [row]]) assert.doesNotMatch(await render(rows), /class="img_page_next_e"/);
-  const counted = await ejs.renderFile('views/manager/documents/list.ejs', {
+  const counted = await ejs.renderFile('src/views/manager/documents/list.ejs', {
     base: '/ConMasManager',
     ...source,
     ...list,
@@ -238,7 +238,7 @@ test('Documents table matches installed headers, sort controls, status icons and
     sortColumn = 'SYS_UPDATE_TIME',
     sortDirection: 'ASC' | 'DESC' = 'DESC',
   ) =>
-    ejs.renderFile('views/manager/documents/list.ejs', {
+    ejs.renderFile('src/views/manager/documents/list.ejs', {
       base: '/ConMasManager',
       ...source,
       settings,
@@ -435,7 +435,7 @@ test('Documents app-launch platform settings, original icons and encrypted authe
         legacyDecrypt(decodeURIComponent(launch.template.split('&auth=')[1]), compatibilityKey) ===
           'user=fixture&pass=fixture-password',
       );
-      const html = await ejs.renderFile('views/manager/documents/list.ejs', {
+      const html = await ejs.renderFile('src/views/manager/documents/list.ejs', {
         base: '/ConMasManager',
         ...source,
         settings,
@@ -509,7 +509,7 @@ test('Documents uses the installed Index JavaScript and original controls/resour
     permissions: { read: true, update: true, delete: true, schedule: true },
     hidden: false,
   };
-  const html = await ejs.renderFile('views/manager/page.ejs', {
+  const html = await ejs.renderFile('src/views/manager/page.ejs', {
     base: '/ConMasManager',
     menus: [['Documents', 'InputReport']],
     active: 'InputReport',
@@ -565,7 +565,7 @@ test('Documents uses the installed Index JavaScript and original controls/resour
   );
   assert(html.includes(`data-val-required="${ejs.escapeXML(source.r.MSG_REQUIRED_ICON)}"`));
   assert.match(source.js, /function fConmasChangeLabelMode\(val\)/);
-  const custom = await ejs.renderFile('views/manager/page.ejs', {
+  const custom = await ejs.renderFile('src/views/manager/page.ejs', {
     base: '/ConMasManager',
     menus: [['Documents', 'InputReport']],
     active: 'InputReport',
@@ -587,7 +587,7 @@ test('Documents uses the installed Index JavaScript and original controls/resour
   assert.match(custom, /id="GMenu" style="font-size:16px;"/);
   assert.match(custom, /style="width:115px;">&lt;fixture menu&gt;/);
   assert.match(custom, /id="isReportDocumentCopy"[^>]*checked="checked"/);
-  const list = await ejs.renderFile('views/manager/documents/list.ejs', {
+  const list = await ejs.renderFile('src/views/manager/documents/list.ejs', {
     base: '/ConMasManager',
     ...source,
     settings,
@@ -601,7 +601,7 @@ test('Documents uses the installed Index JavaScript and original controls/resour
   assert.match(list, /approve_enable/);
   assert.match(list, /&lt;fixture&gt;/);
   assert.doesNotMatch(list, /<fixture>/);
-  const locked = await ejs.renderFile('views/manager/documents/list.ejs', {
+  const locked = await ejs.renderFile('src/views/manager/documents/list.ejs', {
     base: '/ConMasManager',
     ...source,
     settings,
@@ -813,7 +813,7 @@ test(
         await client.query('UPDATE pg_temp.rep_top SET edit_refer_status=$1 WHERE rep_top_id=101', [status]);
         const list = await documentList(privateDb, state, settings, 'fixture');
         assert.equal(list.rows[0].edit_refer_status, status, 'Normalize the PostgreSQL numeric status for rendering');
-        const html = await ejs.renderFile('views/manager/documents/list.ejs', {
+        const html = await ejs.renderFile('src/views/manager/documents/list.ejs', {
           base: '/ConMasManager',
           ...source,
           ...list,
@@ -996,7 +996,7 @@ test(
         "INSERT INTO pg_temp.rep_top (rep_top_id,rep_top_org,rep_top_name,deleted,public_status,report_type,edit_refer_status) VALUES (101,101,'Fixture',0,2,1,0); INSERT INTO pg_temp.rep_role (rep_top_id,group_id,role_rep_read,role_rep_update) VALUES (101,10,1,1); INSERT INTO pg_temp.rep_current (rep_top_org,rep_top_id) VALUES (101,101)",
       );
       const app = express();
-      app.set('views', 'views');
+      app.set('views', 'src/views');
       app.set('view engine', 'ejs');
       app.use(express.urlencoded({ extended: false }));
       app.use(session({ secret: 'documents-private-label-secret', resave: false, saveUninitialized: true }));

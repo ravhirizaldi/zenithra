@@ -163,7 +163,7 @@ test(
       );
       assert.deepEqual(await top(201), unrelated);
       const app = express();
-      app.set('views', 'views');
+      app.set('views', 'src/views');
       app.set('view engine', 'ejs');
       app.use(express.urlencoded({ extended: false }));
       app.use(session({ secret: 'documents-lifecycle-fixture', resave: false, saveUninitialized: true }));

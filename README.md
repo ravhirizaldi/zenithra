@@ -127,7 +127,7 @@ Three application surfaces share selected business helpers and storage—not aut
 | SystemGoogleAuthCallback      |              1 |          1 |            0 |                        0 |
 | **Controller totals**         |        **461** |    **250** |      **211** |                  **237** |
 
-Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **64** EJS files are independently counted from `views/manager/`; shared dialogs may serve multiple controllers. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
+Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **64** EJS files are independently counted from `src/views/manager/`; shared dialogs may serve multiple controllers. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
 
 The registration check constructs the app with a throw-on-query/connect database stub and inspects routes: **zero database calls, no listener, no live-server requests**. Native/API status labels come from reviewed command inventories checked against the current configuration; they are not a fresh end-to-end acceptance result.
 
@@ -258,12 +258,12 @@ src/
   routes/         Route registration
   services/       Rendering and application services
   shared/         Shared protocol utilities
-views/            EJS templates
+  views/          EJS templates
 test/             Layer-specific and integration checks
 config/           Native-client and business-API configuration
 ```
 
-Manager MVC stays layer-first: `src/controllers/manager/<menu>/`, `src/models/manager/<menu>/` and `views/manager/<menu>/`.
+Manager MVC stays layer-first: `src/controllers/manager/<menu>/`, `src/models/manager/<menu>/` and `src/views/manager/<menu>/`.
 
 </details>
 

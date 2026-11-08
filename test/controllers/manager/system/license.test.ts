@@ -69,7 +69,7 @@ test('license upload shows legacy quotas, subscription wording and confirmation 
     features: [{ name: 'i-Repo FreeDraw option', limit: 100, expires: '2099/12/31' }],
   };
   const used = { user: 1, freeDraw: 0 };
-  const html = await ejs.renderFile('views/manager/system/license.ejs', {
+  const html = await ejs.renderFile('src/views/manager/system/license.ejs', {
     base: '/ConMasManager',
     csrfToken: 'test-token',
     systemLicensePage: {
@@ -91,6 +91,6 @@ test('license upload shows legacy quotas, subscription wording and confirmation 
   assert.doesNotMatch(html, /1 \/ 40|0 \/ 250|0 \/ 100|Expire:/);
   assert.match(html, /value="Confirm"/);
   assert.match(html, /fConMasLockView\(\);">\s+<a /);
-  const details = await ejs.renderFile('views/manager/system/license-summary.ejs', { license: current, used });
+  const details = await ejs.renderFile('src/views/manager/system/license-summary.ejs', { license: current, used });
   assert.match(details, />1 \/ 40<\/td>/);
 });

@@ -418,7 +418,7 @@ test(
 );
 
 test('FreeDrawOnly Label sidebar keeps common and image libraries and hides form/report/master branches', async () => {
-  const html = await ejs.renderFile('views/manager/labels/index.ejs', {
+  const html = await ejs.renderFile('src/views/manager/labels/index.ejs', {
     base: '/ConMasManager',
     csrfToken: 'fixture',
     view: 'index',

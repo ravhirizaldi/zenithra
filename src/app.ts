@@ -29,7 +29,7 @@ export function createApp(
   const authEnabled = enableAuth;
   app.disable('x-powered-by');
   app.set('view engine', 'ejs');
-  app.set('views', path.join(root, 'views'));
+  app.set('views', path.join(root, 'src/views'));
   app.use(requestLog(undefined, onRequest));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(apiBase, apiRequestError);

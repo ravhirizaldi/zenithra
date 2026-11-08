@@ -108,7 +108,7 @@ function checkMarkup(html: string) {
 test('Library renders all existing view families with legacy controls, balanced sections and storage-specific fields', async () => {
   for (const mode of ['ComLIb', 'RepLIb', 'ImageLib']) {
     for (const view of ['index', 'details', 'info', 'role', 'history', 'images', 'log']) {
-      const html = await ejs.renderFile('views/manager/library/index.ejs', { ...library, mode, view });
+      const html = await ejs.renderFile('src/views/manager/library/index.ejs', { ...library, mode, view });
       checkMarkup(html);
       assert.doesNotMatch(html, /<Document>|<Library>/);
       if (view === 'index') {
@@ -122,7 +122,7 @@ test('Library renders all existing view families with legacy controls, balanced 
       }
     }
     for (const storage of [0, 1, 2]) {
-      const html = await ejs.renderFile('views/manager/library/index.ejs', {
+      const html = await ejs.renderFile('src/views/manager/library/index.ejs', {
         ...library,
         mode,
         view: 'details',
@@ -161,7 +161,7 @@ test('IRFD images/history encode attachment identity, escape text/GPS and retain
     },
   };
   for (const view of ['history', 'images']) {
-    const html = await ejs.renderFile('views/manager/library/index.ejs', { ...data, view });
+    const html = await ejs.renderFile('src/views/manager/library/index.ejs', { ...data, view });
     checkMarkup(html);
     assert.match(html, /pageNumber=3&amp;format=jpeg&amp;name=%3Cimage%3E%26%E5%90%8D/);
     assert.match(html, /revNo=2/);
@@ -180,7 +180,7 @@ test('IRFD images/history encode attachment identity, escape text/GPS and retain
       assert.match(html, /aria-controls="TextList"/);
     } else assert.doesNotMatch(html, /id="TextList"/);
   }
-  const empty = await ejs.renderFile('views/manager/library/index.ejs', {
+  const empty = await ejs.renderFile('src/views/manager/library/index.ejs', {
     ...data,
     view: 'history',
     irfd: library.irfd,
@@ -192,7 +192,7 @@ test('IRFD images/history encode attachment identity, escape text/GPS and retain
 test('Data Output lists, layouts, previews and error/info states keep original table/button selectors', async () => {
   for (const view of ['index', 'details', 'confirm', 'info', 'error']) {
     for (const kind of ['def', 'rep']) {
-      const html = await ejs.renderFile('views/manager/data-output/index.ejs', { ...output, view, kind });
+      const html = await ejs.renderFile('src/views/manager/data-output/index.ejs', { ...output, view, kind });
       checkMarkup(html);
       assert.doesNotMatch(html, /<Form>|<Preview>|<value>|<Cluster>|<Info>/);
       if (view === 'index') {
@@ -218,13 +218,13 @@ test('Data Output lists, layouts, previews and error/info states keep original t
 });
 
 test('scoped layout corrections contain filters/tables without changing other Manager menus', async () => {
-  const shared = await readFile('views/manager/shared/transfer-layout.ejs', 'utf8');
+  const shared = await readFile('src/views/manager/shared/transfer-layout.ejs', 'utf8');
   assert.match(shared, /#Wrap\.manager-transfer-workspace \{ display:flex/);
   assert.match(shared, /#MainWrap \{ flex:1; min-width:0;/);
   assert.match(shared, /#Filters ul \{ position:static; float:none; display:flex; flex-wrap:wrap/);
   assert.match(shared, /\.manager-grid-scroll \{ overflow:auto;/);
   for (const file of ['manager/library/index', 'manager/data-output/index']) {
-    const template = await readFile(`views/${file}.ejs`, 'utf8');
+    const template = await readFile(`src/views/${file}.ejs`, 'utf8');
     assert(template.includes("include('../shared/transfer-layout')"));
     assert.doesNotMatch(template, /css\('margin-left'/);
   }
@@ -241,27 +241,35 @@ test('Library wording, previews and permission controls match the installed Engl
     groups: [group],
     roles: { 10: { read: true, edit: false } },
   };
-  const detail = await ejs.renderFile('views/manager/library/index.ejs', { ...data, view: 'details' });
+  const detail = await ejs.renderFile('src/views/manager/library/index.ejs', { ...data, view: 'details' });
   assert.match(detail, /Original file name/);
   assert.match(detail, /Type of storage/);
   assert.match(detail, /Availability to save on tablet/);
   assert.match(detail, /Term of valid on tablet/);
   assert.match(detail, /<embed src="[^"]+\/GetPdf\?documentId=1"/);
-  const editable = await ejs.renderFile('views/manager/library/index.ejs', { ...data, view: 'details', edit: true });
+  const editable = await ejs.renderFile('src/views/manager/library/index.ejs', {
+    ...data,
+    view: 'details',
+    edit: true,
+  });
   assert.equal((editable.match(/class="image-ok_btn" type="submit">Confirm/g) || []).length, 2);
   assert.doesNotMatch(editable, />Fix</);
-  const image = await ejs.renderFile('views/manager/library/index.ejs', { ...data, view: 'details', mode: 'ImageLib' });
+  const image = await ejs.renderFile('src/views/manager/library/index.ejs', {
+    ...data,
+    view: 'details',
+    mode: 'ImageLib',
+  });
   assert.match(
     image,
     /GetFreeDrawImageThumbnail\?documentId=1&amp;customSize=200|GetFreeDrawImageThumbnail\?documentId=1&customSize=200/,
   );
-  const readOnly = await ejs.renderFile('views/manager/library/index.ejs', { ...data, view: 'role' });
+  const readOnly = await ejs.renderFile('src/views/manager/library/index.ejs', { ...data, view: 'role' });
   assert.match(readOnly, /Another group permission settings/);
   assert.match(readOnly, /Available to refer/);
   assert.match(readOnly, /name="GroupRolePage\[0\]\.IsReferRole" value="true"/);
   assert.doesNotMatch(readOnly, /<fieldset[^>]*disabled|type="checkbox"[^>]*aria-label="Refer/);
   assert.match(readOnly, /name="GroupSearchData.GroupId"/);
-  const edit = await ejs.renderFile('views/manager/library/index.ejs', {
+  const edit = await ejs.renderFile('src/views/manager/library/index.ejs', {
     ...data,
     view: 'role',
     edit: true,
@@ -274,7 +282,11 @@ test('Library wording, previews and permission controls match the installed Engl
 });
 
 test('Data Output toolbar, audit columns, field choices and confirmation use original-sized controls', async () => {
-  const index = await ejs.renderFile('views/manager/data-output/index.ejs', { ...output, view: 'index', kind: 'def' });
+  const index = await ejs.renderFile('src/views/manager/data-output/index.ejs', {
+    ...output,
+    view: 'index',
+    kind: 'def',
+  });
   assert.match(index, /Select forms for data output/);
   assert(index.indexOf('onclick="outputNext()"') < index.indexOf('id="IndexList"'));
   for (const label of [
@@ -288,7 +300,7 @@ test('Data Output toolbar, audit columns, field choices and confirmation use ori
     assert(index.includes(label));
   assert.match(index, /name="CheckedStateValue"[^>]*aria-label="Selected state"/);
   assert.match(index, /class="img_next cooperation_view"/);
-  const details = await ejs.renderFile('views/manager/data-output/index.ejs', {
+  const details = await ejs.renderFile('src/views/manager/data-output/index.ejs', {
     ...output,
     layout: { ...layout, clusterDetails: true },
     view: 'details',
@@ -298,7 +310,7 @@ test('Data Output toolbar, audit columns, field choices and confirmation use ori
   assert.match(details, /style="width:250px;">Input value \/ Displayed value/);
   assert.match(details, /type="radio" name="Display_1_1" value="false" checked/);
   assert.match(details, /name="IsClusterDetails" value="true" checked/);
-  const confirm = await ejs.renderFile('views/manager/data-output/index.ejs', {
+  const confirm = await ejs.renderFile('src/views/manager/data-output/index.ejs', {
     ...output,
     view: 'confirm',
     kind: 'rep',
@@ -308,13 +320,17 @@ test('Data Output toolbar, audit columns, field choices and confirmation use ori
   assert(confirm.indexOf('class="img_output_csv"') < confirm.indexOf('CSV preview'));
   const css = await readFile('public/Content/ConMas/styles.css', 'utf8');
   assert.match(css, /\.img_output_csv\s*\{[^}]*width:\s*178px;[^}]*height:\s*29px;/);
-  const shared = await readFile('views/manager/shared/transfer-layout.ejs', 'utf8');
+  const shared = await readFile('src/views/manager/shared/transfer-layout.ejs', 'utf8');
   assert.match(shared, /#ConMasOutputForm td > label/);
   assert.match(shared, /\.img_next\.cooperation_view \{ width:170px; background-size:170px 30px;/);
 });
 
 test('section and storage controls update visible state without clearing submitted values', async () => {
-  const html = await ejs.renderFile('views/manager/library/index.ejs', { ...library, view: 'details', create: true });
+  const html = await ejs.renderFile('src/views/manager/library/index.ejs', {
+    ...library,
+    view: 'details',
+    create: true,
+  });
   type Control = {
     value?: string;
     getAttribute?: (name: string) => string;
@@ -379,7 +395,7 @@ test('section and storage controls update visible state without clearing submitt
 test('Library hierarchy and populated rows retain nested label navigation and original row annotations', async () => {
   const child = { ...labels[0], mst_label_id: 2, label_name: 'Child', label_id_path: '1/2', children: [] };
   const parent = { ...labels[0], children: [child] };
-  const html = await ejs.renderFile('views/manager/library/index.ejs', {
+  const html = await ejs.renderFile('src/views/manager/library/index.ejs', {
     ...library,
     view: 'index',
     input: { LabelID: '2' },
@@ -399,7 +415,7 @@ test('Library hierarchy and populated rows retain nested label navigation and or
   assert.match(html, /class="manager-document-labels"><li>Child<\/li>/);
   assert.match(html, /name="LabelSelectID" value="2"/);
   assert.doesNotMatch(html, /name="LabelCreateMode" value="1" disabled/);
-  const denied = await ejs.renderFile('views/manager/library/index.ejs', {
+  const denied = await ejs.renderFile('src/views/manager/library/index.ejs', {
     ...library,
     view: 'index',
     labelPermissions: { create: false, delete: false },
@@ -408,7 +424,7 @@ test('Library hierarchy and populated rows retain nested label navigation and or
 });
 
 test('list height follows the viewport/header on resize and initializes the original tree controls', async () => {
-  const shared = await readFile('views/manager/shared/transfer-layout.ejs', 'utf8');
+  const shared = await readFile('src/views/manager/shared/transfer-layout.ejs', 'utf8');
   const script = /<script>([\s\S]*?)<\/script>/.exec(shared)![1];
   const workspace = { style: { height: '' }, getBoundingClientRect: () => ({ top: 150 }) };
   const window = { innerHeight: 900 };

@@ -115,7 +115,7 @@ test('legacy browser-language helper lets the user date fields initialize their 
     match[1].includes('function browserLanguage()'),
   )?.[1];
   assert(helper);
-  const form = await ejs.renderFile('views/manager/system/user-form.ejs', {
+  const form = await ejs.renderFile('src/views/manager/system/user-form.ejs', {
     base: '/ConMasManager',
     csrfToken: 'fixture',
     userPage: { mode: 'CreateUser', record: {}, groups: [] },

@@ -11,7 +11,7 @@ import { userDate, validUserId } from '../../../../src/controllers/manager/syste
 import { passwordRuleErrors } from '../../../../src/shared/user-password-strength.js';
 
 test('Create User renders the legacy confirmation, blank text dates and group search controls', async () => {
-  const html = await ejs.renderFile('views/manager/system/user-form.ejs', {
+  const html = await ejs.renderFile('src/views/manager/system/user-form.ejs', {
     base: '/ConMasManager',
     csrfToken: 'fixture',
     userPage: {

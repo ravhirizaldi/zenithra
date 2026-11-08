@@ -155,7 +155,7 @@ test(
       assert.equal(await count(), 0);
       await client.query("DELETE FROM mst_direct WHERE key='Setting'");
       const app = express();
-      app.set('views', 'views');
+      app.set('views', 'src/views');
       app.set('view engine', 'ejs');
       app.use(express.urlencoded({ extended: false }));
       app.use(session({ secret: 'documents-task-fixture', resave: false, saveUninitialized: true }));

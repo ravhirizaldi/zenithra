@@ -2,6 +2,8 @@ import assert from 'node:assert/strict';
 import { existsSync, readdirSync, readFileSync } from 'node:fs';
 import { resolve } from 'node:path';
 import { test } from 'node:test';
+import type pg from 'pg';
+import { createApp } from '../src/app.js';
 import { root } from '../src/config/manager.js';
 import { nodeLicenseFile } from '../src/shared/license-counts.js';
 
@@ -9,12 +11,12 @@ test('MVC layers contain Manager menus and test discovery stays outside the prod
   for (const menu of ['system', 'labels', 'library', 'data-output', 'catalog']) {
     assert(existsSync(`src/controllers/manager/${menu}/index.ts`));
     assert(existsSync(`src/models/manager/${menu}/${menu === 'system' ? 'navigation' : 'index'}.ts`));
-    assert(existsSync(`views/manager/${menu}`));
+    assert(existsSync(`src/views/manager/${menu}`));
   }
   for (const feature of ['users', 'common']) assert(existsSync(`src/models/manager/system/${feature}.ts`));
   for (const feature of ['users', 'groups', 'devices']) {
     assert(existsSync(`src/controllers/manager/system/${feature}.ts`));
-    assert(existsSync(`views/manager/system/${feature}.ejs`));
+    assert(existsSync(`src/views/manager/system/${feature}.ejs`));
   }
   assert.equal(
     readdirSync('src', { recursive: true }).some((path) => String(path).startsWith('manager/')),
@@ -34,6 +36,22 @@ test('MVC layers contain Manager menus and test discovery stays outside the prod
   const testConfig = JSON.parse(readFileSync('tsconfig.test.json', 'utf8'));
   assert.equal(testConfig.compilerOptions.noEmit, true);
   assert.deepEqual(testConfig.include, ['src/**/*.ts', 'test/**/*.ts']);
+});
+
+test('Express renders templates from src/views without a listener or database access', async () => {
+  const fail = () => {
+    throw new Error('View-root regression must not access the database.');
+  };
+  const app = createApp({ query: fail, connect: fail } as unknown as pg.Pool, false);
+  assert.equal(app.get('views'), resolve('src/views'));
+  assert.equal(existsSync('views'), false);
+  const html = await new Promise<string>((resolve, reject) => {
+    app.render('manager/account/session-timeout', { base: '/ConMasManager' }, (error, html) => {
+      if (error) reject(error);
+      else resolve(html);
+    });
+  });
+  assert.match(html, /\/ConMasManager\/Account\/LogOn\?timeout=false/);
 });
 
 test('relocated configuration preserves project and license paths without reading or changing a license', () => {

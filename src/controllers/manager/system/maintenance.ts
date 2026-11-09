@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Response } from 'express';
 import type pg from 'pg';
 import { licenseStatus } from '../../../shared/license-counts.js';
@@ -39,23 +40,23 @@ function errorMessage(error: unknown): string {
 function licenseStatusUnavailable(res: Response): boolean {
   try {
     if (!licenseStatus().freeDrawOnly) return false;
-    res.status(403).type('text/plain').send('Role authority is insufficient.');
+    res.status(403).type('text/plain').send(pageText['Role authority is insufficient.']);
   } catch {
-    res.status(503).type('text/plain').send('License information is unavailable.');
+    res.status(503).type('text/plain').send(pageText['License information is unavailable.']);
   }
   return true;
 }
 
 export function parseDeleteDays(value: unknown): DeleteDaysResult {
   if (value === undefined) return { days: 365, error: '' };
-  if (typeof value !== 'string') return { days: 365, error: 'The value is not valid for DeleteDays.' };
+  if (typeof value !== 'string') return { days: 365, error: pageText['The value is not valid for DeleteDays.'] };
   const raw = value.trim();
   if (!/^[+-]?\d+$/.test(raw)) return { days: 365, error: `The value '${value}' is not valid for DeleteDays.` };
   const days = Number(raw);
   if (!Number.isInteger(days) || days < -2147483648 || days > 2147483647) {
     return { days: 365, error: `The value '${value}' is not valid for DeleteDays.` };
   }
-  if (days < 1 || days > 999) return { days, error: 'The field DeleteDays must be between 1 and 999.' };
+  if (days < 1 || days > 999) return { days, error: pageText['The field DeleteDays must be between 1 and 999.'] };
   return { days, error: '' };
 }
 
@@ -136,7 +137,7 @@ async function deleteAllCustomRecords(db: pg.Pool): Promise<number> {
   const count = await db.query<{ n_live_tup: number | string | null }>(
     "SELECT n_live_tup FROM pg_stat_user_tables WHERE relname = 'custom_record_delete'",
   );
-  if (!count.rows[0]) throw new Error('Could not read custom record deletion count.');
+  if (!count.rows[0]) throw new Error(pageText['Could not read custom record deletion count.']);
   await db.query('TRUNCATE TABLE custom_record_delete');
   return Number(count.rows[0].n_live_tup);
 }

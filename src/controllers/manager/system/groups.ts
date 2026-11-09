@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { licenseStatus } from '../../../shared/license-counts.js';
@@ -24,134 +25,142 @@ const root = '/ConMasManager/System';
 const fallbackPageSizes = [10, 20, 50, 100];
 const permissionGroups = [
   {
-    title: 'System',
+    title: pageText['System'],
     columns: [
-      { field: 'role_mst_read', label: 'Refer' },
-      { field: 'role_mst_create', label: 'Issue' },
-      { field: 'role_mst_update', label: 'Edit' },
-      { field: 'role_mst_delete', label: 'Delete' },
+      { field: 'role_mst_read', label: pageText['Refer'] },
+      { field: 'role_mst_create', label: pageText['Issue'] },
+      { field: 'role_mst_update', label: pageText['Edit'] },
+      { field: 'role_mst_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Users',
+    title: pageText['Users'],
     columns: [
-      { field: 'role_mst_user_read', label: 'Refer' },
-      { field: 'role_mst_user_create', label: 'Issue' },
-      { field: 'role_mst_user_update', label: 'Edit' },
-      { field: 'role_mst_user_delete', label: 'Delete' },
+      { field: 'role_mst_user_read', label: pageText['Refer'] },
+      { field: 'role_mst_user_create', label: pageText['Issue'] },
+      { field: 'role_mst_user_update', label: pageText['Edit'] },
+      { field: 'role_mst_user_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Devices',
+    title: pageText['Devices'],
     columns: [
-      { field: 'role_mst_terminal_read', label: 'Refer' },
-      { field: 'role_mst_terminal_update', label: 'Edit' },
-      { field: 'role_mst_terminal_delete', label: 'Delete' },
+      { field: 'role_mst_terminal_read', label: pageText['Refer'] },
+      { field: 'role_mst_terminal_update', label: pageText['Edit'] },
+      { field: 'role_mst_terminal_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'System Settings',
+    title: pageText['System Settings'],
     columns: [
-      { field: 'role_mst_system_read', label: 'Refer' },
-      { field: 'role_mst_system_create', label: 'Issue' },
-      { field: 'role_mst_system_update', label: 'Edit' },
-      { field: 'role_mst_system_delete', label: 'Delete' },
+      { field: 'role_mst_system_read', label: pageText['Refer'] },
+      { field: 'role_mst_system_create', label: pageText['Issue'] },
+      { field: 'role_mst_system_update', label: pageText['Edit'] },
+      { field: 'role_mst_system_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Data administration',
+    title: pageText['Data administration'],
     columns: [
-      { field: 'role_mst_data_read', label: 'Refer' },
-      { field: 'role_mst_data_create', label: 'Issue' },
-      { field: 'role_mst_data_update', label: 'Edit' },
-      { field: 'role_mst_data_delete', label: 'Delete' },
+      { field: 'role_mst_data_read', label: pageText['Refer'] },
+      { field: 'role_mst_data_create', label: pageText['Issue'] },
+      { field: 'role_mst_data_update', label: pageText['Edit'] },
+      { field: 'role_mst_data_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Forms',
+    title: pageText['Forms'],
     columns: [
-      { field: 'role_def_read_manager', label: 'Refer' },
-      { field: 'role_def_update_manager', label: 'Edit' },
-      { field: 'role_def_delete_manager', label: 'Delete' },
+      { field: 'role_def_read_manager', label: pageText['Refer'] },
+      { field: 'role_def_update_manager', label: pageText['Edit'] },
+      { field: 'role_def_delete_manager', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Documents',
+    title: pageText['Documents'],
     columns: [
-      { field: 'role_rep_read_manager', label: 'Refer' },
-      { field: 'role_rep_update_manager', label: 'Edit' },
-      { field: 'role_rep_delete_manager', label: 'Delete' },
-      { field: 'role_rep_super_manager', label: 'Management' },
-    ],
-  },
-  { title: 'Data Output', rowspan: 2, columns: [{ field: 'role_data_output', label: 'Data Output' }] },
-  { title: 'Doc. Import', rowspan: 2, columns: [{ field: 'role_auto_generate', label: 'Doc. Import' }] },
-  {
-    title: 'Labels',
-    columns: [
-      { field: 'role_label_read_manager', label: 'Refer' },
-      { field: 'role_label_create_manager', label: 'Issue' },
-      { field: 'role_label_update_manager', label: 'Edit' },
-      { field: 'role_label_delete_manager', label: 'Delete' },
+      { field: 'role_rep_read_manager', label: pageText['Refer'] },
+      { field: 'role_rep_update_manager', label: pageText['Edit'] },
+      { field: 'role_rep_delete_manager', label: pageText['Delete'] },
+      { field: 'role_rep_super_manager', label: pageText['Management'] },
     ],
   },
   {
-    title: 'Library',
+    title: pageText['Data Output'],
+    rowspan: 2,
+    columns: [{ field: 'role_data_output', label: pageText['Data Output'] }],
+  },
+  {
+    title: pageText['Doc. Import'],
+    rowspan: 2,
+    columns: [{ field: 'role_auto_generate', label: pageText['Doc. Import'] }],
+  },
+  {
+    title: pageText['Labels'],
     columns: [
-      { field: 'role_library_read', label: 'Refer' },
-      { field: 'role_library_create', label: 'Confirm' },
-      { field: 'role_library_update', label: 'Edit' },
-      { field: 'role_library_delete', label: 'Delete' },
+      { field: 'role_label_read_manager', label: pageText['Refer'] },
+      { field: 'role_label_create_manager', label: pageText['Issue'] },
+      { field: 'role_label_update_manager', label: pageText['Edit'] },
+      { field: 'role_label_delete_manager', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Schedule',
+    title: pageText['Library'],
     columns: [
-      { field: 'role_schedule_read', label: 'Refer' },
-      { field: 'role_schedule_create', label: 'Issue' },
-      { field: 'role_schedule_update', label: 'Edit' },
-      { field: 'role_schedule_delete', label: 'Delete' },
+      { field: 'role_library_read', label: pageText['Refer'] },
+      { field: 'role_library_create', label: pageText['Confirm'] },
+      { field: 'role_library_update', label: pageText['Edit'] },
+      { field: 'role_library_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Master',
+    title: pageText['Schedule'],
     columns: [
-      { field: 'role_custom_read', label: 'Refer' },
-      { field: 'role_custom_mentenance', label: 'Maintenance' },
+      { field: 'role_schedule_read', label: pageText['Refer'] },
+      { field: 'role_schedule_create', label: pageText['Issue'] },
+      { field: 'role_schedule_update', label: pageText['Edit'] },
+      { field: 'role_schedule_delete', label: pageText['Delete'] },
     ],
   },
   {
-    title: 'Custom menu',
+    title: pageText['Master'],
     columns: [
-      { field: 'role_custom_menu_read', label: 'Refer' },
-      { field: 'role_custom_menu_update', label: 'Maintenance' },
+      { field: 'role_custom_read', label: pageText['Refer'] },
+      { field: 'role_custom_mentenance', label: pageText['Maintenance'] },
     ],
   },
   {
-    title: 'Binder',
+    title: pageText['Custom menu'],
     columns: [
-      { field: 'role_binder_read', label: 'Refer' },
-      { field: 'role_binder_update', label: 'Setting' },
-      { field: 'role_binder_delete', label: 'Delete' },
+      { field: 'role_custom_menu_read', label: pageText['Refer'] },
+      { field: 'role_custom_menu_update', label: pageText['Maintenance'] },
+    ],
+  },
+  {
+    title: pageText['Binder'],
+    columns: [
+      { field: 'role_binder_read', label: pageText['Refer'] },
+      { field: 'role_binder_update', label: pageText['Setting'] },
+      { field: 'role_binder_delete', label: pageText['Delete'] },
     ],
   },
 ];
 const designerColumns = [
-  { field: 'role_def_create', label: 'New' },
-  { field: 'role_def_approve', label: 'Release' },
+  { field: 'role_def_create', label: pageText['New'] },
+  { field: 'role_def_approve', label: pageText['Release'] },
 ];
 const defaultDefinitionColumns = [
-  { field: 'role_def_read', label: 'Refer' },
-  { field: 'role_def_update', label: 'Edit' },
-  { field: 'role_def_delete', label: 'Delete' },
-  { field: 'role_rep_read', label: 'Refer' },
-  { field: 'role_rep_create', label: 'Issue' },
-  { field: 'role_rep_update', label: 'Edit' },
-  { field: 'role_rep_delete', label: 'Delete' },
+  { field: 'role_def_read', label: pageText['Refer'] },
+  { field: 'role_def_update', label: pageText['Edit'] },
+  { field: 'role_def_delete', label: pageText['Delete'] },
+  { field: 'role_rep_read', label: pageText['Refer'] },
+  { field: 'role_rep_create', label: pageText['Issue'] },
+  { field: 'role_rep_update', label: pageText['Edit'] },
+  { field: 'role_rep_delete', label: pageText['Delete'] },
 ];
 const freeDrawColumns = [
-  { field: 'role_irfd_read', label: 'Refer' },
-  { field: 'role_irfd_update', label: 'Edit' },
+  { field: 'role_irfd_read', label: pageText['Refer'] },
+  { field: 'role_irfd_update', label: pageText['Edit'] },
 ];
 
 const input = (req: Request, key: string): string => {
@@ -378,12 +387,12 @@ async function renderGroupPage(res: Response, render: Render, mode: string, valu
     login: false,
     title:
       mode === 'create'
-        ? 'Register new group'
+        ? pageText['Register new group']
         : mode === 'edit'
-          ? 'Edit group'
+          ? pageText['Edit group']
           : mode === 'details'
-            ? 'Group reference'
-            : 'Groups',
+            ? pageText['Group reference']
+            : pageText['Groups'],
     systemGroupPage: {
       mode,
       indexUrl: root + '/GroupList',
@@ -494,7 +503,7 @@ async function pageList(db: pg.Pool, req: Request, res: Response, render: Render
     active: 'System',
     section: 'GroupList',
     login: false,
-    title: 'Groups',
+    title: pageText['Groups'],
     systemGroupPage: {
       mode: 'list',
       indexUrl: root + '/GroupList',
@@ -565,7 +574,7 @@ async function saveGroup(db: pg.Pool, req: Request, group: Row, members: string[
           [id],
         )
       ).rows[0];
-      if (!old) throw new Error('The group no longer exists.');
+      if (!old) throw new Error(pageText['The group no longer exists.']);
     }
     let parentIdPath = '';
     let parentNamePath = '';
@@ -576,7 +585,7 @@ async function saveGroup(db: pg.Pool, req: Request, group: Row, members: string[
           [parentId],
         )
       ).rows[0];
-      if (!parent) throw new Error('The selected parent group does not exist.');
+      if (!parent) throw new Error(pageText['The selected parent group does not exist.']);
       parentIdPath = String(parent.group_id_path);
       parentNamePath = String(parent.group_name_path);
     }
@@ -709,28 +718,28 @@ export function registerGroups(app: Express, db: pg.Pool, render: Render) {
     try {
       return await pageList(db, req, res, render);
     } catch {
-      return res.status(500).send('Unable to load groups.');
+      return res.status(500).send(pageText['Unable to load groups.']);
     }
   });
   app.post(root + '/GroupList', async (req, res) => {
     try {
       return await pageList(db, req, res, render);
     } catch {
-      return res.status(500).send('Unable to load groups.');
+      return res.status(500).send(pageText['Unable to load groups.']);
     }
   });
 
   app.get(root + '/DetailsGroup', async (req, res) => {
     const id = safePageNumber(req.query.id, -1, 1, 2147483647);
     const group = id > 0 ? await loadGroup(db, id) : undefined;
-    if (!group) return res.status(404).send('Group not found.');
+    if (!group) return res.status(404).send(pageText['Group not found.']);
     return details(db, res, render, group);
   });
 
   app.post(root + '/DetailsGroup', async (req, res) => {
     const id = safePageNumber(req.body['mst_group.group_id'], -1, 1, 2147483647);
     const group = id > 0 ? await loadGroup(db, id) : undefined;
-    if (!group) return res.status(404).send('Group not found.');
+    if (!group) return res.status(404).send(pageText['Group not found.']);
     if (input(req, 'act') !== 'delete') return res.redirect(root + '/DetailsGroup?id=' + id);
     try {
       await db.query('DELETE FROM mst_group WHERE group_id=$1', [id]);
@@ -759,7 +768,7 @@ export function registerGroups(app: Express, db: pg.Pool, render: Render) {
   app.get(root + '/EditGroup', async (req, res) => {
     const id = safePageNumber(req.query.id, -1, 1, 2147483647);
     const group = id > 0 ? await loadGroup(db, id) : undefined;
-    if (!group) return res.status(404).send('Group not found.');
+    if (!group) return res.status(404).send(pageText['Group not found.']);
     const members = await loadMemberIds(db, id);
     return renderForm(db, res, render, 'edit', group, '', members);
   });
@@ -773,7 +782,7 @@ export function registerGroups(app: Express, db: pg.Pool, render: Render) {
         : Number.isSafeInteger(requestedId)
           ? await loadGroup(db, requestedId)
           : undefined;
-      if (!create && !existing) return res.status(404).send('Group not found.');
+      if (!create && !existing) return res.status(404).send(pageText['Group not found.']);
       const group = parseForm(req, existing, create);
       const features = await loadFeatures(db);
       const members = selectedValues(req.body.members);

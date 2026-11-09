@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type { Express } from 'express';
 import type pg from 'pg';
 import { base } from '../../../config/manager.js';
@@ -10,7 +11,7 @@ export function registerDocumentMedia(app: Express, db: pg.Pool) {
     if (req.get('X-Requested-With') !== 'XMLHttpRequest') return res.send('');
     try {
       const sheet = await documentFdSheet(db, req.query, req.session?.userId ?? '');
-      if (!sheet) return res.status(403).send('Role authority is insufficient.');
+      if (!sheet) return res.status(403).send(pageText['Role authority is insufficient.']);
       return res.render('manager/documents/fd-sheet', { base, ...(await documentViewSource()), ...sheet });
     } catch (error) {
       if (!(error instanceof LabelValidationError)) throw error;

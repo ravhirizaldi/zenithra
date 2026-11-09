@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { labelChecked, labelInteger, labelString, LabelValidationError } from '../labels/index.js';
@@ -84,7 +85,7 @@ export async function documentTaskPeople(
 
 export async function documentRegistTask(db: pg.Pool, state: DocumentTaskState, actor: string) {
   const record = state.record;
-  if (!record.task_name) throw new LabelValidationError('SchData.task_id', 'Required');
+  if (!record.task_name) throw new LabelValidationError('SchData.task_id', pageText['Required']);
   const clock = /^(?:[01]?\d|2[0-3]):[0-5]\d(?::[0-5]\d)?$/;
   if (!clock.test(record.FromTime.trim())) throw new LabelValidationError('SchData.FromTime', 'InvalidError');
   if ((record.end_date && !clock.test(record.ToTime.trim())) || (!record.end_date && record.ToTime))
@@ -101,11 +102,11 @@ export async function documentRegistTask(db: pg.Pool, state: DocumentTaskState, 
     end = date('end_date', record.ToTime);
   if (!start || (end && start > end)) throw new LabelValidationError('SchData.start_date', 'InvalidError');
   if ((!state.users.length && !state.groups.length) || (state.users.length && state.groups.length))
-    throw new LabelValidationError('SelectUsers', 'Select users or a group.');
+    throw new LabelValidationError('SelectUsers', pageText['Select users or a group.']);
   const ids = [...new Set(state.reports.split(',').map((id) => labelInteger(id)))];
-  if (ids.some((id) => id <= 0)) throw new LabelValidationError('SelectRepTask', 'Select valid reports.');
+  if (ids.some((id) => id <= 0)) throw new LabelValidationError('SelectRepTask', pageText['Select valid reports.']);
   const groups = state.groups.map((id) => labelInteger(id));
-  if (groups.some((id) => id <= 0)) throw new LabelValidationError('SelectGroups', 'Select valid groups.');
+  if (groups.some((id) => id <= 0)) throw new LabelValidationError('SelectGroups', pageText['Select valid groups.']);
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -116,7 +117,8 @@ export async function documentRegistTask(db: pg.Pool, state: DocumentTaskState, 
         [actor],
       )
     ).rows[0]?.allowed;
-    if (String(permission) !== '1') throw new LabelValidationError('SelectRepTask', 'Role authority is insufficient.');
+    if (String(permission) !== '1')
+      throw new LabelValidationError('SelectRepTask', pageText['Role authority is insufficient.']);
     const reports = (
       await client.query(
         `SELECT t.rep_top_id,t.public_status,t.edit_refer_status FROM rep_top t
@@ -128,7 +130,7 @@ export async function documentRegistTask(db: pg.Pool, state: DocumentTaskState, 
       )
     ).rows;
     if (reports.length !== ids.length)
-      throw new LabelValidationError('SelectRepTask', 'A selected report is unavailable.');
+      throw new LabelValidationError('SelectRepTask', pageText['A selected report is unavailable.']);
     if (reports.some((row) => String(row.public_status) !== '2' || !['0', '1'].includes(String(row.edit_refer_status))))
       throw new LabelValidationError('SelectRepTask', 'ErrorSelectRepTask');
     const people = await documentTaskPeople(client, state, actor);
@@ -136,12 +138,12 @@ export async function documentRegistTask(db: pg.Pool, state: DocumentTaskState, 
       state.users.some((id) => !people.users.some((row) => row.user_id === id)) ||
       groups.some((id) => !people.groups.some((row) => row.group_id === id))
     )
-      throw new LabelValidationError('SelectUsers', 'A selected worker is unavailable.');
+      throw new LabelValidationError('SelectUsers', pageText['A selected worker is unavailable.']);
     if (
       state.taskId > 0 &&
       !(await client.query('SELECT 1 FROM mst_task WHERE task_id=$1 FOR SHARE', [state.taskId])).rowCount
     )
-      throw new LabelValidationError('SchData.task_id', 'A selected task is unavailable.');
+      throw new LabelValidationError('SchData.task_id', pageText['A selected task is unavailable.']);
     let confirm = false;
     for (const id of ids) {
       const previous = (
@@ -187,7 +189,7 @@ export async function documentRegistTask(db: pg.Pool, state: DocumentTaskState, 
     if (String(webhook) === '1' || direct)
       throw new LabelValidationError(
         'SelectRepTask',
-        'Schedule notifications have not been migrated. No changes were saved.',
+        pageText['Schedule notifications have not been migrated. No changes were saved.'],
       );
     const audit = {
       sys_regist_term: hostname(),
@@ -246,7 +248,7 @@ export async function documentTaskList(
 ) {
   const pageIndex = labelInteger(input.pageIndex, 0),
     pageSize = labelInteger(input.pageSize, settings.pageSize) || settings.pageSize;
-  if (pageIndex < 0 || pageSize <= 0) throw new LabelValidationError('pageIndex', 'Invalid task page.');
+  if (pageIndex < 0 || pageSize <= 0) throw new LabelValidationError('pageIndex', pageText['Invalid task page.']);
   const searchName = labelString(input.searchName),
     searchRemark = labelString(input.searchRemark);
   const { rows, total } = await taskList(db, { searchName, searchRemark, pageIndex, pageSize });

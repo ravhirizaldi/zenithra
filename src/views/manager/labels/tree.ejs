@@ -1,4 +1,4 @@
-<% const prefix = select ? 'LabelSelect' : 'Label'; const searchName = select ? 'SearchNameLabelSelectView' : 'SearchNameLabelView'; const functionPrefix = select ? 'fConMasSelect' : 'fConMas'; %>
+<% const ui = managerResources["labels"]; %><% const prefix = select ? 'LabelSelect' : 'Label'; const searchName = select ? 'SearchNameLabelSelectView' : 'SearchNameLabelView'; const functionPrefix = select ? 'fConMasSelect' : 'fConMas'; %>
 <script type="text/javascript">
   function <%= functionPrefix %>PageLabel(pageIndex) { $('#<%= prefix %>PageIndex').val(pageIndex); <% if (!select) { %>$('#LabelPageIndexBackup').val(pageIndex);<% } %> }
   function <%= functionPrefix %>NextLabel() { <%= functionPrefix %>PageLabel(parseInt($('#<%= prefix %>PageIndex').val()) + 1); }
@@ -13,20 +13,20 @@
   <% } else { %>function fConMasSelectLabelSearch() {}<% } %>
 </script>
 <div<% if (select) { %> id="conmasLabelSelectWindow"<% } %> style="padding:<%= select ? 2 : 3 %>px; width:<%= select ? 280 : 290 %>px; text-align:center; float:left; height:<%= select ? 80 : 90 %>px;">
-  <% if (!select) { %><div style="text-align:left;">Search label:</div><% } %>
+  <% if (!select) { %><div style="text-align:left;"><%= ui["Search label:"] %></div><% } %>
   <div style="width:100%;"><div style="float:left;"><input type="text" value="<%= search %>" id="<%= searchName %>" name="<%= searchName %>" style="width:190px;"></div><div style="float:right;"><input type="submit" value="Search" onclick="<%= functionPrefix %>LabelSearch();"></div><div style="clear:both;"></div></div>
   <div><%= index %>-<%= lastCount %>/<%= pages %>(<%= total %>)</div>
   <div><div style="float:left; text-align:left;"><input type="submit" value="|＜" onclick="<%= functionPrefix %>PageLabel(1);"<% if (index <= 1) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>><input type="submit" value="＜" onclick="<%= functionPrefix %>BackLabel();"<% if (index <= 1) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>></div>
   <div style="float:right; text-align:right;"><input type="submit" value="＞" onclick="<%= functionPrefix %>NextLabel();"<% if (index >= pages) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>><input type="submit" value="＞|" onclick="<%= functionPrefix %>PageLabel(<%= pages %>);"<% if (index >= pages) { %> disabled readonly<% } else { %> class="conmas_link_button_custom"<% } %>></div></div>
 </div><div style="clear:both;"></div>
-<% if (!select) { %><div id="sidetreecontrol2" class="collapseBox"><a href="?#">Close all</a> | <a href="?#">Open all</a></div><% } %>
+<% if (!select) { %><div id="sidetreecontrol2" class="collapseBox"><a href="?#"><%= ui["Close all"] %></a> | <a href="?#"><%= ui["Open all"] %></a></div><% } %>
 <ul<% if (select) { %> style="width:280px;"<% } else { %> id="LabelMaster" class="treeview"<% } %>>
   <% const js = value => JSON.stringify(value).replace(/</g, '\\u003c'); const renderNodes = items => { for (const item of items) {
     if (!visible.has(item.mst_label_id)) { renderNodes(item.children); continue; } %>
     <li<% if (select) { %> style="margin-bottom:3px;"<% } %>>
       <% if (select) { %><label><input type="<%= inputType %>" id="CbxLinkLabel" name="CbxLinkLabel" value="<%= inputType === 'button' ? 'Select' : item.mst_label_id %>"<% if (inputType === 'button') { %> onclick="onLabelSelect(<%= js(String(item.mst_label_id)) %>,<%= js(item.label_name_path) %>);" class="conmas_link_button_custom" style="margin:3px; width:60px;"<% } %>><% }
       else { %><a href="<%= isLink ? `${base}/Label/Details?mode=${mode}&id=${item.mst_label_id}&act=edit&LabelPageIndex=${index}&SearchLabelName=${encodeURIComponent(search)}` : 'javascript:void(0)' %>"<% if (!isLink) { %> name="<%= item.mst_label_id %>"<% } %><% if (String(item.mst_label_id) === selectedId) { %> class="current"<% } %>><% } %>
-      <% if (item.label_icon_id) { %><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id %>.png" alt="[label<%= item.label_icon_id %>]" class="labelPictureSize"> <% } %><%= select ? item.label_name_path : item.label_name %><% if (select) { %></label><% } else { %></a><% } %>
+      <% if (item.label_icon_id) { %><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id %>.png" alt="<%= ui["[label"] %><%= item.label_icon_id %>]" class="labelPictureSize"> <% } %><%= select ? item.label_name_path : item.label_name %><% if (select) { %></label><% } else { %></a><% } %>
       <% if (item.children.length && !select) { %><ul class="rank0"><% renderNodes(item.children); %></ul><% } %>
     </li><% if (select) renderNodes(item.children); %>
   <% } }; renderNodes(nodes); %>

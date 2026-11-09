@@ -1,11 +1,13 @@
 import type { Response } from 'express';
 import { base, menus } from '../../config/manager.js';
+import { managerResourceLocals } from '../../config/manager/resources.js';
 
 export type RenderPage = (res: Response, data: Record<string, unknown>) => unknown;
 
 export function createPageRenderer(authEnabled: boolean, databaseReady: boolean): RenderPage {
   return (res: Response, data: Record<string, unknown>) =>
     res.render('manager/page', {
+      ...managerResourceLocals,
       base,
       menus,
       authEnabled,

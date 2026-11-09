@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
@@ -662,7 +663,8 @@ export function mailStrings(locale: string): MailLabels {
 
 export function parseMailXml(source: string): MailDocument {
   const document = parser.parse(source) as MailDocument;
-  if (!document.mail || typeof document.mail !== 'object') throw new Error('Mail XML has an invalid structure.');
+  if (!document.mail || typeof document.mail !== 'object')
+    throw new Error(pageText['Mail XML has an invalid structure.']);
   return document;
 }
 
@@ -974,7 +976,7 @@ export async function sendSystemMail(
       message: {
         subject,
         importance: message.priority.toLowerCase(),
-        body: { contentType: 'Text', content: message.body },
+        body: { contentType: pageText['Text'], content: message.body },
         toRecipients: message.to.map((address) => ({ emailAddress: { address } })),
       },
       saveToSentItems: false,
@@ -1138,7 +1140,7 @@ export function registerMail(
       try {
         const document = await mailDocument(db);
         const oauth = document.mail.oauth as Xml | undefined;
-        if (!oauth || oauth.provider !== provider) throw new Error('Configure this OAuth provider first.');
+        if (!oauth || oauth.provider !== provider) throw new Error(pageText['Configure this OAuth provider first.']);
         const error = typeof req.query.error === 'string' ? req.query.error : '';
         if (error)
           throw new Error(
@@ -1177,7 +1179,7 @@ export function registerMail(
           return res.redirect(authorize.toString());
         }
         const expectedState = session(req)?.[stateKey];
-        if (!expectedState || req.query.state !== expectedState) throw new Error('CSRF token mismatch.');
+        if (!expectedState || req.query.state !== expectedState) throw new Error(pageText['CSRF token mismatch.']);
         delete session(req)?.[stateKey];
         const tokenEndpoint =
           provider === 'google'

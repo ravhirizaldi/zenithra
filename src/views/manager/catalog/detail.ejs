@@ -1,18 +1,18 @@
-<% const isForm = detail.kind === 'form'; const top = detail.top; %>
+<% const ui = managerResources["catalog"]; %><% const isForm = detail.kind === 'form'; const top = detail.top; %>
 <div id="Wrap" class="catalog-detail">
   <div id="MainWrap">
-    <p><a href="<%= base %>/<%= isForm ? 'DefReport' : 'InputReport' %>/Index">← <%= isForm ? 'Forms' : 'Documents' %></a></p>
+    <p><a href="<%= base %>/<%= isForm ? 'DefReport' : 'InputReport' %>/Index">← <%= isForm ? ui["Forms"] : ui["Documents"] %></a></p>
     <h2><%= top.name %></h2>
-    <% if (top.is_sample) { %><p class="migration-state"><%= isForm ? 'Imported sample definition' : 'Blank document generated from a sample definition' %>. Original XML is preserved in PostgreSQL.</p><% } %>
-    <div class="detail-panel"><h3>Top</h3><dl>
-      <dt>ID</dt><dd><%= top.id %></dd>
-      <dt>Original ID</dt><dd><%= top.original_id ?? '' %></dd>
-      <dt>Revision</dt><dd><%= top.rev_no ?? '' %></dd>
-      <dt>Registered</dt><dd><%= top.registered ?? '' %> <%= top.registered_by ?? '' %></dd>
-      <dt>Updated</dt><dd><%= top.updated ?? '' %> <%= top.updated_by ?? '' %></dd>
-      <% if (!isForm) { %><dt>Form ID</dt><dd><a href="<%= base %>/DefReport/Details?defTopId=<%= top.def_top_id %>"><%= top.def_top_id %></a></dd><% } %>
+    <% if (top.is_sample) { %><p class="migration-state"><%= isForm ? ui["Imported sample definition"] : ui["Blank document generated from a sample definition"] %><%= ui[". Original XML is preserved in PostgreSQL."] %></p><% } %>
+    <div class="detail-panel"><h3><%= ui["Top"] %></h3><dl>
+      <dt><%= ui["ID"] %></dt><dd><%= top.id %></dd>
+      <dt><%= ui["Original ID"] %></dt><dd><%= top.original_id ?? '' %></dd>
+      <dt><%= ui["Revision"] %></dt><dd><%= top.rev_no ?? '' %></dd>
+      <dt><%= ui["Registered"] %></dt><dd><%= top.registered ?? '' %> <%= top.registered_by ?? '' %></dd>
+      <dt><%= ui["Updated"] %></dt><dd><%= top.updated ?? '' %> <%= top.updated_by ?? '' %></dd>
+      <% if (!isForm) { %><dt><%= ui["Form ID"] %></dt><dd><a href="<%= base %>/DefReport/Details?defTopId=<%= top.def_top_id %>"><%= top.def_top_id %></a></dd><% } %>
     </dl></div>
-    <div class="detail-panel"><h3>Sheets (<%= detail.sheets.length %>)</h3><ol><% for (const sheet of detail.sheets) { %><li><%= sheet.name %> (No. <%= sheet.sheet_no %>)</li><% } %></ol></div>
-    <div class="detail-panel"><h3>Labels</h3><% if (detail.labels.length) { %><ul><% for (const label of detail.labels) { %><li><%= label.name %></li><% } %></ul><% } else { %><p>No Label</p><% } %></div>
+    <div class="detail-panel"><h3><%= ui["Sheets ("] %><%= detail.sheets.length %>)</h3><ol><% for (const sheet of detail.sheets) { %><li><%= sheet.name %> <%= ui["(No."] %> <%= sheet.sheet_no %>)</li><% } %></ol></div>
+    <div class="detail-panel"><h3><%= ui["Labels"] %></h3><% if (detail.labels.length) { %><ul><% for (const label of detail.labels) { %><li><%= label.name %></li><% } %></ul><% } else { %><p><%= ui["No Label"] %></p><% } %></div>
   </div>
 </div>

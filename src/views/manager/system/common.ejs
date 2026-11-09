@@ -1,14 +1,14 @@
-<% const route = base + '/System'; const labels = [['com_key','Common key'],['com_index','Common item index'],['com_name','Common item name'],['com_value','Common item value'],['com_locale','Locale']]; %>
+<% const ui = managerResources["system"]; %><% const route = base + '/System'; const labels = [['com_key',ui["Common key"]],['com_index',ui["Common item index"]],['com_name',ui["Common item name"]],['com_value',ui["Common item value"]],['com_locale',ui["Locale"]]]; %>
 <% if (settings.mode === 'list') { %>
 <form method="post" action="<%= route %>/ComList"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
 <div id="DetailTop"><span id="infoTitle"><%= settings.title %></span><span id="functionBar">
-<select name="com_key" onchange="this.form.submit()"><option value="-1">- common key -</option><% for (const key of settings.keys) { %><option value="<%= key %>" <%= settings.selected === key ? 'selected' : '' %>><%= key %></option><% } %></select>
-<% if (settings.canCreate) { %><a href="<%= route %>/CreateCom" class="img_add" title="Create"> </a><% } %>
-</span></div><div id="DetailSection"><div class="info"><table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col">No</th><% for (const [,label] of labels) { %><th scope="col"><%= label %></th><% } %></tr>
+<select name="com_key" onchange="this.form.submit()"><option value="-1"><%= ui["- common key -"] %></option><% for (const key of settings.keys) { %><option value="<%= key %>" <%= settings.selected === key ? 'selected' : '' %>><%= key %></option><% } %></select>
+<% if (settings.canCreate) { %><a href="<%= route %>/CreateCom" class="img_add" title="<%= ui["Create"] %>"> </a><% } %>
+</span></div><div id="DetailSection"><div class="info"><table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col"><%= ui["No"] %></th><% for (const [,label] of labels) { %><th scope="col"><%= label %></th><% } %></tr>
 <% settings.rows.forEach((row,index) => { %><tr><td class="center"><a href="<%= route %>/DetailsCom?id=<%= row.com_id %>"><%= index %></a></td><% for (const [key] of labels) { %><td><%= row[key] ?? '' %></td><% } %></tr><% }); %>
 </table></div></div></form>
 <% } else if (settings.mode === 'details') { %>
-<div id="DetailTop"><span id="infoTitle"><%= settings.title %></span><span id="functionBar"><% if (settings.canEdit) { %><a href="<%= route %>/EditCom?id=<%= settings.record.com_id %>" class="img_edit" title="Edit"> </a><% } %><% if (settings.canDelete) { %><form style="display:inline" method="post" action="<%= route %>/DetailsCom"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="mst_common.com_id" value="<%= settings.record.com_id %>"><input type="hidden" name="act" value="delete"><button type="submit" class="img_delete" title="Delete" onclick="return confirm('Delete common key. Are you sure you want to delete it?');"> </button></form><% } %></span></div>
+<div id="DetailTop"><span id="infoTitle"><%= settings.title %></span><span id="functionBar"><% if (settings.canEdit) { %><a href="<%= route %>/EditCom?id=<%= settings.record.com_id %>" class="img_edit" title="<%= ui["Edit"] %>"> </a><% } %><% if (settings.canDelete) { %><form style="display:inline" method="post" action="<%= route %>/DetailsCom"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="mst_common.com_id" value="<%= settings.record.com_id %>"><input type="hidden" name="act" value="delete"><button type="submit" class="img_delete" title="<%= ui["Delete"] %>" onclick="return confirm(<%= managerScriptText(ui["Delete common key. Are you sure you want to delete it?"], "'") %>);"> </button></form><% } %></span></div>
 
 <div id="DetailSection"><div class="info"><table cellpadding="0" cellspacing="0" class="table_information horizontal"><% for (const [key,label] of labels) { %><tr><th scope="row"><%= label %></th><td><%= settings.record[key] ?? '' %></td></tr><% } %></table></div></div>
 <% } else if (settings.mode === 'create' || settings.mode === 'edit') { %>
@@ -20,7 +20,7 @@
 <% for (const [key,label] of labels) { %><tr><th scope="row"><label for="mst_common_<%= key %>"><%= label %></label></th><td>
 <% if (key === 'com_locale') { %><select id="mst_common_<%= key %>" name="mst_common.<%= key %>"><option value="-1"></option><% for (const locale of settings.locales) { %><option value="<%= locale.value %>" <%= settings.record[key] === locale.value ? 'selected' : '' %>><%= locale.text %></option><% } %></select>
 <% } else { %><input type="text" id="mst_common_<%= key %>" name="mst_common.<%= key %>" class="EditValue1" value="<%= settings.record[key] ?? '' %>"><% } %>
-</td></tr><% } %></table><p><input type="submit" value="Fix" class="image-ok_btn"><a id="image-cancel_btn" class="image-cancel_label" href="<%= route %>/<%= settings.mode === 'create' ? 'ComList' : 'DetailsCom?id=' + settings.record.com_id %>">Cancel</a></p></div></div></form>
+</td></tr><% } %></table><p><input type="submit" value="Fix" class="image-ok_btn"><a id="image-cancel_btn" class="image-cancel_label" href="<%= route %>/<%= settings.mode === 'create' ? 'ComList' : 'DetailsCom?id=' + settings.record.com_id %>"><%= ui["Cancel"] %></a></p></div></div></form>
 <% } else { %>
 <script type="text/javascript">
   $(function () {
@@ -33,7 +33,7 @@
     }
   });
 </script>
-<div class="PartialViewMessage"><ul><li style="display:none"></li><li><%= settings.denied ? 'Role authority is insufficient.' : settings.prerequisite %></li></ul></div>
+<div class="PartialViewMessage"><ul><li style="display:none"></li><li><%= settings.denied ? ui["Role authority is insufficient."] : settings.prerequisite %></li></ul></div>
 <div id="DetailTop">
   <span id="infoTitle"><%= settings.title %></span>
 </div>

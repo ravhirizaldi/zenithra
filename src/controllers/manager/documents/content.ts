@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { base } from '../../../config/manager.js';
@@ -62,7 +63,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
         const input: Record<string, unknown> = { ...req.query, ...req.body };
         const id = documentDetailId(req.method === 'POST' ? input['rep_top.rep_top_id'] : input.repTopId);
         if (edit && !res.locals.documentPermissions.update)
-          return res.status(403).send('Role authority is insufficient.');
+          return res.status(403).send(pageText['Role authority is insufficient.']);
         if (edit && labelString(input.isCanceled)) {
           await unlock(res, user);
           return res.redirect(`${base}/InputReport/DetailsTop?repTopId=${id}`);
@@ -70,7 +71,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
         const locale = await currentMailLocale(db, req);
         let model = await documentTop(db, id, user, locale),
           error = '';
-        if (edit && !model.report.role_update) return res.status(403).send('Role authority is insufficient.');
+        if (edit && !model.report.role_update) return res.status(403).send(pageText['Role authority is insufficient.']);
         if (edit && req.method === 'GET' && !(await documentEditLock(db, id, user)))
           return res.redirect(`${base}/InputReport/DetailsTop?repTopId=${id}`);
         if (req.method === 'POST') {
@@ -136,14 +137,14 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
         const id = documentDetailId(req.method === 'POST' ? input['rep_sheets[0].rep_top_id'] : input.repTopId);
         const pageIndex = labelInteger(req.method === 'POST' ? input['rep_sheets.PageIndex'] : input.pageIndex, 0);
         if (edit && !res.locals.documentPermissions.update)
-          return res.status(403).send('Role authority is insufficient.');
+          return res.status(403).send(pageText['Role authority is insufficient.']);
         if (edit && labelString(input.isCanceled)) {
           await unlock(res, user);
           return res.redirect(`${base}/InputReport/Details?repTopId=${id}&pageIndex=${pageIndex}`);
         }
         let model = await documentSheet(db, id, pageIndex, user, edit),
           error = '';
-        if (edit && !model.report.role_update) return res.status(403).send('Role authority is insufficient.');
+        if (edit && !model.report.role_update) return res.status(403).send(pageText['Role authority is insufficient.']);
         if (edit && req.method === 'GET' && !(await documentEditLock(db, id, user)))
           return res.redirect(`${base}/InputReport/DetailsSheet?repTopId=${id}&pageIndex=${pageIndex}`);
         if (req.method === 'POST') {
@@ -280,8 +281,8 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
     try {
       const model = await documentTop(db, documentDetailId(req.query.repTopId), req.session?.userId ?? '');
       if (documentDetailId(req.query.defTopId) !== Number(model.report.def_top_id))
-        throw new LabelValidationError('access', 'Role authority is insufficient.');
-      return res.status(501).type('text/plain').send('Report PDF rendering has not been migrated.');
+        throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
+      return res.status(501).type('text/plain').send(pageText['Report PDF rendering has not been migrated.']);
     } catch (error) {
       return failure(res, error);
     }

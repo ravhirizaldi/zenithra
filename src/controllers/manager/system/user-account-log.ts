@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 
@@ -317,7 +318,7 @@ function show(
     active: 'System',
     section: 'UserAccountOperationLog',
     login: false,
-    title: 'Users - User Account Log',
+    title: pageText['Users - User Account Log'],
     userName: res.locals.userName,
     userAccountLogPage,
   });

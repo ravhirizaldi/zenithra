@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { hostname } from 'node:os';
@@ -43,7 +44,7 @@ export function registerTasks(
       active: 'System',
       section: 'TaskList',
       login: false,
-      title: 'Task manager',
+      title: pageText['Task manager'],
       userName: res.locals.userName,
       taskPage,
     });
@@ -93,7 +94,7 @@ export function registerTasks(
       } else {
         const ids = selected.split(',').map((value) => integer(value));
         if (ids.some((id) => id === null || id <= 0 || id > 2147483647))
-          return res.status(400).send('Invalid task selection.');
+          return res.status(400).send(pageText['Invalid task selection.']);
         await db.query('DELETE FROM mst_task WHERE task_id = ANY($1::int[])', [ids]);
       }
     }
@@ -150,7 +151,7 @@ export function registerTasks(
       if (!licenseStatus().freeDrawOnly) return next();
       return res.status(403).type('text/plain').send(roleError);
     } catch {
-      return res.status(503).type('text/plain').send('License information is unavailable.');
+      return res.status(503).type('text/plain').send(pageText['License information is unavailable.']);
     }
   });
 
@@ -158,7 +159,7 @@ export function registerTasks(
   app.post(`${root}/TaskList`, list);
   app.get(`${root}/EditTask`, async (req, res) => {
     const id = integer(req.query.id);
-    if (!validTaskId(id)) return res.status(400).send('Invalid task ID.');
+    if (!validTaskId(id)) return res.status(400).send(pageText['Invalid task ID.']);
     const userId = req.session?.userId ?? '';
     const canWrite = await hasSystemPermission(db, userId, 'data', id === -1 ? 'create' : 'edit');
     if (!canWrite) return showEdit(res.status(403), emptyTask(id), '', false, false);
@@ -171,13 +172,13 @@ export function registerTasks(
               [id],
             )
           ).rows[0];
-    if (!record) return res.status(404).send('Task not found.');
+    if (!record) return res.status(404).send(pageText['Task not found.']);
     const canDelete = id !== -1 && (await hasSystemPermission(db, userId, 'data', 'delete'));
     return showEdit(res, record, '', true, canDelete);
   });
   app.post(`${root}/EditTask`, async (req, res) => {
     const id = integer(req.body['Task.task_id']);
-    if (!validTaskId(id)) return res.status(400).send('Invalid task ID.');
+    if (!validTaskId(id)) return res.status(400).send(pageText['Invalid task ID.']);
     const isDelete = formString(req.body.isDelete).toLowerCase() === 'true';
     const action = isDelete ? 'delete' : id === -1 ? 'create' : 'edit';
     const userId = req.session?.userId ?? '';

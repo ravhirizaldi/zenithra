@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { documentDetail, documentDetailId } from './details.js';
@@ -197,7 +198,7 @@ export const documentLineColors = [
 
 export async function documentTop(db: Database, id: number, user: string, locale = 'en-US') {
   const report = await documentDetail(db, id, user);
-  if (!report) throw new LabelValidationError('access', 'Role authority is insufficient.');
+  if (!report) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
   const row = (
     await db.query(
       "SELECT t.*,to_char(t.sys_regist_time,'YYYY/MM/DD HH24:MI') AS registered,to_char(t.sys_update_time,'YYYY/MM/DD HH24:MI') AS updated,COALESCE(NULLIF(t.sys_regist_user_name,''),NULLIF(u.user_name,''),t.sys_regist_user,'') AS created_by FROM rep_top t LEFT JOIN mst_user u ON u.user_id=t.sys_regist_user WHERE t.rep_top_id=$1",
@@ -299,7 +300,7 @@ export async function documentTop(db: Database, id: number, user: string, locale
       ? label
       : name
           .replace(/^([a-z])/, (letter) => letter.toUpperCase())
-          .replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase()) + 'Templete',
+          .replace(/_([a-z])/g, (_match, letter: string) => letter.toUpperCase()) + pageText['Templete'],
     value,
     multiple: name.endsWith('_direct'),
     options: notificationOptions.get(name),
@@ -344,7 +345,7 @@ export async function documentEditLock(db: pg.Pool, id: number, user: string) {
     await client.query('BEGIN');
     await client.query('SELECT rep_top_id FROM rep_top WHERE rep_top_id=$1 FOR UPDATE', [id]);
     const report = await documentDetail(client, id, user, true);
-    if (!report) throw new LabelValidationError('access', 'Role authority is insufficient.');
+    if (!report) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
     if ((await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount) {
       await client.query('ROLLBACK');
       return false;
@@ -374,19 +375,21 @@ export async function documentSaveTop(
   if (labelChecked(input.IsComplete) || labelChecked(input.IsCompleteSuperManager))
     throw new LabelValidationError(
       'pending',
-      'Completion, numbering and automatic-output persistence have not been migrated. No changes were saved.',
+      pageText['Completion, numbering and automatic-output persistence have not been migrated. No changes were saved.'],
     );
   const client = await db.connect();
   try {
     await client.query('BEGIN');
     await client.query('SELECT rep_top_id FROM rep_top WHERE rep_top_id=$1 FOR UPDATE', [id]);
     const model = await documentTop(client, id, user, locale);
-    if (!model.report.role_update) throw new LabelValidationError('access', 'Role authority is insufficient.');
+    if (!model.report.role_update)
+      throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
     if ((await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount)
-      throw new LabelValidationError('', 'The report is locked by another user.');
+      throw new LabelValidationError('', pageText['The report is locked by another user.']);
     const xml = root(model.report.xml_data),
       top = must(xml, 'top');
-    if (documentDetailId(optionalField(top, 'repTopId')) !== id) throw new Error('Report XML identity differs.');
+    if (documentDetailId(optionalField(top, 'repTopId')) !== id)
+      throw new Error(pageText['Report XML identity differs.']);
     const updates = new Map<string, string>();
     for (const field of model.fields) {
       const key = 'rep_top.' + field.name;
@@ -394,14 +397,14 @@ export async function documentSaveTop(
       let value = labelString(input[key]);
       if (field.name === 'UseVoiceInputEndTime') {
         if (!['true', 'false', '0', '1'].includes(value.toLowerCase()))
-          throw new LabelValidationError(key, 'Invalid setting value.');
+          throw new LabelValidationError(key, pageText['Invalid setting value.']);
         value = ['true', '1'].includes(value.toLowerCase()) ? '1' : '0';
       }
       if (!field.editable && value !== field.value)
-        throw new LabelValidationError('access', 'A form-controlled setting cannot be changed.');
+        throw new LabelValidationError('access', pageText['A form-controlled setting cannot be changed.']);
       if (field.options && !field.options.some((_, index) => String(index) === value))
-        throw new LabelValidationError(key, 'Invalid setting value.');
-      if (value.length > 4000) throw new LabelValidationError(key, 'The value is too long.');
+        throw new LabelValidationError(key, pageText['Invalid setting value.']);
+      if (value.length > 4000) throw new LabelValidationError(key, pageText['The value is too long.']);
       field.value = value;
       if (field.column) updates.set(field.column, value);
       if (field.xml && !(field.name === 'no_need_to_fill_string' && !value)) documentPatchXml(top, field.xml, value);
@@ -419,7 +422,7 @@ export async function documentSaveTop(
         !notification.options ||
         values.some((value) => value && !notification.options!.some((option) => option.value === value))
       )
-        throw new LabelValidationError(key, 'Select an available notification template.');
+        throw new LabelValidationError(key, pageText['Select an available notification template.']);
       if (notification.name.endsWith('_mail')) {
         updates.set(notification.name, selected);
         // EditTopXmlData updates completeMail only; edit_mail is relational in Manager.
@@ -444,7 +447,7 @@ export async function documentSaveTop(
         supported.add(key);
         if (!Object.hasOwn(input, key)) continue;
         if (!['true', 'false'].includes(labelString(input[key]).toLowerCase()))
-          throw new LabelValidationError(key, 'Invalid output setting.');
+          throw new LabelValidationError(key, pageText['Invalid output setting.']);
         field.checked = labelChecked(input[key]);
       }
       if (posted || Object.hasOwn(input, 'rep_top.' + setting.name)) {
@@ -466,25 +469,32 @@ export async function documentSaveTop(
         (key.startsWith('rep_top.') && !supported.has(key) && key !== 'rep_top.rep_top_id') ||
         (key.startsWith('rep_top_option.') && key !== 'rep_top_option.PdfFontSizeDeductionAmount')
       )
-        throw new LabelValidationError('pending', 'This report setting has not been migrated. No changes were saved.');
+        throw new LabelValidationError(
+          'pending',
+          pageText['This report setting has not been migrated. No changes were saved.'],
+        );
     const get = (name: string) => model.fields.find((field) => field.name === name)!.value;
-    if (!get('rep_top_name').trim()) throw new LabelValidationError('rep_top.rep_top_name', 'Enter a report name.');
+    if (!get('rep_top_name').trim())
+      throw new LabelValidationError('rep_top.rep_top_name', pageText['Enter a report name.']);
     if (
       get('UseVoiceInputEndTime') === '1' &&
       (!/^\d+$/.test(get('VoiceInputEndTime')) ||
         Number(get('VoiceInputEndTime')) < 10 ||
         Number(get('VoiceInputEndTime')) > 1000)
     )
-      throw new LabelValidationError('rep_top.VoiceInputEndTime', 'Enter an integer from 10 to 1000.');
+      throw new LabelValidationError('rep_top.VoiceInputEndTime', pageText['Enter an integer from 10 to 1000.']);
     if (Object.hasOwn(input, 'rep_top.UseVoiceInputEndTime') && get('UseVoiceInputEndTime') !== '1')
       documentPatchXml(top, 'voiceInputEndTime', '');
     if (!/^[1-5]$/.test(get('InitInputJudgeThickness')))
-      throw new LabelValidationError('rep_top.InitInputJudgeThickness', 'Enter a thickness from 1 to 5.');
+      throw new LabelValidationError('rep_top.InitInputJudgeThickness', pageText['Enter a thickness from 1 to 5.']);
     if (
       get('PdfAutoOutputSheetSelect') === '1' &&
       (!get('PdfAutoOutputSheetSelectNo').trim() || !validPrintPages(get('PdfAutoOutputSheetSelectNo')))
     )
-      throw new LabelValidationError('rep_top.PdfAutoOutputSheetSelectNo', 'Enter valid output page numbers.');
+      throw new LabelValidationError(
+        'rep_top.PdfAutoOutputSheetSelectNo',
+        pageText['Enter valid output page numbers.'],
+      );
     if (Object.hasOwn(input, 'rep_top.required_check_mode') && get('required_check_mode') !== '1')
       updates.set('required_save_mode', '1');
     if (Object.hasOwn(input, 'rep_top.InitInputJudgeColor') || Object.hasOwn(input, 'rep_top.InitInputJudgeThickness'))
@@ -505,7 +515,7 @@ export async function documentSaveTop(
     if (font && (!/^(?:\d+(?:\.\d*)?|\.\d+)$/.test(font) || Number(font) < 0.1 || Number(font) > 10))
       throw new LabelValidationError(
         'rep_top_option.PdfFontSizeDeductionAmount',
-        'Enter a font deduction from 0.1 to 10.',
+        pageText['Enter a font deduction from 0.1 to 10.'],
       );
     const now = new Date();
     documentPatchXml(top, 'updateUser', user);

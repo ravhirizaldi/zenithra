@@ -4,6 +4,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { test } from 'node:test';
 import ejs from 'ejs';
+import { managerResourceLocals } from '../../../../src/config/manager/resources.js';
 import {
   directorySize,
   licenseNeedsActivation,
@@ -70,6 +71,7 @@ test('license upload shows legacy quotas, subscription wording and confirmation 
   };
   const used = { user: 1, freeDraw: 0 };
   const html = await ejs.renderFile('src/views/manager/system/license.ejs', {
+    ...managerResourceLocals,
     base: '/ConMasManager',
     csrfToken: 'test-token',
     systemLicensePage: {
@@ -91,6 +93,10 @@ test('license upload shows legacy quotas, subscription wording and confirmation 
   assert.doesNotMatch(html, /1 \/ 40|0 \/ 250|0 \/ 100|Expire:/);
   assert.match(html, /value="Confirm"/);
   assert.match(html, /fConMasLockView\(\);">\s+<a /);
-  const details = await ejs.renderFile('src/views/manager/system/license-summary.ejs', { license: current, used });
+  const details = await ejs.renderFile('src/views/manager/system/license-summary.ejs', {
+    ...managerResourceLocals,
+    license: current,
+    used,
+  });
   assert.match(details, />1 \/ 40<\/td>/);
 });

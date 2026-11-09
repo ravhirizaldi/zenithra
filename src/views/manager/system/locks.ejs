@@ -1,4 +1,4 @@
-<% const p = systemLocksPage; const route = `${base}/System`; %>
+<% const ui = managerResources["system"]; %><% const p = systemLocksPage; const route = `${base}/System`; %>
 <script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js"></script>
 <script src="<%= base %>/Scripts/jquery.ui.datepicker-en.js"></script>
 <script src="<%= base %>/Scripts/jquery.ui.datepicker-en-GB.js"></script>
@@ -18,7 +18,7 @@
   });
 
   function fConMasLockManagementFilter(mode) {
-    if (mode == "2" && !confirm('Batch unlock documents matching the criteria specified. Is it OK?')) return false;
+    if (mode == "2" && !confirm(<%- managerScriptText(ui["Batch unlock documents matching the criteria specified. Is it OK?"], "'") %>)) return false;
     $("#LockManagementAction").val(mode);
     $("form").trigger('submit');
     return false;
@@ -62,44 +62,44 @@
   <div class="PartialViewMessage" role="alert"><% if (p.error || p.licensePrerequisite) { %><ul><li><%= p.error || p.licensePrerequisite %></li></ul><% } %></div>
 <% if (p.mode === 'blocked') { %>
   <div id="DetailTop">
-    <span id="infoTitle">Batch unlock</span>
+    <span id="infoTitle"><%= ui["Batch unlock"] %></span>
     <span id="functionBar"></span>
   </div>
 <% } else if (!p.canRead) { %>
-  <h2>Role authority is insufficient.</h2>
+  <h2><%= ui["Role authority is insufficient."] %></h2>
 <% } else { %>
   <div id="DetailTop">
-    <span id="infoTitle">Batch unlock</span>
+    <span id="infoTitle"><%= ui["Batch unlock"] %></span>
     <span id="functionBar"></span>
   </div>
   <div id="DetailSection">
     <div class="info">
       <form method="post" action="<%= route %>/LockManagement">
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
-        <div class="toggle" onclick="fConMasToggle('SearchReportLockBox');"><h2>▼SearchConditions</h2></div>
+        <div class="toggle" onclick="fConMasToggle('SearchReportLockBox');"><h2><%= ui["▼SearchConditions"] %></h2></div>
         <div id="SearchReportLockBox">
           <table cellpadding="0" cellspacing="0" class="table_information horizontal">
             <tr>
-              <th scope="row">SearchTarget</th>
+              <th scope="row"><%= ui["SearchTarget"] %></th>
               <td>
-                <label><input type="radio" name="SerachLockReport.DefRepType" value="def" tabindex="3" <%= p.filters.defRepType === 'def' ? 'checked' : '' %>>Forms</label>
-                <label><input type="radio" name="SerachLockReport.DefRepType" value="rep" tabindex="3" <%= p.filters.defRepType === 'rep' ? 'checked' : '' %>>Documents</label>
+                <label><input type="radio" name="SerachLockReport.DefRepType" value="def" tabindex="3" <%= p.filters.defRepType === 'def' ? 'checked' : '' %>><%= ui["Forms"] %></label>
+                <label><input type="radio" name="SerachLockReport.DefRepType" value="rep" tabindex="3" <%= p.filters.defRepType === 'rep' ? 'checked' : '' %>><%= ui["Documents"] %></label>
               </td>
             </tr>
             <tr>
-              <th scope="row">Date and time of locked</th>
+              <th scope="row"><%= ui["Date and time of locked"] %></th>
               <td><div class="datetime"><input id="SerachLockReport_LockDateFrom" name="SerachLockReport.LockDateFrom" value="<%= p.filters.lockDateFrom %>"> ～ <input id="SerachLockReport_LockDateTo" name="SerachLockReport.LockDateTo" value="<%= p.filters.lockDateTo %>"></div></td>
             </tr>
             <tr>
-              <th scope="row"><label for="SerachLockReport_LockUser">Lock user</label></th>
+              <th scope="row"><label for="SerachLockReport_LockUser"><%= ui["Lock user"] %></label></th>
               <td><input id="SerachLockReport_LockUser" name="SerachLockReport.LockUser" value="<%= p.filters.lockUser %>"></td>
             </tr>
             <tr>
-              <th scope="row"><label for="SerachLockReport_ReportName">Form name</label></th>
+              <th scope="row"><label for="SerachLockReport_ReportName"><%= ui["Form name"] %></label></th>
               <td><input id="SerachLockReport_ReportName" name="SerachLockReport.ReportName" value="<%= p.filters.reportName %>"></td>
             </tr>
             <tr>
-              <th scope="row"><label for="SerachLockReport_ReportPublicStatus">Disclosure status</label></th>
+              <th scope="row"><label for="SerachLockReport_ReportPublicStatus"><%= ui["Disclosure status"] %></label></th>
               <td>
                 <select id="SerachLockReport_ReportPublicStatus" name="SerachLockReport.ReportPublicStatus">
                   <% for (const option of p.publicStatusOptions) { %><option value="<%= option.value %>" <%= p.filters.reportPublicStatus === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
@@ -110,7 +110,7 @@
           <div style="text-align:right;"><input type="submit" value="List of locked document" class="image-ok_btn" onclick="return fConMasLockManagementFilter('0');"></div>
         </div>
         <% if (p.rows.length > 0) { %>
-          <div class="toggle" onclick="fConMasToggle('resultReportLockBox');"><h2>▼Lock List</h2></div>
+          <div class="toggle" onclick="fConMasToggle('resultReportLockBox');"><h2><%= ui["▼Lock List"] %></h2></div>
           <div id="resultReportLockBox">
             <% if (p.canEdit) { %>
               <div style="text-align:left;">
@@ -121,19 +121,19 @@
             <% } %>
             <% const renderPage = () => { %>
               <div class="PageSection">
-                Displayed number&nbsp;<select id="PageInfo_PageSize" name="PageInfo.PageSize" onchange="return fConMasLockManagementPageSizeFilter(this);">
+                <%= ui["Displayed number "] %><select id="PageInfo_PageSize" name="PageInfo.PageSize" onchange="return fConMasLockManagementPageSizeFilter(this);">
                   <% for (const size of p.pageSizes) { %><option value="<%= size %>" <%= p.pageSize === size ? 'selected' : '' %>><%= size %></option><% } %>
                 </select>
                 &nbsp;
                 <% if (p.pageIndex > 0) { %>
-                  <a href="#" onclick="return fConMasLockManagementPage(0);" style="padding-right:5px;">First</a>
-                  <a href="#" onclick="return fConMasLockManagementPage(<%= p.pageIndex - 1 %>);" class="img_page_prev_e" aria-label="Previous page"> </a>
-                <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+                  <a href="#" onclick="return fConMasLockManagementPage(0);" style="padding-right:5px;"><%= ui["First"] %></a>
+                  <a href="#" onclick="return fConMasLockManagementPage(<%= p.pageIndex - 1 %>);" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a>
+                <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>"><% } %>
                 &nbsp;<%= p.pageIndex + 1 %>&nbsp;/&nbsp;<%= p.totalPages %> (<%= p.total %>)&nbsp;
                 <% if (p.pageIndex + 1 < p.totalPages) { %>
-                  <a href="#" onclick="return fConMasLockManagementPage(<%= p.pageIndex + 1 %>);" class="img_page_next_e" aria-label="Next page"> </a>
-                  <a href="#" onclick="return fConMasLockManagementPage(<%= p.totalPages - 1 %>);" style="padding-left:5px;">Last</a>
-                <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+                  <a href="#" onclick="return fConMasLockManagementPage(<%= p.pageIndex + 1 %>);" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a>
+                  <a href="#" onclick="return fConMasLockManagementPage(<%= p.totalPages - 1 %>);" style="padding-left:5px;"><%= ui["Last"] %></a>
+                <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>"><% } %>
               </div>
             <% }; %>
             <% renderPage(); %>
@@ -144,18 +144,18 @@
             <table class="GridCommon" border="0" cellspacing="1" id="fConMasLockListBox">
               <tr>
                 <th scope="col" class="checkCol" style="width:20px;"><input type="checkbox" id="chkTopHead" onclick="fConMasCheckAll(this, 'fConMasLockListBox');"></th>
-                <th scope="col" class="<%= p.sortColumn === 'lok.sys_regist_time' ? 'sorting' : '' %>" style="width:60px;"><span>Date and time of locked</span><a href="#" class="sort<%= p.sortColumn === 'lok.sys_regist_time' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('lok.sys_regist_time');">sort</a></th>
-                <th scope="col" class="<%= p.sortColumn === 'top.{0}_top_id' ? 'sorting' : '' %>" style="width:30px;"><span>ID</span><a href="#" class="sort<%= p.sortColumn === 'top.{0}_top_id' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('top.{0}_top_id');">sort</a></th>
-                <th scope="col" class="<%= p.sortColumn === 'top.{0}_top_name' ? 'sorting' : '' %>"><span>Form name</span><a href="#" class="sort<%= p.sortColumn === 'top.{0}_top_name' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('top.{0}_top_name');">sort</a></th>
-                <th scope="col" style="width:20px;"><span>REV</span></th>
-                <th scope="col" style="width:60px;"><span>Disclosure status</span></th>
-                <th scope="col" class="<%= p.sortColumn === 'lok.user_id' ? 'sorting' : '' %>" style="width:80px;"><span>Lock user ID</span><a href="#" class="sort<%= p.sortColumn === 'lok.user_id' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('lok.user_id');">sort</a></th>
-                <th scope="col" class="<%= p.sortColumn === 'usr.user_name' ? 'sorting' : '' %>" style="width:80px;"><span>Lock user name</span><a href="#" class="sort<%= p.sortColumn === 'usr.user_name' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('usr.user_name');">sort</a></th>
-                <th scope="col" class="<%= p.sortColumn === 'trm.term_name' ? 'sorting' : '' %>" style="width:60px;"><span>Lock device name</span><a href="#" class="sort<%= p.sortColumn === 'trm.term_name' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('trm.term_name');">sort</a></th>
+                <th scope="col" class="<%= p.sortColumn === 'lok.sys_regist_time' ? 'sorting' : '' %>" style="width:60px;"><span><%= ui["Date and time of locked"] %></span><a href="#" class="sort<%= p.sortColumn === 'lok.sys_regist_time' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('lok.sys_regist_time');"><%= ui["sort"] %></a></th>
+                <th scope="col" class="<%= p.sortColumn === 'top.{0}_top_id' ? 'sorting' : '' %>" style="width:30px;"><span><%= ui["ID"] %></span><a href="#" class="sort<%= p.sortColumn === 'top.{0}_top_id' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('top.{0}_top_id');"><%= ui["sort"] %></a></th>
+                <th scope="col" class="<%= p.sortColumn === 'top.{0}_top_name' ? 'sorting' : '' %>"><span><%= ui["Form name"] %></span><a href="#" class="sort<%= p.sortColumn === 'top.{0}_top_name' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('top.{0}_top_name');"><%= ui["sort"] %></a></th>
+                <th scope="col" style="width:20px;"><span><%= ui["REV"] %></span></th>
+                <th scope="col" style="width:60px;"><span><%= ui["Disclosure status"] %></span></th>
+                <th scope="col" class="<%= p.sortColumn === 'lok.user_id' ? 'sorting' : '' %>" style="width:80px;"><span><%= ui["Lock user ID"] %></span><a href="#" class="sort<%= p.sortColumn === 'lok.user_id' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('lok.user_id');"><%= ui["sort"] %></a></th>
+                <th scope="col" class="<%= p.sortColumn === 'usr.user_name' ? 'sorting' : '' %>" style="width:80px;"><span><%= ui["Lock user name"] %></span><a href="#" class="sort<%= p.sortColumn === 'usr.user_name' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('usr.user_name');"><%= ui["sort"] %></a></th>
+                <th scope="col" class="<%= p.sortColumn === 'trm.term_name' ? 'sorting' : '' %>" style="width:60px;"><span><%= ui["Lock device name"] %></span><a href="#" class="sort<%= p.sortColumn === 'trm.term_name' ? ' ' + p.sortDirection.toLowerCase() : '' %>" onclick="return fConMasSort('trm.term_name');"><%= ui["sort"] %></a></th>
               </tr>
               <% for (const [index, row] of p.rows.entries()) { const rowClass = row.is_report_current ? (index % 2 === 0 ? 'odd' : 'even') : 'history'; %>
                 <tr class="<%= rowClass %>">
-                  <td class="CenterCol"><input type="checkbox" name="ListLockReport[<%= index %>].IsSelect" value="true" aria-label="Select <%= row.report_name %>"><input type="hidden" name="ListLockReport[<%= index %>].ReportId" value="<%= row.report_id %>"></td>
+                  <td class="CenterCol"><input type="checkbox" name="ListLockReport[<%= index %>].IsSelect" value="true" aria-label="<%= ui["Select"] %> <%= row.report_name %>"><input type="hidden" name="ListLockReport[<%= index %>].ReportId" value="<%= row.report_id %>"></td>
                   <td class="CenterCol"><%= row.lock_date %></td>
                   <td class="LeftCol"><%= row.report_id %></td>
                   <td class="LeftCol"><%= row.report_name %></td>

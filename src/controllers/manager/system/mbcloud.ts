@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
@@ -103,7 +104,7 @@ function cloudNode(xml: string): Record<string, unknown> {
   const document = parser.parse(xml) as Record<string, unknown>;
   const node = document.conmas;
   if (!node || typeof node !== 'object' || Array.isArray(node))
-    throw new Error('Invalid MotionBoard Cloud settings XML.');
+    throw new Error(pageText['Invalid MotionBoard Cloud settings XML.']);
   return node as Record<string, unknown>;
 }
 
@@ -228,8 +229,9 @@ export function buildMbCloudWhere(filters: Filters): { sql: string; parameters: 
   const from = dateTimeFilter(filters.SendTimeFrom, filters.SendTimeFromHour);
   const to = dateTimeFilter(filters.SendTimeTo, filters.SendTimeToHour);
   if (filters.SendTimeFrom.trim() && !from)
-    return { sql: '', parameters: [], error: 'Enter a valid send date and time.' };
-  if (filters.SendTimeTo.trim() && !to) return { sql: '', parameters: [], error: 'Enter a valid send date and time.' };
+    return { sql: '', parameters: [], error: pageText['Enter a valid send date and time.'] };
+  if (filters.SendTimeTo.trim() && !to)
+    return { sql: '', parameters: [], error: pageText['Enter a valid send date and time.'] };
   if (from) add((index) => `log.sys_update_time >= $${index}::timestamp`, from);
   if (to) add((index) => `log.sys_update_time <= $${index}::timestamp`, to);
   const statuses = [
@@ -255,7 +257,7 @@ export function buildMbCloudWhere(filters: Filters): { sql: string; parameters: 
       Number(repTopId) < -2147483648 ||
       Number(repTopId) > 2147483647
     ) {
-      return { sql: '', parameters: [], error: 'Document ID must be an integer.' };
+      return { sql: '', parameters: [], error: pageText['Document ID must be an integer.'] };
     }
     add((index) => `log.rep_top_id = $${index}`, Number(repTopId));
   }
@@ -702,12 +704,12 @@ export function registerMbCloud(
           return showRoleError(res, render, 'MbCloudSendLog', 'MotionBoard Cloud linkage log');
         const logId = value(source, 'ResendLogId');
         if (logId.length > 128 || Array.from(logId).some((character) => character.charCodeAt(0) < 32))
-          return res.status(400).send('Invalid MotionBoard Cloud log ID.');
+          return res.status(400).send(pageText['Invalid MotionBoard Cloud log ID.']);
         const existing = await db.query<{ log_id: string }>(
           'SELECT log_id FROM conmas_mbcloud_send_log WHERE log_id=$1',
           [logId],
         );
-        if (!existing.rowCount) return res.status(404).send('MotionBoard Cloud send log not found.');
+        if (!existing.rowCount) return res.status(404).send(pageText['MotionBoard Cloud send log not found.']);
         return await renderLogList(
           res.status(503),
           db,

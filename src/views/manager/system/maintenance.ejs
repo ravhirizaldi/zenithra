@@ -1,4 +1,4 @@
-<% const maintenance = systemMaintenancePage; const route = `${base}/System`; %>
+<% const ui = managerResources["system"]; %><% const maintenance = systemMaintenancePage; const route = `${base}/System`; %>
 <% if (maintenance.mode === 'customMasterMaintenance') { %>
   <style type="text/css">
     .information {
@@ -26,7 +26,7 @@
     });
 
     function fConMasDeletePost() {
-      if (confirm('Delete all records of this master. Are you sure to delete them?')) {
+      if (confirm(<%- managerScriptText(ui["Delete all records of this master. Are you sure to delete them?"], "'") %>)) {
         fConMasLockView();
         $('#conmasPageForm').trigger('submit');
       }
@@ -44,28 +44,28 @@
   <div id="MessageWrap">
     <% if (maintenance.error) { %><ul class="PartialViewMessage"><li role="alert"><%= maintenance.error %></li></ul><% } %>
   </div>
-  <div id="DetailTop"><span id="infoTitle">Custom master maintenance</span></div>
+  <div id="DetailTop"><span id="infoTitle"><%= ui["Custom master maintenance"] %></span></div>
   <div id="DetailSection">
     <div class="info">
-      <div>Physical deletion of deleted records</div>
-      <div class="information">If you set to "Yes" to enable saving to tablet, synchronize the custom masters of all the devices you are using before deleting.</div>
+      <div><%= ui["Physical deletion of deleted records"] %></div>
+      <div class="information"><%= ui["If you set to \"Yes\" to enable saving to tablet, synchronize the custom masters of all the devices you are using before deleting."] %></div>
       <form method="post" action="<%= route %>/CustomMasterMaintenance" enctype="multipart/form-data" id="conmasPageForm">
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
         <div>
-          <div><label><input type="radio" name="DeleteType" value="all" onclick="fConMasSelectDeleteType();" <%= maintenance.customForm.DeleteType === 'all' ? 'checked="checked"' : '' %>>All</label></div>
-          <div><label><input type="radio" name="DeleteType" value="days" onclick="fConMasSelectDeleteType();" <%= maintenance.customForm.DeleteType === 'days' ? 'checked="checked"' : '' %>>How many days to be deleted&nbsp;<input type="text" id="DeleteDays" name="DeleteDays" value="<%= maintenance.customForm.DeleteDays %>" style="width:50px;"></label></div>
+          <div><label><input type="radio" name="DeleteType" value="all" onclick="fConMasSelectDeleteType();" <%= maintenance.customForm.DeleteType === 'all' ? 'checked="checked"' : '' %>><%= ui["All"] %></label></div>
+          <div><label><input type="radio" name="DeleteType" value="days" onclick="fConMasSelectDeleteType();" <%= maintenance.customForm.DeleteType === 'days' ? 'checked="checked"' : '' %>><%= ui["How many days to be deleted "] %><input type="text" id="DeleteDays" name="DeleteDays" value="<%= maintenance.customForm.DeleteDays %>" style="width:50px;"></label></div>
           <div><input type="button" value="Delete" class="button_custom" style="width:100px; margin-top: 20px;" onclick="fConMasDeletePost();"></div>
         </div>
         <div id="ResultSection" style="margin-top: 20px;">
           <% if (maintenance.customForm.DeleteResult > -1) { %>
-            <div>Result</div>
-            <div>&nbsp;&nbsp;Deletion number<%= maintenance.customForm.DeleteResult %>Number</div>
+            <div><%= ui["Result"] %></div>
+            <div><%= ui["  Deletion number"] %><%= maintenance.customForm.DeleteResult %><%= ui["Number"] %></div>
           <% } %>
         </div>
       </form>
     </div>
   </div>
-  <div id="domMessage" style="display:none;"><h1>In process</h1></div>
+  <div id="domMessage" style="display:none;"><h1><%= ui["In process"] %></h1></div>
 <% } else if (maintenance.mode === 'voiceCommonGrammar') { %>
   <script src="<%= base %>/Scripts/jquery.blockUI.js"></script>
   <script type="text/javascript">
@@ -117,29 +117,29 @@
     <% if (maintenance.error) { %><ul class="PartialViewMessage"><li role="alert"><%= maintenance.error %></li></ul><% } %>
   </div>
   <div id="DetailTop" style="height:50px;">
-    <span style="color:Red; font-weight:bold;">Voice input function is applicable in Japanese only.</span>
-    <div id="infoTitle">Voice recognition common dictionary - Common operation</div>
+    <span style="color:Red; font-weight:bold;"><%= ui["Voice input function is applicable in Japanese only."] %></span>
+    <div id="infoTitle"><%= ui["Voice recognition common dictionary - Common operation"] %></div>
   </div>
   <div id="DetailSection">
     <div class="info">
-      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2>▼Setting</h2></div>
+      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2><%= ui["▼Setting"] %></h2></div>
       <form method="post" action="<%= route %>/VoiceCommonGrammar" enctype="multipart/form-data" id="GrammarForm">
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
         <div>
           <p>
             <input type="button" value="Confirm" class="button_custom" style="width:100px;" onclick="fConMasSavePost();">
-            <a href="<%= route %>/VoiceCommonGrammar" class="conmas_link_button_black" style="padding:9px;">Cancel</a>
+            <a href="<%= route %>/VoiceCommonGrammar" class="conmas_link_button_black" style="padding:9px;"><%= ui["Cancel"] %></a>
           </p>
         </div>
         <table class="GridCommon" border="0" cellspacing="1" id="conmasGrammarGrid">
           <tr>
-            <th>Common operation</th>
+            <th><%= ui["Common operation"] %></th>
             <th style="width:30%;">
-              Voice <a href="javascript:void(0)" onclick="fConMasToggle('conmasVoiceMemo');">?</a>
-              <div id="conmasVoiceMemo" style="display:none;">Available to set multiple contents with comma separated</div>
+              <%= ui["Voice"] %> <a href="javascript:void(0)" onclick="fConMasToggle('conmasVoiceMemo');">?</a>
+              <div id="conmasVoiceMemo" style="display:none;"><%= ui["Available to set multiple contents with comma separated"] %></div>
             </th>
-            <th style="width:30%;">Repeat back</th>
-            <th>Option</th>
+            <th style="width:30%;"><%= ui["Repeat back"] %></th>
+            <th><%= ui["Option"] %></th>
           </tr>
           <% for (let index = 0; index < maintenance.grammars.length; index++) { const grammar = maintenance.grammars[index]; const prefix = `VoiceCommonList.CommonGrammarList[${index}]`; %>
             <tr>
@@ -156,7 +156,7 @@
                   <li style="width:85%;"><input type="text" class="EditValue1" id="VoiceCommonList_CommonGrammarList_<%= index %>__VoiceValue" name="<%= prefix %>.VoiceValue" value="<%= grammar.VoiceValue ?? '' %>" style="width:100%; display:inline-block;"></li>
                   <li><input type="button" class="conmas_link_button_black" value="既定" onclick="return fConMasRestoreGrammar('<%= index %>', '<%= grammar.CommonKey ?? '' %>');"></li>
                 </ul>
-                <% if (grammar.CommonKey === 'ok') { %><div>*Reflect to all confirm operation</div><% } else if (grammar.CommonKey === 'cancel') { %><div>*Reflect to all cancel operation</div><% } %>
+                <% if (grammar.CommonKey === 'ok') { %><div><%= ui["*Reflect to all confirm operation"] %></div><% } else if (grammar.CommonKey === 'cancel') { %><div><%= ui["*Reflect to all cancel operation"] %></div><% } %>
               </td>
               <td>
                 <ul class="nav">
@@ -166,7 +166,7 @@
               </td>
               <td>
                 <% if (grammar.CommonKey === 'retry') { %>
-                  <label><input type="checkbox" name="<%= prefix %>.IsAnsverBackCluster" value="true" <%= grammar.IsAnsverBackCluster ? 'checked="checked"' : '' %>><input type="hidden" name="<%= prefix %>.IsAnsverBackCluster" value="false">&nbsp; Answer back of calling cluster</label>
+                  <label><input type="checkbox" name="<%= prefix %>.IsAnsverBackCluster" value="true" <%= grammar.IsAnsverBackCluster ? 'checked="checked"' : '' %>><input type="hidden" name="<%= prefix %>.IsAnsverBackCluster" value="false"><%= ui["  Answer back of calling cluster"] %></label>
                 <% } %>
               </td>
             </tr>
@@ -175,11 +175,11 @@
         <div>
           <p>
             <input type="button" value="Confirm" class="button_custom" style="width:100px;" onclick="fConMasSavePost();">
-            <a href="<%= route %>/VoiceCommonGrammar" class="conmas_link_button_black" style="padding:9px;">Cancel</a>
+            <a href="<%= route %>/VoiceCommonGrammar" class="conmas_link_button_black" style="padding:9px;"><%= ui["Cancel"] %></a>
           </p>
         </div>
       </form>
     </div>
   </div>
-  <div id="domMessage" style="display:none;"><h1>In process</h1></div>
+  <div id="domMessage" style="display:none;"><h1><%= ui["In process"] %></h1></div>
 <% } %>

@@ -1,4 +1,4 @@
-<script type="text/javascript"><%- js %></script>
+<% const ui = managerResources["documents"]; %><script type="text/javascript"><%- js %></script>
 <div class="PartialViewMessage"></div>
 <div id="DetailTop"><span id="infoTitle"><%= r.ClusterInputHistoryInfo %></span><span id="functionBar"></span></div>
 <div id="DetailSection"><div class="info">
@@ -18,7 +18,7 @@
       </table>
     </div>
     <div class="toggle" onclick="fConMasToggle('conmasCluster');"><h2>▼<%= r.InputHistory %></h2></div>
-    <div><a class="img_output_csv2" href="<%= base %>/InputReport/GetClusterHistoryTopCsv?<%= new URLSearchParams({repTopId:String(report.rep_top_id),sortColumn,sortDirection}) %>" aria-label="CSV">CSV</a></div>
+    <div><a class="img_output_csv2" href="<%= base %>/InputReport/GetClusterHistoryTopCsv?<%= new URLSearchParams({repTopId:String(report.rep_top_id),sortColumn,sortDirection}) %>" aria-label="<%= ui["CSV"] %>"><%= ui["CSV"] %></a></div>
     <form id="conmasPageForm" method="post" action="<%= base %>/InputReport/DetailsClusterHistoryTop" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure">
       <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
       <input type="hidden" name="rep_top.rep_top_id" value="<%= report.rep_top_id %>">
@@ -28,7 +28,7 @@
       <input type="hidden" name="ActionCommonType" id="ActionCommonType" value="">
       <%- include('settings-paging',{kind:'history',bottom:false,settings:{pageSizes}}) %>
       <div id="conmasCluster"><table cellpadding="0" cellspacing="0" class="GridCommon" width="100%">
-        <tr><% for (const [name,label] of headers) { %><th scope="col" class="<%= name === sortColumn ? 'sorting' : '' %>"<% if (name !== 'input_value') { %> style="width:<%= name === 'change_reason' ? '80' : '45' %>px;"<% } %>><span><%= r[label] %></span><a href="#" class="sort<%= name === sortColumn ? ' ' + sortDirection.toLowerCase() : '' %>" onclick="return fConMasPageSort('<%= name %>');" aria-label="<%= r[label] %> (sort)">sort</a></th><% } %></tr>
+        <tr><% for (const [name,label] of headers) { %><th scope="col" class="<%= name === sortColumn ? 'sorting' : '' %>"<% if (name !== 'input_value') { %> style="width:<%= name === 'change_reason' ? '80' : '45' %>px;"<% } %>><span><%= r[label] %></span><a href="#" class="sort<%= name === sortColumn ? ' ' + sortDirection.toLowerCase() : '' %>" onclick="return fConMasPageSort('<%= name %>');" aria-label="<%= r[label] %> <%= ui["(sort)"] %>"><%= ui["sort"] %></a></th><% } %></tr>
         <% rows.forEach((row,rowIndex) => { %><tr class="<%= rowIndex % 2 ? 'odd' : 'even' %>">
           <td><%= row.updated %></td><td><%= row.sys_update_user %>:<%= row.updated_by %></td><td><%= row.rep_sheet_no %></td><td><%= row.rep_sheet_name %></td><td><%= row.cluster_id %></td><td><%= row.cluster_name %></td>
           <td><%- include('cluster-value',{row}) %></td><td><%= row.edit_time %></td><td><%= row.edit_user ? row.edit_user + ':' + (row.edit_user_name || '') : '' %></td>

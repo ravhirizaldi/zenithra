@@ -1,19 +1,19 @@
-<form method="get" action="<%= base %>/System/UserList" id="user-filter">
-  <div id="infoTitle" style="padding-top:10px">Users&nbsp;&nbsp;(<%= userCount %><%= userFilters ? '/' + userFilters.licenseCount : '' %>)</div>
+<% const ui = managerResources["system"]; %><form method="get" action="<%= base %>/System/UserList" id="user-filter">
+  <div id="infoTitle" style="padding-top:10px"><%= ui["Users  ("] %><%= userCount %><%= userFilters ? '/' + userFilters.licenseCount : '' %>)</div>
   <% if (userFilters) { %>
     <div class="system-user-search">
-      <label for="searchId">ID</label><input id="searchId" name="searchId" value="<%= searchId %>">
-      <label for="searchName">Name</label><input id="searchName" name="searchName" value="<%= searchName %>">
-      <select name="searchGroupId" aria-label="Group" onchange="this.form.submit()">
-        <option value="-1">Member</option>
+      <label for="searchId"><%= ui["ID"] %></label><input id="searchId" name="searchId" value="<%= searchId %>">
+      <label for="searchName"><%= ui["Name"] %></label><input id="searchName" name="searchName" value="<%= searchName %>">
+      <select name="searchGroupId" aria-label="<%= ui["Group"] %>" onchange="this.form.submit()">
+        <option value="-1"><%= ui["Member"] %></option>
         <% for (const group of userFilters.groups) { %>
           <option value="<%= group.group_id %>" <%= String(group.group_id) === userFilters.searchGroupId ? 'selected' : '' %>><%= group.group_name_path %></option>
         <% } %>
       </select>
       <input class="image-search_user" type="submit" value="Search">
-      <% if (userCount < userFilters.licenseCount) { %><a class="img_add" href="<%= base %>/System/CreateUser" title="Add user" aria-label="Add user"> </a><% } %>
+      <% if (userCount < userFilters.licenseCount) { %><a class="img_add" href="<%= base %>/System/CreateUser" title="<%= ui["Add user"] %>" aria-label="<%= ui["Add user"] %>"> </a><% } %>
     </div>
-    <div><a href="<%= base %>/System/EditAdmin">Change Password of Administrator.</a></div>
+    <div><a href="<%= base %>/System/EditAdmin"><%= ui["Change Password of Administrator."] %></a></div>
   <% } %>
   <div id="DetailSection">
     <div>&nbsp;</div>
@@ -21,16 +21,16 @@
       <% if (userFilters) { %><%- include('users-pagination', { bottom: false }) %><% } %>
       <table cellpadding="0" cellspacing="0" class="table_information verticality">
         <thead><tr>
-          <th scope="col">ID</th><th scope="col">User name</th><th scope="col">E-mail account</th>
-          <th scope="col">Starting date</th><th scope="col">Expire date</th><th scope="col">Identity verification code</th>
+          <th scope="col"><%= ui["ID"] %></th><th scope="col"><%= ui["User name"] %></th><th scope="col"><%= ui["E-mail account"] %></th>
+          <th scope="col"><%= ui["Starting date"] %></th><th scope="col"><%= ui["Expire date"] %></th><th scope="col"><%= ui["Identity verification code"] %></th>
         </tr></thead>
         <tbody>
           <% for (const user of users) { %>
             <tr>
-              <td><% if (user.has_lock) { %><img width="15" height="15" src="<%= base %>/Content/ConMas/images/function/locked.png" alt="[locked]"><% } %><a href="<%= base %>/System/Details?mode=user&amp;act=edit&amp;id=<%= encodeURIComponent(user.user_id) %>"><%= user.user_id %></a></td>
+              <td><% if (user.has_lock) { %><img width="15" height="15" src="<%= base %>/Content/ConMas/images/function/locked.png" alt="<%= ui["[locked]"] %>"><% } %><a href="<%= base %>/System/Details?mode=user&amp;act=edit&amp;id=<%= encodeURIComponent(user.user_id) %>"><%= user.user_id %></a></td>
               <td><%= user.user_name %></td><td><%= user.e_mail %></td>
               <td class="center"><%= user.use_start_time %></td><td class="center"><%= user.use_end_time %></td>
-              <td class="center"><%= user.identification_code ? 'Configured' : '' %></td>
+              <td class="center"><%= user.identification_code ? ui["Configured"] : '' %></td>
             </tr>
           <% } %>
         </tbody>

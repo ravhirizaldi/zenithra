@@ -1,4 +1,4 @@
-<script type="text/javascript">
+<% const ui = managerResources["documents"]; %><script type="text/javascript">
   $(function () { fConMasInit(); $('#Labels').treeview({ collapsed:false,animated:'medium',control:'#sidetreecontrol',persist:'location' }); });
   function fConMasNextLabel() { var index = parseInt($('#LabelPageIndex').val())+1; $('#LabelPageIndex').val(index); $('#LabelPageIndexBackup').val(index); }
   function fConMasPageLabel(index) { $('#LabelPageIndex').val(index); $('#LabelPageIndexBackup').val(index); }
@@ -17,7 +17,7 @@
   <% const single = (id,name) => { %><li><a href="<%= base %>/InputReport" name="<%= id %>" onclick="return label('<%= id %>');"><%= name %></a></li><% };
   if (allDisplay) single('All',r.allData); single('NoLabel',r.noLabel);
   const renderNodes = items => { for (const item of items) { if (!visible.has(item.mst_label_id)) { renderNodes(item.children); continue; } %>
-    <li><a href="<%= base %>/InputReport" name="<%= item.mst_label_id %>" onclick="return label('<%= item.mst_label_id %>');"><% if (item.label_icon_id) { %><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id %>.png" alt="[label<%= item.label_icon_id %>]" class="labelPictureSize"> <% } %><%= item.label_name %></a><% if (item.children.length) { %><ul class="rank0"><% renderNodes(item.children); %></ul><% } %></li>
+    <li><a href="<%= base %>/InputReport" name="<%= item.mst_label_id %>" onclick="return label('<%= item.mst_label_id %>');"><% if (item.label_icon_id) { %><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= item.label_icon_id %>.png" alt="<%= ui["[label"] %><%= item.label_icon_id %>]" class="labelPictureSize"> <% } %><%= item.label_name %></a><% if (item.children.length) { %><ul class="rank0"><% renderNodes(item.children); %></ul><% } %></li>
   <% } }; renderNodes(nodes); single('Trash',r.trash); %>
 </ul>
 <input type="hidden" id="LabelPageIndex" name="LabelPageIndex" value="<%= index %>"><input type="hidden" id="LabelReportMode" name="LabelReportMode" value="Rep">

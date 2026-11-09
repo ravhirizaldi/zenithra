@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises';
 import { test } from 'node:test';
 import { Script, runInNewContext } from 'node:vm';
 import ejs from 'ejs';
+import { managerResourceLocals } from '../../../src/config/manager/resources.js';
 import {
   outputFieldLabels,
   outputSheetFields,
@@ -22,6 +23,7 @@ const labels = [
 const list = { rows: [], index: 0, size: 10, pages: 1, total: 0, order: 'document_id', direction: 'ASC' };
 const document = { document_id: 1, document_name: '<Document>', document_save_kbn: 0 };
 const library = {
+  ...managerResourceLocals,
   base,
   csrfToken: 'fixture',
   error: '',
@@ -70,6 +72,7 @@ const layout = {
   })),
 };
 const output = {
+  ...managerResourceLocals,
   base,
   csrfToken: 'fixture',
   error: '',

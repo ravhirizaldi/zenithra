@@ -1,8 +1,8 @@
-<div class="PartialViewMessage"><% if(wp.error){ %><ul><li><%= wp.error %></li></ul><% } %><% if(wp.errors?.length){ %><ul><% for(const error of wp.errors){ %><li><%= error %></li><% } %></ul><% } %></div>
-<div id="DetailTop"><span id="infoTitle">Notification SettingsEdit</span></div>
+<% const ui = managerResources["system"]; %><div class="PartialViewMessage"><% if(wp.error){ %><ul><li><%= wp.error %></li></ul><% } %><% if(wp.errors?.length){ %><ul><% for(const error of wp.errors){ %><li><%= error %></li><% } %></ul><% } %></div>
+<div id="DetailTop"><span id="infoTitle"><%= ui["Notification SettingsEdit"] %></span></div>
 <form method="post" action="<%= root %>/EditWebhookNotification" id="webhookNotificationForm">
   <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="webhook_id" value="<%= setting.webhook_id %>"><input type="hidden" id="notificationCancel" name="isCanceled" value="">
   <div id="DetailSection"><div class="info"><table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
-    <% for(const [key,label] of notifyNames){ %><tr><th scope="row"><%= label %></th><td><label><input type="radio" name="<%= key %>" value="true"<%- checked(setting[key]) %>>Notification</label><label><input type="radio" name="<%= key %>" value="false"<%- checked(!setting[key]) %>>Without notification</label></td></tr><% } %>
+    <% for(const [key,label] of notifyNames){ %><tr><th scope="row"><%= label %></th><td><label><input type="radio" name="<%= key %>" value="true"<%- checked(setting[key]) %>><%= ui["Notification"] %></label><label><input type="radio" name="<%= key %>" value="false"<%- checked(!setting[key]) %>><%= ui["Without notification"] %></label></td></tr><% } %>
   </table><p><input type="submit" value="Confirm" class="image-ok_btn"><input type="submit" value="Cancel" id="image-cancel_btn" onclick="document.getElementById('notificationCancel').value='true';"></p></div></div>
 </form>

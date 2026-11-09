@@ -15,6 +15,7 @@ import { clientBase } from './config/client.js';
 import { clientError } from './services/client-xml.js';
 import { apiBase } from './config/api.js';
 import { apiRequestError, registerApiRoutes } from './routes/api.js';
+import { managerResourceLocals } from './config/manager/resources.js';
 import type { ConsoleRequest } from './services/server-console.js';
 
 export function createApp(
@@ -30,6 +31,7 @@ export function createApp(
   app.disable('x-powered-by');
   app.set('view engine', 'ejs');
   app.set('views', path.join(root, 'src/views'));
+  Object.assign(app.locals, managerResourceLocals);
   app.use(requestLog(undefined, onRequest));
   app.use(express.urlencoded({ extended: false, limit: '1mb' }));
   app.use(apiBase, apiRequestError);
@@ -42,7 +44,12 @@ export function createApp(
   configureSession(app, database, authEnabled, sessionStore);
   app.use(`${base}/Content`, express.static(path.join(root, 'public/Content'), { fallthrough: false }));
   app.use(`${base}/Scripts`, express.static(path.join(root, 'public/Scripts'), { fallthrough: false }));
+  app.use(`${base}/branding`, express.static(path.join(root, 'public/branding'), { fallthrough: false }));
   app.use(`${base}/preview.css`, express.static(path.join(root, 'public/preview.css'), { fallthrough: false }));
+  app.use(
+    `${base}/manager-theme.css`,
+    express.static(path.join(root, 'public/manager-theme.css'), { fallthrough: false }),
+  );
   app.get('/', (_req, res) => res.redirect(`${base}/`));
   const page = createPageRenderer(authEnabled, Boolean(database));
   const requireAuth = requireSession(authEnabled);

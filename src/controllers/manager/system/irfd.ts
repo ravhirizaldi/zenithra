@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Response } from 'express';
 import { hostname } from 'node:os';
@@ -325,9 +326,9 @@ export function registerIrfd(
   const licenseAllowed = (res: Response, title: string) => {
     try {
       if (irfdLicensed ?? licenseStatus().hasFreeDrawLicense) return true;
-      show(res, title, { mode: 'denied', error: 'i-Repo FreeDraw license is required.' }, 403);
+      show(res, title, { mode: 'denied', error: pageText['i-Repo FreeDraw license is required.'] }, 403);
     } catch {
-      show(res, title, { mode: 'denied', error: 'License information is unavailable.' }, 503);
+      show(res, title, { mode: 'denied', error: pageText['License information is unavailable.'] }, 503);
     }
     return false;
   };
@@ -422,7 +423,8 @@ export function registerIrfd(
 
   app.get(`${root}/EditIrfdTemplate`, async (req, res) => {
     const parsedId = int32(field(req.query as Record<string, unknown>, 'id'));
-    if (parsedId === null || (parsedId !== -1 && parsedId < 1)) return res.status(400).send('Invalid template ID.');
+    if (parsedId === null || (parsedId !== -1 && parsedId < 1))
+      return res.status(400).send(pageText['Invalid template ID.']);
     const isCreate = parsedId === -1;
     const title = isCreate ? 'i-Repo FreeDraw setting template creation' : 'i-Repo FreeDraw setting template editing';
     try {
@@ -430,7 +432,7 @@ export function registerIrfd(
       if (!allowed) return deny(res, title);
       if (!licenseAllowed(res, title)) return;
       const record = isCreate ? newTemplate() : await loadTemplate(db, parsedId);
-      if (!record) return res.status(404).send('Template not found.');
+      if (!record) return res.status(404).send(pageText['Template not found.']);
       const canDelete =
         record.TemplateId > 1 && (await hasSystemPermission(db, req.session?.userId ?? '', 'system', 'delete'));
       return showForm(res, record, { canDelete });
@@ -454,7 +456,8 @@ export function registerIrfd(
     const body = req.body as Record<string, unknown>;
     const record = parseForm(body);
     const parsedId = int32(field(body, 'TemplateId', '-1'));
-    if (parsedId === null || (parsedId !== -1 && parsedId < 1)) return res.status(400).send('Invalid template ID.');
+    if (parsedId === null || (parsedId !== -1 && parsedId < 1))
+      return res.status(400).send(pageText['Invalid template ID.']);
     record.TemplateId = parsedId;
     const title =
       record.TemplateId === -1
@@ -470,7 +473,10 @@ export function registerIrfd(
           try {
             await db.query('DELETE FROM mst_irfd_template WHERE template_id = $1', [record.TemplateId]);
           } catch {
-            return showForm(res, record, { error: 'Template has not been deleted.', canDelete: record.TemplateId > 1 });
+            return showForm(res, record, {
+              error: pageText['Template has not been deleted.'],
+              canDelete: record.TemplateId > 1,
+            });
           }
         }
         return res.redirect(`${root}/IrfdTemplateList`);
@@ -542,7 +548,7 @@ export function registerIrfd(
                   record.TemplateId,
                 ],
               );
-        if (!result.rowCount) return res.status(404).send('Template not found.');
+        if (!result.rowCount) return res.status(404).send(pageText['Template not found.']);
       }
       return res.redirect(`${root}/IrfdTemplateList`);
     } catch {

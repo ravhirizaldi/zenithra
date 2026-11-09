@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
@@ -33,9 +34,9 @@ const googleCallbackPath = '/ConMasManager/SystemGoogleAuthCallback/IndexAsync';
 const parser = new XMLParser({ ignoreAttributes: false, parseTagValue: false, trimValues: false });
 const builder = new XMLBuilder({ ignoreAttributes: false, format: true });
 const providerDetails: Record<Provider, { route: string; title: string }> = {
-  google: { route: 'GoogleCredentialSetting', title: 'Google authentication registration' },
-  box: { route: 'BoxCredentialSetting', title: 'Box linkage setting' },
-  bim360: { route: 'Bim360CredentialSetting', title: 'Autodesk Docs linkage setting' },
+  google: { route: 'GoogleCredentialSetting', title: pageText['Google authentication registration'] },
+  box: { route: 'BoxCredentialSetting', title: pageText['Box linkage setting'] },
+  bim360: { route: 'Bim360CredentialSetting', title: pageText['Autodesk Docs linkage setting'] },
 };
 
 function object(value: unknown): RecordValue {
@@ -93,17 +94,30 @@ export function validateBoxCredentialInput(clientId: string, clientSecret: strin
 async function access(req: Request, db: pg.Pool, provider: Provider): Promise<Permission> {
   const userId = req.session?.userId ?? '';
   const read = await hasSystemPermission(db, userId, 'system', 'read');
-  if (!read) return { read: false, edit: false, delete: false, status: 403, error: 'Role authority is insufficient.' };
+  if (!read)
+    return { read: false, edit: false, delete: false, status: 403, error: pageText['Role authority is insufficient.'] };
   const [edit, remove] = await Promise.all([
     hasSystemPermission(db, userId, 'system', 'edit'),
     provider === 'google' ? false : hasSystemPermission(db, userId, 'system', 'delete'),
   ]);
   try {
     if (licenseStatus().freeDrawOnly)
-      return { read: false, edit: false, delete: false, status: 403, error: 'Role authority is insufficient.' };
+      return {
+        read: false,
+        edit: false,
+        delete: false,
+        status: 403,
+        error: pageText['Role authority is insufficient.'],
+      };
     return { read: true, edit, delete: remove, status: 200 };
   } catch {
-    return { read: false, edit: false, delete: false, status: 503, error: 'License information is unavailable.' };
+    return {
+      read: false,
+      edit: false,
+      delete: false,
+      status: 503,
+      error: pageText['License information is unavailable.'],
+    };
   }
 }
 
@@ -323,7 +337,7 @@ async function googlePageModel(
       const email = text(credential.client_email);
       const privateKey = text(credential.private_key);
       if (credential.type !== 'service_account' || !email || !privateKey)
-        throw new Error('Invalid service account credential.');
+        throw new Error(pageText['Invalid service account credential.']);
       createPrivateKey(privateKey);
       model.EmailAddress = email;
       model.ServiceAccountKey = text(credential.private_key_id);
@@ -333,7 +347,7 @@ async function googlePageModel(
     model.OAuthClientId = client.clientId;
     if (!row.token) return { model, error: '' };
     let token = object(JSON.parse(legacyDecrypt(row.token, 'google4ireporter'))) as GoogleToken;
-    if (!text(token.access_token)) throw new Error('OAuth token is missing.');
+    if (!text(token.access_token)) throw new Error(pageText['OAuth token is missing.']);
     let email = await googleUserEmail(text(token.access_token));
     if (!email && token.refresh_token) {
       const refreshed = await refreshGoogleToken(client.clientId, client.clientSecret, token);
@@ -343,7 +357,7 @@ async function googlePageModel(
         email = await googleUserEmail(text(token.access_token));
       }
     }
-    if (!email) throw new Error('Google authorization failed.');
+    if (!email) throw new Error(pageText['Google authorization failed.']);
     model.EmailAddress = email;
     return { model, error: '' };
   } catch {
@@ -352,7 +366,7 @@ async function googlePageModel(
     model.EmailAddress = '';
     model.ServiceAccountKey = '';
     model.OAuthClientId = '';
-    return { model, error: 'Authentication failed' };
+    return { model, error: pageText['Authentication failed'] };
   }
 }
 
@@ -512,7 +526,7 @@ async function boxCurrentUser(token: string): Promise<{ name: string; login: str
   const response = await requestJson('https://api.box.com/2.0/users/me', {
     headers: { authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error('Unable to read Box account.');
+  if (!response.ok) throw new Error(pageText['Unable to read Box account.']);
   return { name: text(response.body.name), login: text(response.body.login) };
 }
 async function boxFolderExists(token: string, parentId: string, name: string): Promise<boolean> {
@@ -523,7 +537,7 @@ async function boxFolderExists(token: string, parentId: string, name: string): P
       `https://api.box.com/2.0/folders/${encodeURIComponent(parentId)}/items?limit=100&offset=${offset}`,
       { headers: authorization },
     );
-    if (!response.ok) throw new Error('Unable to read Box folder contents.');
+    if (!response.ok) throw new Error(pageText['Unable to read Box folder contents.']);
     const entries = Array.isArray(response.body.entries) ? response.body.entries.map(object) : [];
     if (entries.some((entry) => text(entry.type) === 'folder' && text(entry.name) === name)) return true;
     offset += entries.length;
@@ -553,7 +567,7 @@ async function validateBoxWritable(
   const token = await boxToken(clientId, clientSecret, enterpriseId);
   if (!token?.access_token) return 'invalid';
   const folderName = await uniqueBoxTemporaryFolderName(token.access_token);
-  if (!folderName) throw new Error('Unable to create temporary folder.');
+  if (!folderName) throw new Error(pageText['Unable to create temporary folder.']);
   let created: JsonResponse;
   try {
     created = await requestJson('https://api.box.com/2.0/folders', {
@@ -573,7 +587,7 @@ async function validateBoxWritable(
       signal: AbortSignal.timeout(30000),
     },
   );
-  if (!deleted.ok) throw new Error('Unable to delete temporary folder.');
+  if (!deleted.ok) throw new Error(pageText['Unable to delete temporary folder.']);
   return 'valid';
 }
 
@@ -599,7 +613,7 @@ async function bimGet(token: string, path: string): Promise<RecordValue> {
   const response = await requestJson(`https://developer.api.autodesk.com${path}`, {
     headers: { authorization: `Bearer ${token}` },
   });
-  if (!response.ok) throw new Error('Unable to read BIM360 data.');
+  if (!response.ok) throw new Error(pageText['Unable to read BIM360 data.']);
   return response.body;
 }
 

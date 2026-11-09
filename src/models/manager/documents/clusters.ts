@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { documentAdministratorId, documentDetail } from './details.js';
 import { labelChecked, LabelValidationError } from '../labels/index.js';
@@ -90,7 +91,7 @@ export function documentCheckUnchangedClusters(input: Record<string, unknown>, r
   const pending = () =>
     new LabelValidationError(
       'pending',
-      'Cluster editing and rendered-preview persistence have not been migrated. No changes were saved.',
+      pageText['Cluster editing and rendered-preview persistence have not been migrated. No changes were saved.'],
     );
   for (const [key, submitted] of Object.entries(input)) {
     if (!key.startsWith('rep_clusters[')) continue;
@@ -157,7 +158,7 @@ export const documentClusterPermissionQuery = `SELECT
 
 export async function documentClusters(db: Database, id: number, user: string, sheetId: number | null = null) {
   if (!(await documentDetail(db, id, user)))
-    throw new LabelValidationError('access', 'Role authority is insufficient.');
+    throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
   const administrator = await documentAdministratorId();
   return (
     await db.query(
@@ -192,7 +193,7 @@ export async function documentClusterHistory(
 ) {
   const cluster = (await documentClusters(db, id, user, sheetId)).find((row) => Number(row.cluster_id) === clusterId);
   if (!cluster || cluster.cluster_role === '2')
-    throw new LabelValidationError('access', 'Role authority is insufficient.');
+    throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
   return (
     await db.query(
       `SELECT ${documentHistoryColumns}

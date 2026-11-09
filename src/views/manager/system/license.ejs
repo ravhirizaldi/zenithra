@@ -1,22 +1,22 @@
-<% const p = systemLicensePage; const route = `${base}/System`; const current = p.current; const counts = current?.license; const used = current?.used; %>
+<% const ui = managerResources["system"]; %><% const p = systemLicensePage; const route = `${base}/System`; const current = p.current; const counts = current?.license; const used = current?.used; %>
 <% if (p.fragment === 'storage') { %>
   <% if (p.error) { %><div class="PartialViewMessage"><ul><li><%= p.error %></li></ul></div><% } %>
   <% if (p.storage) { const s = p.storage; %>
-    <% if (s.measuredAt) { %><table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin-bottom:3px;"><tr><th>Date and time of measurement</th><td><%= s.measuredAt %></td></tr></table><% } %>
+    <% if (s.measuredAt) { %><table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin-bottom:3px;"><tr><th><%= ui["Date and time of measurement"] %></th><td><%= s.measuredAt %></td></tr></table><% } %>
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th>Used capacity of server storage</th><td>
-        <% if (s.type === '0' && s.summary) { %><div style="font-weight:bold;"><%= s.summary.gigabytes %> GB（<%= s.summary.prettySize %>）</div>
-        <% } else if (s.type === '1' && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> GB（<%= s.summaryLogic.prettySize %>）</div>
-        <% } else if (s.summary && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> GB（<%= s.summaryLogic.prettySize %>） [Physical <%= s.summary.gigabytes %> GB（<%= s.summary.prettySize %>）]</div>
-        <% } else { %><div>Database storage is shown in Details.</div><% } %>
-        <div style="margin:5px;">Details:
+      <tr><th><%= ui["Used capacity of server storage"] %></th><td>
+        <% if (s.type === '0' && s.summary) { %><div style="font-weight:bold;"><%= s.summary.gigabytes %> <%= ui["GB（"] %><%= s.summary.prettySize %>）</div>
+        <% } else if (s.type === '1' && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> <%= ui["GB（"] %><%= s.summaryLogic.prettySize %>）</div>
+        <% } else if (s.summary && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> <%= ui["GB（"] %><%= s.summaryLogic.prettySize %><%= ui["） [Physical"] %> <%= s.summary.gigabytes %> <%= ui["GB（"] %><%= s.summary.prettySize %>）]</div>
+        <% } else { %><div><%= ui["Database storage is shown in Details."] %></div><% } %>
+        <div style="margin:5px;"><%= ui["Details:"] %>
           <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px;">
-            <% if (s.type === '0' && s.database) { %><tr><th>Used capacity of database</th><td><%= s.database.gigabytes %> GB（<%= s.database.prettySize %>）</td></tr>
-            <% } else if (s.type === '1' && s.databaseLogic) { %><tr><th>Used capacity of database</th><td><%= s.databaseLogic.gigabytes %> GB（<%= s.databaseLogic.prettySize %>）</td></tr>
-            <% } else if (s.database || s.databaseLogic) { %><tr><th>Used capacity of database</th><td><%= s.databaseLogic?.gigabytes ?? s.database?.gigabytes ?? '0' %> GB（<%= s.databaseLogic?.prettySize ?? s.database?.prettySize ?? '0 bytes' %>）<% if (s.database) { %> [Physical <%= s.database.gigabytes %> GB（<%= s.database.prettySize %>）]<% } %></td></tr><% } %>
-            <tr><th><div>Used capacity of directory</div><div><%= p.freeDrawOnly ? '(Library file)' : '(Library・Auto.output file)' %></div></th><td><% if (s.directory) { %><%= s.directory.gigabytes %> GB（<%= s.directory.prettySize %>）<% } else { %>Unavailable.<% } %>
-              <% if (p.temporary?.available) { %> [Unnecessary File <%= String(Number((Number(p.temporary.garbageSize) / 1073741824).toFixed(4))) %> GB（<%= p.temporary.garbagePrettySize %>）]
-                <% if (p.canCleanup) { %><form id="storage-cleanup-form" method="post" action="<%= route %>/StorageCleanUp"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><button type="submit" class="conmas_link_button_custom" onclick="if(typeof fConMasLockViewById==='function')fConMasLockViewById('domMessage2');">Cleaning up unnecessary files</button></form><% } %>
+            <% if (s.type === '0' && s.database) { %><tr><th><%= ui["Used capacity of database"] %></th><td><%= s.database.gigabytes %> <%= ui["GB（"] %><%= s.database.prettySize %>）</td></tr>
+            <% } else if (s.type === '1' && s.databaseLogic) { %><tr><th><%= ui["Used capacity of database"] %></th><td><%= s.databaseLogic.gigabytes %> <%= ui["GB（"] %><%= s.databaseLogic.prettySize %>）</td></tr>
+            <% } else if (s.database || s.databaseLogic) { %><tr><th><%= ui["Used capacity of database"] %></th><td><%= s.databaseLogic?.gigabytes ?? s.database?.gigabytes ?? '0' %> <%= ui["GB（"] %><%= s.databaseLogic?.prettySize ?? s.database?.prettySize ?? ui["0 bytes"] %>）<% if (s.database) { %> <%= ui["[Physical"] %> <%= s.database.gigabytes %> <%= ui["GB（"] %><%= s.database.prettySize %>）]<% } %></td></tr><% } %>
+            <tr><th><div><%= ui["Used capacity of directory"] %></div><div><%= p.freeDrawOnly ? ui["(Library file)"] : ui["(Library・Auto.output file)"] %></div></th><td><% if (s.directory) { %><%= s.directory.gigabytes %> <%= ui["GB（"] %><%= s.directory.prettySize %>）<% } else { %><%= ui["Unavailable."] %><% } %>
+              <% if (p.temporary?.available) { %> <%= ui["[Unnecessary File"] %> <%= String(Number((Number(p.temporary.garbageSize) / 1073741824).toFixed(4))) %> <%= ui["GB（"] %><%= p.temporary.garbagePrettySize %>）]
+                <% if (p.canCleanup) { %><form id="storage-cleanup-form" method="post" action="<%= route %>/StorageCleanUp"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><button type="submit" class="conmas_link_button_custom" onclick="if(typeof fConMasLockViewById==='function')fConMasLockViewById('domMessage2');"><%= ui["Cleaning up unnecessary files"] %></button></form><% } %>
               <% } %>
             </td></tr>
           </table>
@@ -66,24 +66,24 @@
     });
   </script>
   <div class="PartialViewMessage"><% if (p.error) { %><ul><li><%= p.error %></li></ul><% } %></div>
-  <div id="DetailTop"><span id="infoTitle">License</span><span id="functionBar"></span></div>
+  <div id="DetailTop"><span id="infoTitle"><%= ui["License"] %></span><span id="functionBar"></span></div>
   <div id="DetailSection"><div class="info">
-    <div id="LibraryLicense" style="text-align:right"><a href="./LibraryLicense.html" target="_blank"><font size="2">Library License</font></a></div>
+    <div id="LibraryLicense" style="text-align:right"><a href="./LibraryLicense.html" target="_blank"><font size="2"><%= ui["Library License"] %></font></a></div>
     <% if (current && counts && used) { %>
       <div><%- include('license-summary', { license: current.details, used: current.used }) %></div>
-    <% } else { %><div class="field-validation-error">License information is unavailable.</div><% } %>
-    <div><% if (!p.isCloud && (!p.storage || !p.storage.hasIrepoId)) { %><a href="<%= route %>/DetailsStrageLicense" data-storage-measure="true" class="conmas_link_button_custom" style="margin-bottom:5px;margin-left:20px;">Calculation of storage</a><% } %></div>
+    <% } else { %><div class="field-validation-error"><%= ui["License information is unavailable."] %></div><% } %>
+    <div><% if (!p.isCloud && (!p.storage || !p.storage.hasIrepoId)) { %><a href="<%= route %>/DetailsStrageLicense" data-storage-measure="true" class="conmas_link_button_custom" style="margin-bottom:5px;margin-left:20px;"><%= ui["Calculation of storage"] %></a><% } %></div>
     <div id="conmasStrageContent">
       <% if (p.storage) { const s = p.storage; %>
-        <% if (s.measuredAt) { %><table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin-bottom:3px;"><tr><th>Date and time of measurement</th><td><%= s.measuredAt %></td></tr></table><% } %>
-        <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th>Used capacity of server storage</th><td>
-          <% if (s.type === '0' && s.summary) { %><div style="font-weight:bold;"><%= s.summary.gigabytes %> GB（<%= s.summary.prettySize %>）</div><% } else if (s.type === '1' && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> GB（<%= s.summaryLogic.prettySize %>）</div><% } else if (s.summary && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> GB（<%= s.summaryLogic.prettySize %>） [Physical <%= s.summary.gigabytes %> GB（<%= s.summary.prettySize %>）]</div><% } else { %><div>Database storage is shown in the breakdown.</div><% } %>
-          <div style="margin:5px;">Details:
+        <% if (s.measuredAt) { %><table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin-bottom:3px;"><tr><th><%= ui["Date and time of measurement"] %></th><td><%= s.measuredAt %></td></tr></table><% } %>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th><%= ui["Used capacity of server storage"] %></th><td>
+          <% if (s.type === '0' && s.summary) { %><div style="font-weight:bold;"><%= s.summary.gigabytes %> <%= ui["GB（"] %><%= s.summary.prettySize %>）</div><% } else if (s.type === '1' && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> <%= ui["GB（"] %><%= s.summaryLogic.prettySize %>）</div><% } else if (s.summary && s.summaryLogic) { %><div style="font-weight:bold;"><%= s.summaryLogic.gigabytes %> <%= ui["GB（"] %><%= s.summaryLogic.prettySize %><%= ui["） [Physical"] %> <%= s.summary.gigabytes %> <%= ui["GB（"] %><%= s.summary.prettySize %>）]</div><% } else { %><div><%= ui["Database storage is shown in the breakdown."] %></div><% } %>
+          <div style="margin:5px;"><%= ui["Details:"] %>
             <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px;">
-              <% if (s.type === '0' && s.database) { %><tr><th>Used capacity of database</th><td><%= s.database.gigabytes %> GB（<%= s.database.prettySize %>）</td></tr><% } else if (s.type === '1' && s.databaseLogic) { %><tr><th>Used capacity of database</th><td><%= s.databaseLogic.gigabytes %> GB（<%= s.databaseLogic.prettySize %>）</td></tr><% } else if (s.database || s.databaseLogic) { %><tr><th>Used capacity of database</th><td><%= s.databaseLogic?.gigabytes ?? s.database?.gigabytes ?? '0' %> GB（<%= s.databaseLogic?.prettySize ?? s.database?.prettySize ?? '0 bytes' %>）<% if (s.database) { %> [Physical <%= s.database.gigabytes %> GB（<%= s.database.prettySize %>）]<% } %></td></tr><% } %>
-              <tr><th><div>Used capacity of directory</div><div><%= p.current?.details.freeDrawOnly ? '(Library file)' : '(Library・Auto.output file)' %></div></th><td><% if (s.directory) { %><%= s.directory.gigabytes %> GB（<%= s.directory.prettySize %>）<% } else { %>Unavailable.<% } %>
-                <% if (p.temporary?.available) { %> [Unnecessary File <%= String(Number((Number(p.temporary.garbageSize) / 1073741824).toFixed(4))) %> GB（<%= p.temporary.garbagePrettySize %>）]
-                  <% if (p.canCleanup) { %><form id="storage-cleanup-form" method="post" action="<%= route %>/StorageCleanUp"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><button type="submit" class="conmas_link_button_custom" onclick="if(typeof fConMasLockViewById==='function')fConMasLockViewById('domMessage2');">Cleaning up unnecessary files</button></form><% } %>
+              <% if (s.type === '0' && s.database) { %><tr><th><%= ui["Used capacity of database"] %></th><td><%= s.database.gigabytes %> <%= ui["GB（"] %><%= s.database.prettySize %>）</td></tr><% } else if (s.type === '1' && s.databaseLogic) { %><tr><th><%= ui["Used capacity of database"] %></th><td><%= s.databaseLogic.gigabytes %> <%= ui["GB（"] %><%= s.databaseLogic.prettySize %>）</td></tr><% } else if (s.database || s.databaseLogic) { %><tr><th><%= ui["Used capacity of database"] %></th><td><%= s.databaseLogic?.gigabytes ?? s.database?.gigabytes ?? '0' %> <%= ui["GB（"] %><%= s.databaseLogic?.prettySize ?? s.database?.prettySize ?? ui["0 bytes"] %>）<% if (s.database) { %> <%= ui["[Physical"] %> <%= s.database.gigabytes %> <%= ui["GB（"] %><%= s.database.prettySize %>）]<% } %></td></tr><% } %>
+              <tr><th><div><%= ui["Used capacity of directory"] %></div><div><%= p.current?.details.freeDrawOnly ? ui["(Library file)"] : ui["(Library・Auto.output file)"] %></div></th><td><% if (s.directory) { %><%= s.directory.gigabytes %> <%= ui["GB（"] %><%= s.directory.prettySize %>）<% } else { %><%= ui["Unavailable."] %><% } %>
+                <% if (p.temporary?.available) { %> <%= ui["[Unnecessary File"] %> <%= String(Number((Number(p.temporary.garbageSize) / 1073741824).toFixed(4))) %> <%= ui["GB（"] %><%= p.temporary.garbagePrettySize %>）]
+                  <% if (p.canCleanup) { %><form id="storage-cleanup-form" method="post" action="<%= route %>/StorageCleanUp"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><button type="submit" class="conmas_link_button_custom" onclick="if(typeof fConMasLockViewById==='function')fConMasLockViewById('domMessage2');"><%= ui["Cleaning up unnecessary files"] %></button></form><% } %>
                 <% } %>
               </td></tr>
             </table>
@@ -92,13 +92,13 @@
       <% } %>
     </div>
   </div></div>
-  <div id="domMessage" style="display:none;"><h1>Calculating storage capacity</h1></div>
-  <div id="domMessage2" style="display:none;"><h1>Please wait</h1></div>
+  <div id="domMessage" style="display:none;"><h1><%= ui["Calculating storage capacity"] %></h1></div>
+  <div id="domMessage2" style="display:none;"><h1><%= ui["Please wait"] %></h1></div>
 <% } else if (p.mode === 'upload') { %>
   <div id="MessageWrap"><% if (p.error) { %><ul class="PartialViewMessage"><li><%= p.error %></li></ul><% } %></div>
-  <div id="DetailTop" style="height:50px;"><div id="infoTitle">Update License</div></div>
+  <div id="DetailTop" style="height:50px;"><div id="infoTitle"><%= ui["Update License"] %></div></div>
   <div id="DetailSection"><div class="info">
-    <h3>Current License Information</h3>
+    <h3><%= ui["Current License Information"] %></h3>
     <% if (current && counts && used) { %>
       <%- include('license-summary', { license: current.details, used: current.used, uploadPreview: true }) %>
     <% } %>
@@ -108,13 +108,13 @@
       <% if (p.canUpload && p.uploadEnabled) { %><input type="file" name="uploadLicenseFile" id="uploadLicenseFile"><input type="submit" id="uploadLicenseButton" name="uploadLicenseButton" value="Upload"><% } %>
     </form>
     <% if (p.fileHasUploaded && p.uploaded) { const license = p.uploaded; %>
-      <h3>New License Information</h3>
+      <h3><%= ui["New License Information"] %></h3>
       <%- include('license-summary', { license, used: current.used, uploadPreview: true }) %>
       <% if (p.canUpload) { %><form method="post" action="<%= route %>/UploadLicense" enctype="multipart/form-data" id="LicenseForm"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"><input type="hidden" name="act" value="fix"><div><input type="submit" value="Confirm" class="button_custom" style="width:100px;" onclick="if(typeof fConMasLockView==='function')fConMasLockView();">
-        <a href="<%= route %>/UploadLicense" class="conmas_link_button_black" style="padding:9px;">Cancel</a></div></form><% } %>
+        <a href="<%= route %>/UploadLicense" class="conmas_link_button_black" style="padding:9px;"><%= ui["Cancel"] %></a></div></form><% } %>
     <% } %>
   </div></div>
-  <div id="domMessage" style="display:none;"><h1>Please wait</h1></div>
+  <div id="domMessage" style="display:none;"><h1><%= ui["Please wait"] %></h1></div>
 <% } else { %>
-  <div id="MessageWrap"><p class="field-validation-error" role="alert"><%= p.error ?? 'License information is unavailable.' %></p></div>
+  <div id="MessageWrap"><p class="field-validation-error" role="alert"><%= p.error ?? ui["License information is unavailable."] %></p></div>
 <% } %>

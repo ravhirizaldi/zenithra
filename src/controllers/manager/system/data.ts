@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import {
   affiliationImportRows,
   importAffiliationRows,
@@ -279,7 +280,7 @@ export function registerSystemData(app: Express, db: pg.Pool, render: Render): v
     const format = typeof req.body?.type === 'string' ? req.body.type : '';
     const encoding = typeof req.body?.encoding === 'string' ? req.body.encoding : '';
     if (command < 0 || !['xml', 'csv'].includes(format) || (format === 'csv' && !['932', '65001'].includes(encoding)))
-      return res.status(400).send('System error.');
+      return res.status(400).send(pageText['System error.']);
     try {
       const bytes = await systemDataExport(db, command, format, encoding, req.body);
       res.attachment(dataOutputNames[command] + '.' + format);
@@ -292,7 +293,8 @@ export function registerSystemData(app: Express, db: pg.Pool, render: Render): v
     if (!(await outputAccess(req, res))) return;
     const command =
       typeof req.query.command === 'string' && /^[0-4]$/.test(req.query.command) ? Number(req.query.command) : -1;
-    if (req.get('X-Requested-With') !== 'XMLHttpRequest' || command < 0) return res.status(500).send('System error.');
+    if (req.get('X-Requested-With') !== 'XMLHttpRequest' || command < 0)
+      return res.status(500).send(pageText['System error.']);
     return outputPage(res, command, true);
   });
 

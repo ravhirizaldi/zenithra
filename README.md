@@ -290,6 +290,10 @@ Do not start another server on an occupied port. Sessions and unfinished transfe
 
 **Uploaded Library files** default to `SettingFiles/xml/Library/<document_id>` under this project root, independently of the installed reference settings and the shell's working directory. An existing explicit `LIBRARY/BASE_FOLDER` database setting still overrides that default. Runtime Library files are Git-ignored; back them up with the active databases. Multipart uploads and report staging use Node's `os.tmpdir()` on Windows/Linux, rather than a hardcoded `/tmp` path.
 
+**English UI text** is grouped in `src/config/manager/<area>/resources.ts`. Shared header/navbar text uses `shared/resources.ts`; Documents retains its own resources. `src/config/manager/resources.ts` provides the common resource context for full pages and AJAX partials. Language switching is not enabled.
+
+**Manager branding:** Zenithra Hub uses generated PNG assets in `public/branding/`. The logo, header, navigation and login-button treatment are applied by the Node-owned `public/manager-theme.css`; original vendor assets are preserved.
+
 </details>
 
 <details>

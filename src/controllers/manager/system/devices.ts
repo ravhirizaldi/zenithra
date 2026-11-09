@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Response } from 'express';
 import type pg from 'pg';
 import os from 'node:os';
@@ -5,10 +6,10 @@ import { licenseCounts, licenseStatus } from '../../../shared/license-counts.js'
 
 const root = '/ConMasManager/System';
 const terminalTypes = [
-  { value: 'iPad', label: 'Tablet' },
-  { value: 'Manager', label: 'Manager' },
-  { value: 'Designer', label: 'Designer' },
-  { value: 'i-Repo FreeDraw', label: 'i-Repo FreeDraw' },
+  { value: 'iPad', label: pageText['Tablet'] },
+  { value: 'Manager', label: pageText['Manager'] },
+  { value: 'Designer', label: pageText['Designer'] },
+  { value: 'i-Repo FreeDraw', label: pageText['i-Repo FreeDraw'] },
 ] as const;
 const listPageSizes = [10, 20, 50, 100];
 type Mode = 'list' | 'details' | 'create' | 'edit';
@@ -122,12 +123,12 @@ export function registerDevices(
       login: false,
       title:
         mode === 'list'
-          ? 'Devices'
+          ? pageText['Devices']
           : mode === 'create'
-            ? 'Device registration'
+            ? pageText['Device registration']
             : mode === 'edit'
-              ? 'Edit device information'
-              : 'Device reference',
+              ? pageText['Edit device information']
+              : pageText['Device reference'],
       userName: res.locals.userName,
       devicePage: {
         mode,
@@ -390,16 +391,16 @@ export function registerDevices(
 
   app.get(root + '/DetailsTerm', async (req, res) => {
     const termId = int32Value(value(req.query as Record<string, unknown>, 'id')) ?? 0;
-    if (!termId) return res.status(400).send('A device ID is required.');
+    if (!termId) return res.status(400).send(pageText['A device ID is required.']);
     const record = await loadTerm(termId);
-    if (!record) return res.status(404).send('Device not found.');
+    if (!record) return res.status(404).send(pageText['Device not found.']);
     return showForm(res, 'details', record);
   });
   app.post(root + '/DetailsTerm', async (req, res) => {
     const body = req.body as Record<string, unknown>;
     const termId = int32Value(value(body, 'mst_terminal.term_id')) ?? 0;
     const record = await loadTerm(termId);
-    if (!record) return res.status(404).send('Device not found.');
+    if (!record) return res.status(404).send(pageText['Device not found.']);
     if (value(body, 'act') === 'delete') {
       await db.query('UPDATE mst_terminal SET deleted = 1 WHERE term_id = $1', [termId]);
       return res.redirect(root + '/TermList');
@@ -507,16 +508,16 @@ export function registerDevices(
 
   app.get(root + '/EditTerm', async (req, res) => {
     const termId = int32Value(value(req.query as Record<string, unknown>, 'id')) ?? 0;
-    if (!termId) return res.status(400).send('A device ID is required.');
+    if (!termId) return res.status(400).send(pageText['A device ID is required.']);
     const record = await loadTerm(termId);
-    if (!record) return res.status(404).send('Device not found.');
+    if (!record) return res.status(404).send(pageText['Device not found.']);
     return showForm(res, 'edit', record);
   });
   app.post(root + '/EditTerm', async (req, res) => {
     const body = req.body as Record<string, unknown>;
     const termId = int32Value(value(body, 'mst_terminal.term_id')) ?? 0;
     const existing = await loadTerm(termId);
-    if (!existing) return res.status(404).send('Device not found.');
+    if (!existing) return res.status(404).send(pageText['Device not found.']);
     const record: DeviceRecord = {
       ...existing,
       term_name: value(body, 'mst_terminal.term_name'),

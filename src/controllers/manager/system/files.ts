@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { existsSync } from 'node:fs';
 import { clientSettingsDirectory, licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Request, Response } from 'express';
@@ -129,14 +130,15 @@ async function loadFileRoots(): Promise<FileRoots> {
   try {
     xml = await readFile(configPath, 'utf8');
   } catch {
-    throw new ConfigurationError('File location configuration is unavailable.');
+    throw new ConfigurationError(pageText['File location configuration is unavailable.']);
   }
   const clientSettingsValue = configuredValue(xml, 'add', 'key', 'ClientSettings', 'value');
   const rootAppender = xml.match(
     /<appender\b(?=[^>]*\bname\s*=\s*["']RootAppender["'])[^>]*>([\s\S]*?)<\/appender>/i,
   )?.[1];
   const logFileValue = rootAppender ? configuredValue(rootAppender, 'param', 'name', 'File', 'value') : undefined;
-  if (!clientSettingsValue || !logFileValue) throw new ConfigurationError('File location configuration is incomplete.');
+  if (!clientSettingsValue || !logFileValue)
+    throw new ConfigurationError(pageText['File location configuration is incomplete.']);
   const clientSettings = clientSettingsDirectory() ?? configuredPath(clientSettingsValue);
   return {
     backupLog: join(clientSettings, 'recovery', 'logs'),
@@ -602,14 +604,14 @@ function crc32(data: Buffer): number {
 }
 
 export function zipBuffer(entries: ZipEntry[]): Buffer {
-  if (entries.length > 0xffff) throw new Error('Too many archive entries.');
+  if (entries.length > 0xffff) throw new Error(pageText['Too many archive entries.']);
   const local: Buffer[] = [];
   const central: Buffer[] = [];
   let offset = 0;
   for (const entry of entries) {
     const name = Buffer.from(entry.name.replace(/\\/g, '/'), 'utf8');
     if (!name.length || name.length > 0xffff || entry.data.length > 0xffffffff || offset > 0xffffffff)
-      throw new Error('Archive exceeds ZIP limits.');
+      throw new Error(pageText['Archive exceeds ZIP limits.']);
     const checksum = crc32(entry.data);
     const stamp = zipDate(entry.date);
     const header = Buffer.alloc(30);
@@ -643,7 +645,7 @@ export function zipBuffer(entries: ZipEntry[]): Buffer {
     offset += header.length + name.length + entry.data.length;
   }
   const centralSize = central.reduce((sum, part) => sum + part.length, 0);
-  if (offset > 0xffffffff || centralSize > 0xffffffff) throw new Error('Archive exceeds ZIP limits.');
+  if (offset > 0xffffffff || centralSize > 0xffffffff) throw new Error(pageText['Archive exceeds ZIP limits.']);
   const end = Buffer.alloc(22);
   end.writeUInt32LE(0x06054b50, 0);
   end.writeUInt16LE(entries.length, 8);

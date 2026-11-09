@@ -1,4 +1,4 @@
-<% const record = state.record;
+<% const ui = managerResources["documents"]; %><% const record = state.record;
 const hidden = (name,value) => { %><input id="<%= name.replace(/\./g,'_') %>" name="<%= name %>" type="hidden" value="<%= value %>"><% };
 const text = (name,style = '',attrs = '') => { %><input id="SchData_<%= name %>" name="SchData.<%= name %>" type="text" value="<%= record[name] || '' %>" style="<%= style %>" <%- attrs %>><% };
 const textarea = (name,style,readonly = false) => { %><textarea cols="20" rows="2" id="SchData_<%= name %>" name="SchData.<%= name %>" style="<%= style %>"<% if (readonly) { %> readonly="readonly"<% } %>><%= record[name] || '' %></textarea><% };
@@ -11,7 +11,7 @@ const buttons = () => { %><p style="padding:0px 15px;"><input type="submit" valu
   <div style="width:100%; height:100%;">
     <div style="margin-left:5px; font-size:10pt; font-weight:bold;"><%= r.TaskRegistTitle %> <% validation('SelectRepTask'); %></div>
     <% buttons(); %>
-    <span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="display('contentTask'); display('blankBox');"></span>
+    <span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="<%= ui["[close]"] %>" onclick="display('contentTask'); display('blankBox');"></span>
     <table cellpadding="0" cellspacing="0" class="table_information horizontal" style="margin:3px auto;">
       <tr><th scope="row"><% validation('SchData.start_date'); validation('SchData.FromTime'); %> <%= r.start_date %></th><td><div style="float:left;"><% text('start_date','','class="text-box single-line" onchange="toDateEvent(this.value);"'); %></div><div class="" style="float:left; z-index:300;"><% text('FromTime','width:50px;','onchange="toTimeEvent(this.value);"'); %></div></td></tr>
       <tr><th scope="row"><% validation('SchData.end_date'); validation('SchData.ToTime'); %> <%= r.end_date %></th><td><div style="float:left;"><% text('end_date','','class="text-box single-line"'); %></div><div class=""><% text('ToTime','width:50px;'); %></div></td></tr>

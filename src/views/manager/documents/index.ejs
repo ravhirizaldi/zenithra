@@ -1,4 +1,4 @@
-<% const fileVer = '20250901-01';
+<% const ui = managerResources["documents"]; %><% const fileVer = '20250901-01';
 const form = typeof labelForm === 'undefined' ? {} : labelForm;
 const formError = typeof labelError === 'undefined' ? '' : labelError;
 const formValue = name => { const value = form['mst_label.'+name]; return typeof value === 'string' ? value : Array.isArray(value) && typeof value[0] === 'string' ? value[0] : ''; };
@@ -6,14 +6,14 @@ const hiddenInput = (name,value) => { %><input type="hidden" id="<%= name.replac
 const checkbox = (name,checked,label = '',attrs = '') => { %><input type="checkbox" id="<%= name.replace(/\./g,'_') %>" name="<%= name %>" value="true"<% if (checked) { %> checked="checked"<% } %> <%- attrs %>><input type="hidden" name="<%= name %>" value="false"><% if (label) { %><label for="<%= name.replace(/\./g,'_') %>"><%= label %></label><% } };
 const select = (name,options) => { %><select id="<%= name %>" name="<%= name %>" onchange="return filter();"><% for (const [value,text] of options) { %><option value="<%= value %>"<% if (String(value) === state[name]) { %> selected="selected"<% } %>><%= text %></option><% } %></select><% };
 const textInput = (field,style = '',attrs = '') => { %><input type="text" id="SearchInfo_<%= field %>" name="SearchInfo.<%= field %>" value="<%= state.SearchInfo[field] %>"<% if (['ReportName','Remarks','InputValue','RegistUser','UpdateUser','SystemKey'].includes(field)) { %> class="text-box single-line"<% } %><% if (style) { %> style="<%= style %>"<% } %> <%- attrs %>><% };
-const close = (dialog,onclick = '') => { %><span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="<%= onclick || `display('${dialog}');` %>"></span><% };
+const close = (dialog,onclick = '') => { %><span class="DialogClose"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="<%= ui["[close]"] %>" onclick="<%= onclick || `display('${dialog}');` %>"></span><% };
 %>
 <% for (const script of ['MicrosoftAjax.js','MicrosoftMvcAjax.js','jquery.unobtrusive-ajax.min.js','jquery.validate.min.js','jquery.validate.unobtrusive.min.js','conmas.identification.js']) { %><script src="<%= base %>/Scripts/<%= script %>?<%= fileVer %>" type="text/javascript"></script><% } %>
 <script type="text/javascript"><%- js %></script>
 <script type="text/javascript">
   $(document).ajaxError(function (_event, xhr, request) {
     if (!/\/(InputReport|Common\/Label(?:Select)?ListView)(?:[/?]|$)/.test(request.url)) return;
-    $('#MessageWrap').text(xhr.status === 501 ? 'This Documents action has not been migrated. No changes were saved.' : xhr.status === 403 ? 'Role authority or form verification is insufficient.' : 'The Documents request failed.');
+    $('#MessageWrap').text(xhr.status === 501 ? <%- managerScriptText(ui["This Documents action has not been migrated. No changes were saved."], "'") %> : xhr.status === 403 ? <%- managerScriptText(ui["Role authority or form verification is insufficient."], "'") %> : <%- managerScriptText(ui["The Documents request failed."], "'") %>);
   });
 </script>
 <div id="MessageWrap"></div>
@@ -45,22 +45,22 @@ const close = (dialog,onclick = '') => { %><span class="DialogClose"><img src="<
           <% select('ApprovalStatus',[['-1',r.ApprovalStatus],['0',r.allData],['1',r.ApproveLabel],['2',r.ConMasResource_remand],['3',r.ApplicantLabel]]); %>
         </div>
         <% if (permissions.update) { %>
-          <% if (settings.bulkApproval) { %><span id="approveButton" style="margin-top:14px;position:absolute; left:270px;"><a href="<%= base %>/InputReport" class="img_approve" title="<%= v.approveDialog %>" alt="[approve]" onclick="return display('ApproveDialog');"> </a></span><% }
+          <% if (settings.bulkApproval) { %><span id="approveButton" style="margin-top:14px;position:absolute; left:270px;"><a href="<%= base %>/InputReport" class="img_approve" title="<%= v.approveDialog %>" alt="<%= ui["[approve]"] %>" onclick="return display('ApproveDialog');"> </a></span><% }
           else { %><span id="approveButton" class="img_approve disabled" style="margin-top: 14px; position: absolute; left: 270px;"></span><% } %>
         <% } %>
-        <% if (permissions.delete) { %><div id="physicalDeleteButton" style="margin-top:14px;position:absolute; left:270px;"><a href="<%= base %>/InputReport" class="img_physical_delete" title="<%= r.PhysicalDeleteButton %>" alt="[physicalDelete]" onclick="return removeAt('1');"> </a></div><% } %>
+        <% if (permissions.delete) { %><div id="physicalDeleteButton" style="margin-top:14px;position:absolute; left:270px;"><a href="<%= base %>/InputReport" class="img_physical_delete" title="<%= r.PhysicalDeleteButton %>" alt="<%= ui["[physicalDelete]"] %>" onclick="return removeAt('1');"> </a></div><% } %>
         <ul id="FiltersUl">
           <li><% select('PublicStatus',[['-1','- '+r.PublicStatus+' -'],['1',r.Test],['2',r.Published]]); %></li>
           <li><% select('EditReferStatus',[['-1','- '+r.EditReferStatus+' -'],['0',r.BeforeEditing],['1',r.InEditing],['2',r.WaitingForApproval],['3',r.Rejected],['4',r['BizDataOutputResource-Completed']]]); %></li>
           <li><% checkbox('ReportTypeSheet',state.ReportTypeSheet,r.reportTypeSheet,'onchange="return filter();"'); %></li>
           <li><% checkbox('ReportTypeSet',state.ReportTypeSet,r.reportTypeSet,'onchange="return filter();"'); %></li>
-          <% if (permissions.update) { %><li><a href="javascript:void(0)" onclick="display('conmasCopyReportDialog');"><img alt="copy" class="copy_report" src="<%= base %>/Content/ConMas/images/function/copy_report.png" title="<%= r.Copy %>"></a></li><% } %>
+          <% if (permissions.update) { %><li><a href="javascript:void(0)" onclick="display('conmasCopyReportDialog');"><img alt="<%= ui["copy"] %>" class="copy_report" src="<%= base %>/Content/ConMas/images/function/copy_report.png" title="<%= r.Copy %>"></a></li><% } %>
           <% if (permissions.schedule) { const today = new Date(); %><li><a href="<%= base %>/Common/RegistTask?requestKbn=0&amp;year=<%= today.getFullYear() %>&amp;month=<%= today.getMonth()+1 %>&amp;day=<%= today.getDate() %>&amp;controllerName=InputReport" data-ajax="true" data-ajax-update="#contentTask" onclick="return display('contentTask');" class="img_schedule" title="<%= r.Schedule %>"> </a></li><% } %>
-          <li><a href="<%= base %>/InputReport" class="img_search" title="<%= v.search %>" alt="[search]" onclick="return display('SearchDialog');"> </a></li>
-          <% if (permissions.update) { %><li><a href="<%= base %>/InputReport" class="img_label" title="<%= v.setLabel %>" alt="[label]" onclick="return fConMasLabelSelectDisplay();"> </a></li><% } %>
+          <li><a href="<%= base %>/InputReport" class="img_search" title="<%= v.search %>" alt="<%= ui["[search]"] %>" onclick="return display('SearchDialog');"> </a></li>
+          <% if (permissions.update) { %><li><a href="<%= base %>/InputReport" class="img_label" title="<%= v.setLabel %>" alt="<%= ui["[label]"] %>" onclick="return fConMasLabelSelectDisplay();"> </a></li><% } %>
           <% if (permissions.delete) { %><li>
-            <div id="trashBox"><a href="<%= base %>/InputReport" class="img_delete" title="<%= v.delete %>" alt="[delete]" onclick="return display('DeleteDialog')"> </a></div>
-            <div id="riviveBox"><a href="<%= base %>/InputReport" class="img_rivive" title="<%= v.rivive %>" alt="[delete]" onclick="return removeAt('','');"> </a></div>
+            <div id="trashBox"><a href="<%= base %>/InputReport" class="img_delete" title="<%= v.delete %>" alt="<%= ui["[delete]"] %>" onclick="return display('DeleteDialog')"> </a></div>
+            <div id="riviveBox"><a href="<%= base %>/InputReport" class="img_rivive" title="<%= v.rivive %>" alt="<%= ui["[delete]"] %>" onclick="return removeAt('','');"> </a></div>
           </li><% } %>
         </ul>
       </div>
@@ -100,7 +100,7 @@ const close = (dialog,onclick = '') => { %><span class="DialogClose"><img src="<
 <div id="conmasCopyReportDialog">
   <form id="conmasReportCopyForm" action="<%= base %>/InputReport/CopyInputReport" method="post">
     <% hiddenInput('__RequestVerificationToken',csrfToken); %><div class="DialogMarginMin"><div style="float:left; width:100%;">
-      <div style="float:right; text-align:right;"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]" onclick="display('conmasCopyReportDialog');"></div>
+      <div style="float:right; text-align:right;"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="<%= ui["[close]"] %>" onclick="display('conmasCopyReportDialog');"></div>
       <div style="display:none;"><input id="conmasCopyReportType" name="conmasCopyReportType" type="checkbox" checked="checked"><label for="conmasCopyReportType"><%= r.CopyReportModeDef %></label></div>
       <p><% hiddenInput('conmasCopyReportMode',''); hiddenInput('conmasCopyReportIdList',''); %>
         <input type="submit" value="<%= r.CopyReportSameDef %>" class="conmas_link_button_black" onclick="return fConMasReportCopy('DefRevision');">
@@ -112,7 +112,7 @@ const close = (dialog,onclick = '') => { %><span class="DialogClose"><img src="<
 <form id="labelForm" action="<%= base %>/InputReport" method="post">
   <% hiddenInput('__RequestVerificationToken',csrfToken); hiddenInput('LabelAct',''); hiddenInput('LabelSelectID',state.LabelID); hiddenInput('IsLabelError',formError ? '1' : ''); hiddenInput('LabelCreateMode',''); %>
   <div id="labelManagementForm">
-    <div style="text-align:right; margin-bottom:2px;"><a class="modal_close" href="#"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="[close]"></a></div>
+    <div style="text-align:right; margin-bottom:2px;"><a class="modal_close" href="#"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="<%= ui["[close]"] %>"></a></div>
     <div style="width:100%; padding:0px;" class="label_create_label"><%= r.ConMasResource_Label.replace('{0}',r.Create) %></div>
     <div class="DialogLabel"><label for="mst_label_label_name"><%= r.label_name %></label></div><div class="DialogField"><input id="mst_label_label_name" name="mst_label.label_name" type="text" class="EditValue1" value="<%= formValue('label_name') %>" data-val="true" data-val-required="<%= r.MSG_REQUIRED.replace('{0}',r.label_name) %>"><span class="<%= formError ? 'field-validation-error' : 'field-validation-valid' %>" data-valmsg-for="mst_label.label_name" data-valmsg-replace="true"><%= formError %></span></div>
     <div class="DialogLabel"><label for="mst_label_label_remarks"><%= r.label_remarks %></label></div><div class="DialogField"><input id="mst_label_label_remarks" name="mst_label.label_remarks" type="text" class="EditValue1" value="<%= formValue('label_remarks') %>"><span class="field-validation-valid" data-valmsg-for="mst_label.label_remarks" data-valmsg-replace="true"></span></div>

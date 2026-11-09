@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/library/resources.js';
 import type pg from 'pg';
 import { copyFile, link, mkdir, readFile, rename, stat, unlink } from 'node:fs/promises';
 import { constants } from 'node:fs';
@@ -33,7 +34,7 @@ export const libraryText = labelString;
 export function libraryMode(value: unknown): LibraryMode {
   const mode = labelMode(value ?? 'ComLIb');
   if (mode !== 'ComLIb' && mode !== 'RepLIb' && mode !== 'ImageLib')
-    throw new LibraryError('mode', 'Invalid library mode.');
+    throw new LibraryError('mode', pageText['Invalid library mode.']);
   return mode;
 }
 export function libraryIds(value: unknown): number[] {
@@ -44,7 +45,7 @@ export function libraryIds(value: unknown): number[] {
         .filter((part) => part !== '')
         .map((part) => {
           const id = labelInteger(part);
-          if (id <= 0) throw new LibraryError('', 'Invalid selection.');
+          if (id <= 0) throw new LibraryError('', pageText['Invalid selection.']);
           return id;
         }),
     ),
@@ -123,14 +124,14 @@ function day(value: unknown): string | undefined {
   const text = libraryText(value);
   if (!text) return;
   const match = /^(\d{4})[/-](\d{2})[/-](\d{2})$/.exec(text);
-  if (!match) throw new LibraryError('', 'Invalid date.');
+  if (!match) throw new LibraryError('', pageText['Invalid date.']);
   const date = new Date(`${match[1]}-${match[2]}-${match[3]}T00:00:00Z`);
   if (
     !Number.isFinite(date.valueOf()) ||
     date.toISOString().slice(0, 10) !== `${match[1]}-${match[2]}-${match[3]}` ||
     Number(match[1]) === 0
   )
-    throw new LibraryError('', 'Invalid date.');
+    throw new LibraryError('', pageText['Invalid date.']);
   return date.toISOString().slice(0, 10);
 }
 export async function libraryList(db: Database, mode: LibraryMode, userId: string, input: Record<string, unknown>) {
@@ -177,7 +178,7 @@ export async function libraryList(db: Database, mode: LibraryMode, userId: strin
       where.push(`(d.${column}_user LIKE ${bind('%' + user + '%')} OR ${alias}.user_name LIKE $${values.length})`);
     const from = day(input[prefix + 'TimeFrom']),
       to = day(input[prefix + 'TimeTo']);
-    if (from && to && from > to) throw new LibraryError('', 'The start date must not follow the end date.');
+    if (from && to && from > to) throw new LibraryError('', pageText['The start date must not follow the end date.']);
     if (from) where.push(`d.${column}_time>=${bind(from)}::date`);
     if (to) where.push(`d.${column}_time<${bind(to)}::date+interval '1 day'`);
   }
@@ -270,11 +271,11 @@ function fileType(name: string, mode: LibraryMode) {
 export function libraryInput(input: Record<string, unknown>) {
   const get = (key: string) => input['Document.' + key];
   const components = ['day', 'hour', 'minuite'].map((unit) => labelInteger(get('document_life_time_' + unit), 0));
-  if (components.some((value) => value < 0)) throw new LibraryError('', 'Invalid document lifetime.');
+  if (components.some((value) => value < 0)) throw new LibraryError('', pageText['Invalid document lifetime.']);
   const lifetime = components[0] * 1440 + components[1] * 60 + components[2];
-  if (lifetime < 0 || lifetime > 2147483647) throw new LibraryError('', 'Invalid document lifetime.');
+  if (lifetime < 0 || lifetime > 2147483647) throw new LibraryError('', pageText['Invalid document lifetime.']);
   const storage = labelInteger(get('document_save_kbn'), 0);
-  if (![0, 1, 2].includes(storage)) throw new LibraryError('', 'Invalid storage mode.');
+  if (![0, 1, 2].includes(storage)) throw new LibraryError('', pageText['Invalid storage mode.']);
   return {
     document_id: labelInteger(get('document_id'), 0),
     document_name: libraryText(get('document_name')),
@@ -335,7 +336,8 @@ async function writeRoles(
   const table = fd ? 'common_document_irfd_role' : `mst_${libraryModes[mode]}_document_role`;
   const groups = await libraryGroups(db, mode, id, fd),
     allowed = new Set(groups.map((group) => String(group.group_id)));
-  if (Object.keys(roles).some((id) => !allowed.has(id))) throw new LibraryError('', 'Invalid group selection.');
+  if (Object.keys(roles).some((id) => !allowed.has(id)))
+    throw new LibraryError('', pageText['Invalid group selection.']);
   await db.query(`DELETE FROM ${table} WHERE document_id=$1`, [id]);
   for (const group of groups) {
     const role = roles[group.group_id];
@@ -399,30 +401,33 @@ export async function saveLibraryDocument(
   const item = libraryInput(input),
     category = libraryModes[mode];
   if (item.document_save_kbn === 2)
-    throw new LibraryPendingError('', 'FreeDraw PDF/IRFD registration is not implemented yet. No changes were saved.');
+    throw new LibraryPendingError(
+      '',
+      pageText['FreeDraw PDF/IRFD registration is not implemented yet. No changes were saved.'],
+    );
   if (mode === 'ImageLib' && item.document_save_kbn !== 0)
-    throw new LibraryError('', 'Image library requires an image file.');
+    throw new LibraryError('', pageText['Image library requires an image file.']);
   if (
     (!options.create && !item.document_name) ||
     (item.document_save_kbn === 1 && (!item.document_name || !item.document_path))
   )
-    throw new LibraryError('', 'Document name and URL are required.');
+    throw new LibraryError('', pageText['Document name and URL are required.']);
   if (item.document_save_kbn === 1 && !/^(https?:\/\/|file:\/\/)/i.test(item.document_path))
-    throw new LibraryError('', 'Invalid document URL.');
+    throw new LibraryError('', pageText['Invalid document URL.']);
   if (
     !referenceTypes.includes(item.document_type) ||
     (mode !== 'RepLIb' && item.document_type === 'AIModel') ||
     ![0, 1].includes(item.document_mobile_save) ||
     ![0, 1].includes(item.is_other_app_open)
   )
-    throw new LibraryError('', 'Invalid document options.');
+    throw new LibraryError('', pageText['Invalid document options.']);
   if (options.create && item.document_save_kbn === 0 && !files.length)
-    throw new LibraryError('', 'File upload is required.');
+    throw new LibraryError('', pageText['File upload is required.']);
   if (files.length > 10 || (!options.create && files.length > 1))
-    throw new LibraryError('', 'Too many uploaded files.');
+    throw new LibraryError('', pageText['Too many uploaded files.']);
   for (const file of files) {
     if (file.name.toLowerCase().endsWith('.irfd'))
-      throw new LibraryError('', 'IRFD files require FreeDraw storage mode.');
+      throw new LibraryError('', pageText['IRFD files require FreeDraw storage mode.']);
     if (mode === 'ImageLib') {
       const format = (
         await sharp(file.path)
@@ -430,7 +435,7 @@ export async function saveLibraryDocument(
           .catch(() => ({}) as Metadata)
       ).format;
       if (!format || !['png', 'jpeg', 'tiff'].includes(format))
-        throw new LibraryError('', 'Only PNG, JPEG and TIFF images are accepted.');
+        throw new LibraryError('', pageText['Only PNG, JPEG and TIFF images are accepted.']);
     }
   }
   const connection = await db.connect(),
@@ -442,15 +447,20 @@ export async function saveLibraryDocument(
       'LOCK TABLE mst_common_document,mst_report_document,mst_image_document IN SHARE ROW EXCLUSIVE MODE',
     );
     const permissions = await managerLibraryPermissions(connection, user);
-    if (!permissions[options.create ? 'create' : 'edit']) throw new LibraryError('', 'Role authority is insufficient.');
+    if (!permissions[options.create ? 'create' : 'edit'])
+      throw new LibraryError('', pageText['Role authority is insufficient.']);
     const old = options.create ? undefined : await libraryDocument(connection, mode, item.document_id, user, true);
-    if (!options.create && !old) throw new LibraryError('', 'Document is not accessible.');
+    if (!options.create && !old) throw new LibraryError('', pageText['Document is not accessible.']);
     if (old && Number(old.document_save_kbn) === 2)
-      throw new LibraryPendingError('', 'FreeDraw registration is not implemented yet. No changes were saved.');
+      throw new LibraryPendingError(
+        '',
+        pageText['FreeDraw registration is not implemented yet. No changes were saved.'],
+      );
     const location = await librarySetting(connection, 'FILE_LOCATION');
-    if (location && !['0', '1'].includes(location)) throw new LibraryError('', 'Unsupported library file location.');
+    if (location && !['0', '1'].includes(location))
+      throw new LibraryError('', pageText['Unsupported library file location.']);
     const visible = new Set((await labelRows(connection, mode, user)).map((row) => row.mst_label_id));
-    if (options.labels.some((id) => !visible.has(id))) throw new LibraryError('', 'Label is not accessible.');
+    if (options.labels.some((id) => !visible.has(id))) throw new LibraryError('', pageText['Label is not accessible.']);
     const batch = item.document_save_kbn === 1 || !files.length ? [undefined] : files;
     for (const file of batch) {
       {
@@ -463,7 +473,7 @@ export async function saveLibraryDocument(
           ).rows[0].count,
         );
         if (limit !== undefined && /^\d+$/.test(limit) && count >= Number(limit))
-          throw new LibraryError('', 'The document license limit has been reached.');
+          throw new LibraryError('', pageText['The document license limit has been reached.']);
       }
       const id =
         old?.document_id ??
@@ -525,7 +535,7 @@ export async function saveLibraryDocument(
             return undefined;
           }))
         )
-          throw new LibraryError('', 'A library file already exists for this ID.');
+          throw new LibraryError('', pageText['A library file already exists for this ID.']);
         changes.push(await stageFile(join(directory, String(id)), file));
       }
       ids.push(id);
@@ -548,7 +558,7 @@ export async function changeLibraryDocuments(
   action: 'delete' | 'labels' | 'roles',
   options: { labels?: number[]; remove?: boolean; roles?: LibraryRoles; noRoles?: boolean } = {},
 ) {
-  if (!ids.length) throw new LibraryError('', 'Select a document.');
+  if (!ids.length) throw new LibraryError('', pageText['Select a document.']);
   const connection = await db.connect(),
     changes: Awaited<ReturnType<typeof stageFile>>[] = [],
     category = libraryModes[mode];
@@ -559,19 +569,20 @@ export async function changeLibraryDocuments(
     );
     const permissions = await managerLibraryPermissions(connection, user);
     if (!permissions[action === 'delete' ? 'delete' : 'edit'])
-      throw new LibraryError('', 'Role authority is insufficient.');
+      throw new LibraryError('', pageText['Role authority is insufficient.']);
     const visible = new Set((await labelRows(connection, mode, user)).map((row) => row.mst_label_id));
-    if (options.labels?.some((id) => !visible.has(id))) throw new LibraryError('', 'Label is not accessible.');
+    if (options.labels?.some((id) => !visible.has(id)))
+      throw new LibraryError('', pageText['Label is not accessible.']);
     for (const id of ids) {
       const item = await libraryDocument(connection, mode, id, user, true);
-      if (!item) throw new LibraryError('', 'Document is not accessible.');
+      if (!item) throw new LibraryError('', pageText['Document is not accessible.']);
       const fd = Number(item.document_save_kbn) === 2;
       if (
         fd &&
         action === 'delete' &&
         (await connection.query('SELECT 1 FROM document_lock WHERE document_id=$1', [id])).rowCount
       )
-        throw new LibraryError('', 'A selected document is locked.');
+        throw new LibraryError('', pageText['A selected document is locked.']);
       if (action === 'roles') await writeRoles(connection, mode, id, user, options.roles ?? {}, !!options.noRoles, fd);
       else if (action === 'labels')
         for (const label of options.labels ?? []) {
@@ -605,7 +616,8 @@ export async function changeLibraryDocuments(
   for (const change of changes) await change.commit();
 }
 export async function libraryBinary(db: Database, document: LibraryDocument) {
-  if (Number(document.document_save_kbn) === 1) throw new LibraryError('', 'This document is a URL, not a file.');
+  if (Number(document.document_save_kbn) === 1)
+    throw new LibraryError('', pageText['This document is a URL, not a file.']);
   const location = await librarySetting(db, 'FILE_LOCATION');
   const data =
     location === '1'
@@ -614,7 +626,7 @@ export async function libraryBinary(db: Database, document: LibraryDocument) {
           if (error.code !== 'ENOENT') throw error;
           return undefined;
         });
-  if (!Buffer.isBuffer(data)) throw new LibraryError('', 'Document file was not found.');
+  if (!Buffer.isBuffer(data)) throw new LibraryError('', pageText['Document file was not found.']);
   return {
     data,
     name: String(document.document_name_org ?? document.document_name),

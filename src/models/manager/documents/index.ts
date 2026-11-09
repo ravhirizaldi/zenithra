@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { labelChecked, labelInteger, labelRows, labelString, LabelValidationError } from '../labels/index.js';
@@ -96,11 +97,11 @@ export async function documentAppLaunch(db: Database, settings: DocumentSettings
     const row = (await db.query<{ password: string }>('SELECT password FROM mst_user WHERE user_id=$1', [user]))
       .rows[0];
     if (!user || !row || typeof row.password !== 'string')
-      throw new Error('The Documents app-launch account is unavailable.');
+      throw new Error(pageText['The Documents app-launch account is unavailable.']);
     let password = row.password;
     if (settings.passwordEncrypted) {
       const key = process.env.CONMAS_LEGACY_KEY;
-      if (!key) throw new Error('Password encryption key is not configured.');
+      if (!key) throw new Error(pageText['Password encryption key is not configured.']);
       password = legacyDecrypt(password, legacyEncrypt(`#*${user}*#`, key));
     }
     auth = '&auth=' + (await documentSchemeAuth(user, password));
@@ -139,12 +140,12 @@ export async function documentLinkLabels(
           .map((value) => labelInteger(value)),
       ),
     ];
-    if (result.some((id) => id <= 0)) throw new LabelValidationError('', 'Select valid reports and labels.');
+    if (result.some((id) => id <= 0)) throw new LabelValidationError('', pageText['Select valid reports and labels.']);
     return result;
   };
   const reports = ids(reportInput),
     labels = ids(labelInput);
-  if (!['add', 'delete'].includes(status)) throw new LabelValidationError('', 'Invalid label operation.');
+  if (!['add', 'delete'].includes(status)) throw new LabelValidationError('', pageText['Invalid label operation.']);
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -162,7 +163,7 @@ export async function documentLinkLabels(
       )
     ).rows;
     if (accessible.length !== reports.length)
-      throw new LabelValidationError('', 'A selected report is unavailable, locked or not editable.');
+      throw new LabelValidationError('', pageText['A selected report is unavailable, locked or not editable.']);
     const selected = (
       await client.query(
         `SELECT mst_label_id,binder_rep_id FROM mst_label_rep
@@ -171,7 +172,7 @@ export async function documentLinkLabels(
       )
     ).rows;
     if (selected.length !== labels.length || selected.some((label) => label.binder_rep_id != null))
-      throw new LabelValidationError('', 'A selected label is unavailable or belongs to a binder.');
+      throw new LabelValidationError('', pageText['A selected label is unavailable or belongs to a binder.']);
     if (status === 'add')
       await client.query(
         `INSERT INTO rep_label
@@ -221,12 +222,12 @@ export function documentState(
   const source = act === 'BACK_INDEX' && previous ? { ...previous, Act: act } : input;
   const choice = (name: string, allowed: string[], fallback: string) => {
     const value = labelString(source[name]) || fallback;
-    if (!allowed.includes(value)) throw new LabelValidationError(name, 'Invalid filter value.');
+    if (!allowed.includes(value)) throw new LabelValidationError(name, pageText['Invalid filter value.']);
     return value;
   };
   const column = labelString(source.SortColumn) || 'SYS_UPDATE_TIME';
   if (!(documentSortColumns as readonly string[]).includes(column))
-    throw new LabelValidationError('SortColumn', 'Invalid sort column.');
+    throw new LabelValidationError('SortColumn', pageText['Invalid sort column.']);
   const label = labelString(source.LabelID);
   if (label && !['All', 'NoLabel', 'Trash'].includes(label)) labelInteger(label);
   const search = source.SearchInfo as DocumentState['SearchInfo'] | undefined;
@@ -235,7 +236,8 @@ export function documentState(
   const size = integer(source.PageSize, settings.pageSize) || settings.pageSize;
   const index = integer(source.PageIndex, 0);
   const labelIndex = integer(source.LabelPageIndexBackup, 1);
-  if (size <= 0 || index < 0 || labelIndex < 1) throw new LabelValidationError('PageIndex', 'Invalid page value.');
+  if (size <= 0 || index < 0 || labelIndex < 1)
+    throw new LabelValidationError('PageIndex', pageText['Invalid page value.']);
   return {
     Act: act,
     LabelID: label,
@@ -269,7 +271,7 @@ const halfWidth = (value: string) =>
 export function documentDate(date: string, time: string): string | null {
   if (!date.trim()) return null;
   const match = /^(\d{4})[/-](\d{1,2})[/-](\d{1,2})$/.exec(date.trim());
-  if (!match) throw new LabelValidationError('SearchInfo', 'Invalid date. Use yyyy/MM/dd.');
+  if (!match) throw new LabelValidationError('SearchInfo', pageText['Invalid date. Use yyyy/MM/dd.']);
   const year = Number(match[1]),
     month = Number(match[2]),
     day = Number(match[3]);
@@ -277,7 +279,7 @@ export function documentDate(date: string, time: string): string | null {
   check.setUTCFullYear(year, month - 1, day);
   check.setUTCHours(0, 0, 0, 0);
   if (year < 1 || check.getUTCFullYear() !== year || check.getUTCMonth() !== month - 1 || check.getUTCDate() !== day)
-    throw new LabelValidationError('SearchInfo', 'Invalid date.');
+    throw new LabelValidationError('SearchInfo', pageText['Invalid date.']);
   const clock = /^(\d{1,2}):(\d{2})(?::(\d{2}))?$/.exec(time.trim());
   const valid = clock && Number(clock[1]) < 24 && Number(clock[2]) < 60 && Number(clock[3] ?? 0) < 60;
   return `${match[1]}/${String(month).padStart(2, '0')}/${String(day).padStart(2, '0')} ${valid ? `${clock[1].padStart(2, '0')}:${clock[2]}:${clock[3] ?? '00'}` : '00:00:00'}`;

@@ -1,4 +1,4 @@
-<% const historic = clusterId !== null;
+<% const ui = managerResources["documents"]; %><% const historic = clusterId !== null;
    const action = historic ? 'DetailsClusterHistory' : edit ? 'EditSheet' : 'DetailsSheet';
    const query = {repTopId: String(report.rep_top_id), pageIndex: String(pageIndex), ...(historic ? {clusterId: String(clusterId)} : {})};
    const link = flags => base + '/InputReport/' + action + '?' + new URLSearchParams({...query, ...flags}).toString();
@@ -17,8 +17,8 @@
     <td id="previewRightTop"><br></td>
   </tr>
   <tr>
-    <td id="previewLeftBottom"><% if (!historic) { %><% if (pageIndex > 0) { %><a href="<%= link({pageIndex: String(pageIndex - 1)}) %>" class="img_preview_prev_e" title="Previous" data-ajax="true" data-ajax-update="#content"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/detail/preview_prev_d.png" alt="[prev]"><% } %><% } %></td>
-    <td id="previewRightBottom"><% if (!historic) { %><% if (pageIndex + 1 < pages) { %><a href="<%= link({pageIndex: String(pageIndex + 1)}) %>" class="img_preview_next_e" title="Next" data-ajax="true" data-ajax-update="#content"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/detail/preview_next_d.png" alt="[next]"><% } %><% } %></td>
+    <td id="previewLeftBottom"><% if (!historic) { %><% if (pageIndex > 0) { %><a href="<%= link({pageIndex: String(pageIndex - 1)}) %>" class="img_preview_prev_e" title="<%= ui["Previous"] %>" data-ajax="true" data-ajax-update="#content"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/detail/preview_prev_d.png" alt="<%= ui["[prev]"] %>"><% } %><% } %></td>
+    <td id="previewRightBottom"><% if (!historic) { %><% if (pageIndex + 1 < pages) { %><a href="<%= link({pageIndex: String(pageIndex + 1)}) %>" class="img_preview_next_e" title="<%= ui["Next"] %>" data-ajax="true" data-ajax-update="#content"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/detail/preview_next_d.png" alt="<%= ui["[next]"] %>"><% } %><% } %></td>
   </tr>
   <tr style="border-style:solid;"><td id="previewFooter" colspan="3"><%= pageIndex + 1 %>/<%= pages %></td></tr>
 </table>

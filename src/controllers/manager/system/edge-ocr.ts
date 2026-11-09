@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { edgeOcrLicense, licenseStatus } from '../../../shared/license-counts.js';
@@ -24,7 +25,7 @@ export function updateEdgeSelection(previous: number[], value: string): number[]
     const match = /^([+-]?\d+):(.*)$/.exec(item);
     if (!match) continue;
     const id = Number(match[1]);
-    if (!Number.isInteger(id) || id < -2147483648 || id > 2147483647) throw new Error('Invalid terminal ID.');
+    if (!Number.isInteger(id) || id < -2147483648 || id > 2147483647) throw new Error(pageText['Invalid terminal ID.']);
     selected.delete(id);
     if (match[2].toUpperCase() === 'TRUE') selected.add(id);
   }

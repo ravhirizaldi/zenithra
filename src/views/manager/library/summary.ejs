@@ -1,8 +1,8 @@
-<div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="DocumentInfoBox">Information</button></h2></div>
+<% const ui = managerResources["library"]; %><div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="DocumentInfoBox"><%= ui["Information"] %></button></h2></div>
 <div id="DocumentInfoBox"><table class="table_information horizontal" cellspacing="0">
-  <tr><th scope="row">ID</th><td><%= document.document_id %></td></tr>
-  <tr><th scope="row">Name</th><td><%= document.document_name %></td></tr>
-  <% if(view === 'role') { %><tr><th scope="row">Original file name</th><td><%= document.document_name_org || '' %></td></tr><% } %>
-  <% if(Number(document.document_save_kbn) === 1) { %><tr><th scope="row">URL</th><td><%= document.document_path %></td></tr>
-  <% } else { %><tr><th scope="row">DocumentFile</th><td><a href="<%= root %>/GetDocument?documentId=<%= document.document_id %>"><%= document.document_name_org || '..' %></a></td></tr><% } %>
+  <tr><th scope="row"><%= ui["ID"] %></th><td><%= document.document_id %></td></tr>
+  <tr><th scope="row"><%= ui["Name"] %></th><td><%= document.document_name %></td></tr>
+  <% if(view === 'role') { %><tr><th scope="row"><%= ui["Original file name"] %></th><td><%= document.document_name_org || '' %></td></tr><% } %>
+  <% if(Number(document.document_save_kbn) === 1) { %><tr><th scope="row"><%= ui["URL"] %></th><td><%= document.document_path %></td></tr>
+  <% } else { %><tr><th scope="row"><%= ui["DocumentFile"] %></th><td><a href="<%= root %>/GetDocument?documentId=<%= document.document_id %>"><%= document.document_name_org || '..' %></a></td></tr><% } %>
 </table></div>

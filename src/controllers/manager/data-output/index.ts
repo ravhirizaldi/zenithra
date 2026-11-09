@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/data-output/resources.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import type pg from 'pg';
 import { randomBytes } from 'node:crypto';
@@ -61,13 +62,13 @@ export function registerManagerOutputController(
   requireAuth: RequestHandler,
 ) {
   app.use(`${base}/DataOutput`, requireAuth, async (req, res, next) => {
-    if (!db) return res.status(503).send('Database is not configured.');
+    if (!db) return res.status(503).send(pageText['Database is not configured.']);
     if (
       !(await managerLibraryPermissions(db, req.session?.userId ?? '')).output ||
       !managerTabAllowed('DataOutput') ||
       licenseStatus().freeDrawOnly
     )
-      return res.status(403).send('Role authority is insufficient.');
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     if (authEnabled) {
       req.session.csrfToken ??= randomBytes(32).toString('hex');
       res.locals.csrfToken = req.session.csrfToken;
@@ -75,7 +76,7 @@ export function registerManagerOutputController(
         !['GET', 'HEAD'].includes(req.method) &&
         labelString(req.body?.__RequestVerificationToken) !== req.session.csrfToken
       )
-        return res.status(403).send('Invalid form verification token.');
+        return res.status(403).send(pageText['Invalid form verification token.']);
     }
     req.session.managerOutput ??= {
       definitions: [],
@@ -94,7 +95,7 @@ export function registerManagerOutputController(
       active: 'DataOutput',
       section: '',
       login: false,
-      title: 'Data Output',
+      title: pageText['Data Output'],
       userName: req.session.userName,
       outputPage: {
         base,
@@ -111,7 +112,7 @@ export function registerManagerOutputController(
     res.status(error instanceof LibraryPendingError ? 501 : error instanceof LabelValidationError ? 400 : 500);
     return full(req, res, {
       view: 'error',
-      error: error instanceof LabelValidationError ? error.message : 'Server error has occurred.',
+      error: error instanceof LabelValidationError ? error.message : pageText['Server error has occurred.'],
     });
   };
   const renderList = async (req: Request, res: Response, kind: OutputKind, partial = false) => {
@@ -222,7 +223,7 @@ export function registerManagerOutputController(
     if (!selection.reports.length) return res.redirect(`${base}/DataOutput/RepIndex?act=NONE_SELECT`);
     const requested = labelInteger(source(req).requestTopId, -1),
       layout = selection.layouts.find((layout) => layout.org === requested) ?? selection.layouts[0];
-    if (!layout) throw new LibraryError('', 'Select documents first.');
+    if (!layout) throw new LibraryError('', pageText['Select documents first.']);
     await outputAuthorize(db, 'rep', selection.reports, req.session.userId ?? '');
     return full(req, res, { view: 'details', selection, layout });
   };
@@ -240,7 +241,7 @@ export function registerManagerOutputController(
         org = labelInteger(input['outputSelectData.defTopId']),
         actor = req.session.userId ?? '';
       const current = selection.layouts.find((layout) => layout.org === org);
-      if (!current) throw new LibraryError('', 'Invalid output layout.');
+      if (!current) throw new LibraryError('', pageText['Invalid output layout.']);
       const action = labelString(input.act);
       if (action === 'BACK_INDEX') return res.redirect(`${base}/DataOutput/RepIndex?act=BACK_INDEX`);
       if (
@@ -251,7 +252,7 @@ export function registerManagerOutputController(
       )
         throw new LibraryPendingError(
           '',
-          'Automatic-output configuration is not implemented yet. No settings were changed.',
+          pageText['Automatic-output configuration is not implemented yet. No settings were changed.'],
         );
       const layout = outputLayoutInput(current, input);
       selection.layouts = selection.layouts.map((item) => (item.org === org ? layout : item));
@@ -265,7 +266,7 @@ export function registerManagerOutputController(
       }
       if (['link', 'saveDefField', 'saveDefFieldClear', 'saveDefFieldLoad'].includes(action))
         return res.redirect(`${base}/DataOutput/Details?requestTopId=${labelInteger(input.requestDefTopId, org)}`);
-      if (action !== 'NEXT') throw new LibraryError('', 'Unknown output action.');
+      if (action !== 'NEXT') throw new LibraryError('', pageText['Unknown output action.']);
       return res.redirect(`${base}/DataOutput/Confirm`);
     } catch (error) {
       return fail(req, res, error);
@@ -329,7 +330,7 @@ export function registerManagerOutputController(
       fail(
         req,
         res,
-        new LibraryPendingError('', 'Cooperation-view output is not implemented yet. No changes were saved.'),
+        new LibraryPendingError('', pageText['Cooperation-view output is not implemented yet. No changes were saved.']),
       ),
     );
   for (const name of ['CooperationViewList', 'CooperationViewDetail', 'CooperationViewFieldSetting'] as const)
@@ -339,7 +340,9 @@ export function registerManagerOutputController(
         res,
         new LibraryPendingError(
           '',
-          'Cooperation-view fields, filters, CSV/SQL and MotionBoard delivery are not implemented yet. No changes were saved.',
+          pageText[
+            'Cooperation-view fields, filters, CSV/SQL and MotionBoard delivery are not implemented yet. No changes were saved.'
+          ],
         ),
       ),
     );

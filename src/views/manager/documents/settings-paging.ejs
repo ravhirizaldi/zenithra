@@ -1,4 +1,4 @@
-<% const labels = kind === 'labels';
+<% const ui = managerResources["documents"]; %><% const labels = kind === 'labels';
 const action = pageIndex => labels ? `fConMasLabelSubmitAction('PageType'); return fConMasPageSave(${pageIndex});` : `return fConMasPageAction(${pageIndex},'PageType');`;
 const sizeId = labels ? 'LabelSerach_PageSize' : 'PageData_PageSize';
 const change = labels ? "fConMasLabelSubmitAction('PageType'); return fConMasSubmit();" : "return fConMasPageSubmitAction('PageType');";
@@ -9,7 +9,7 @@ const sizes = [...new Set([...(settings.pageSizes ?? []), size])]; %>
       <% for (const option of sizes) { %><option value="<%= option %>"<% if (option === size) { %> selected<% } %>><%= option %></option><% } %>
     </select>
   <% } %>&nbsp;
-  <% if (index > 0) { %><a href="#" onclick="<%= action(0) %>" style="padding-right:5px;"><%= r.FirstPage %></a><a href="#" class="img_page_prev_e" onclick="<%= action(index - 1) %>"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+  <% if (index > 0) { %><a href="#" onclick="<%= action(0) %>" style="padding-right:5px;"><%= r.FirstPage %></a><a href="#" class="img_page_prev_e" onclick="<%= action(index - 1) %>"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>"><% } %>
   &nbsp;<%= index + 1 %>&nbsp;/&nbsp;<%= pages %>&nbsp;
-  <% if (index + 1 < pages) { %><a href="#" class="img_page_next_e" onclick="<%= action(index + 1) %>"> </a><a href="#" onclick="<%= action(pages - 1) %>" style="padding-left:5px;"><%= r.LastPage %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+  <% if (index + 1 < pages) { %><a href="#" class="img_page_next_e" onclick="<%= action(index + 1) %>"> </a><a href="#" onclick="<%= action(pages - 1) %>" style="padding-left:5px;"><%= r.LastPage %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>"><% } %>
 </div>

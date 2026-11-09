@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type pg from 'pg';
 import { XMLBuilder } from 'fast-xml-parser';
 import { createRequire } from 'node:module';
@@ -12,7 +13,7 @@ export const dataOutputNames = [
 ] as const;
 export function exportStatement(command: number, format: string, options: Record<string, unknown>) {
   if (!Number.isInteger(command) || command < 0 || command > 4 || !['xml', 'csv'].includes(format))
-    throw new Error('Invalid export parameters.');
+    throw new Error(pageText['Invalid export parameters.']);
   const values: unknown[] = [];
   const parameter = (value: unknown) => {
     values.push(value);
@@ -75,7 +76,7 @@ export function serializeExportRows(
 }
 export function encodeExport(text: string, format: string, encoding: string): Buffer {
   if (format === 'xml' || encoding === '65001') return Buffer.from(text, 'utf8');
-  if (encoding !== '932') throw new Error('Invalid export encoding.');
+  if (encoding !== '932') throw new Error(pageText['Invalid export encoding.']);
   const appRequire = createRequire(import.meta.url);
   const expressRequire = createRequire(appRequire.resolve('express'));
   const bodyParserRequire = createRequire(expressRequire.resolve('body-parser'));

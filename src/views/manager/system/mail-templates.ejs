@@ -1,4 +1,4 @@
-<% const page=mailTemplatePage;const root=`${base}/System`;const labels=page.labels;const model=page.model??{};const details=page.mode==='DetailsMailTemplate';const editing=page.mode==='EditMailTemplate';const creating=page.mode==='CreateMailTemplate';const rows=field=>Array.isArray(model[field])?model[field]:[];const addresses=[['tos','TO','SendTo'],['ccs','CC','SendCc'],['bccs','BCC','SendBcc']]; %>
+<% const ui = managerResources["system"]; %><% const page=mailTemplatePage;const root=`${base}/System`;const labels=page.labels;const model=page.model??{};const details=page.mode==='DetailsMailTemplate';const editing=page.mode==='EditMailTemplate';const creating=page.mode==='CreateMailTemplate';const rows=field=>Array.isArray(model[field])?model[field]:[];const addresses=[['tos','TO','SendTo'],['ccs','CC','SendCc'],['bccs','BCC','SendBcc']]; %>
 <script>
   function mailTemplateToggle(id) {
     const section=document.getElementById(id);
@@ -125,7 +125,7 @@
               <select class="mail-recipient-type" name="mailTemp.<%= field %>[<%= index %>].type" aria-label="<%= title %> <%= labels.send %><%= index+1 %>">
                 <% for(const option of page.sendTypes??[]) { %><option value="<%= option.value %>" <%= address.type===option.value?'selected':'' %>><%= option.text %></option><% } %>
               </select>
-              <input class="EditValue1" name="mailTemp.<%= field %>[<%= index %>].value" value="<%= address.value??'' %>" aria-label="<%= title %> <%= labels.send %><%= index+1 %> value">
+              <input class="EditValue1" name="mailTemp.<%= field %>[<%= index %>].value" value="<%= address.value??'' %>" aria-label="<%= title %> <%= labels.send %><%= index+1 %> <%= ui["value"] %>">
             </td><input type="hidden" name="mailTemp.<%= field %>[<%= index %>].name" value="<%= address.name??'' %>"></tr>
           <% } %>
         </table>

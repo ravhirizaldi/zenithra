@@ -6,6 +6,7 @@ import { readFile } from 'node:fs/promises';
 import { createHash } from 'node:crypto';
 import { hostname } from 'node:os';
 import ejs from 'ejs';
+import { managerResourceLocals } from '../../../../src/config/manager/resources.js';
 import pg from 'pg';
 import { createApp } from '../../../helpers/app.js';
 import { menus } from '../../../../src/config/manager.js';
@@ -419,6 +420,7 @@ test(
 
 test('FreeDrawOnly Label sidebar keeps common and image libraries and hides form/report/master branches', async () => {
   const html = await ejs.renderFile('src/views/manager/labels/index.ejs', {
+    ...managerResourceLocals,
     base: '/ConMasManager',
     csrfToken: 'fixture',
     view: 'index',

@@ -1,14 +1,16 @@
+import { text as pageText } from '../../config/manager/documents/resources.js';
 import { join } from 'node:path';
 import ejs from 'ejs';
 import { root } from '../../config/manager.js';
 import { r, v } from '../../config/manager/documents/resources.js';
+import { managerResourceLocals } from '../../config/manager/resources.js';
 import { legacyEncrypt } from '../../shared/legacy-auth.js';
 
 const scripts = join(root, 'src/views/manager/documents/scripts');
 let cached: ReturnType<typeof load> | undefined;
 export async function documentSchemeAuth(user: string, password: string) {
   const key = process.env.CONMAS_URL_SCHEME_KEY;
-  if (!key) throw new Error('The Documents app-launch compatibility key is not configured.');
+  if (!key) throw new Error(pageText['The Documents app-launch compatibility key is not configured.']);
   return encodeURIComponent(legacyEncrypt(`user=${user}&pass=${password}`, key)).replace(/%[0-9A-F]{2}/g, (value) =>
     value.toLowerCase(),
   );
@@ -18,7 +20,7 @@ async function load() {
     ejs.renderFile(join(scripts, 'index.ejs'), { r, v }),
     ejs.renderFile(join(scripts, 'search.ejs'), { r, v }),
   ]);
-  return { r, v, js, searchJs };
+  return { ...managerResourceLocals, r, v, js, searchJs };
 }
 export function documentViewSource() {
   cached ??= load();

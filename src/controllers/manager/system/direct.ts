@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
@@ -166,7 +167,7 @@ function encryptDirectXml(xml: string): string {
 
 function parseXml(xml: string): Xml {
   const parsed = asObject(directParser.parse(xml));
-  if (!Object.keys(parsed).length) throw new Error('Direct settings XML is empty.');
+  if (!Object.keys(parsed).length) throw new Error(pageText['Direct settings XML is empty.']);
   return parsed;
 }
 
@@ -239,9 +240,9 @@ function setTemplateSetting(document: Xml, templates: DirectTemplate[], defaultT
 function denyUnavailableDirect(res: Response): boolean {
   try {
     if (!licenseStatus().freeDrawOnly) return false;
-    res.status(403).type('text/plain').send('Role authority is insufficient.');
+    res.status(403).type('text/plain').send(pageText['Role authority is insufficient.']);
   } catch {
-    res.status(503).type('text/plain').send('License information is unavailable.');
+    res.status(503).type('text/plain').send(pageText['License information is unavailable.']);
   }
   return true;
 }
@@ -254,7 +255,7 @@ async function requirePermission(
   action: 'read' | 'edit' | 'create' | 'delete',
 ): Promise<boolean> {
   if (!(await hasSystemPermission(db, req.session?.userId ?? '', scope, action))) {
-    res.status(403).type('text/plain').send('Role error.');
+    res.status(403).type('text/plain').send(pageText['Role error.']);
     return false;
   }
   return true;
@@ -357,7 +358,7 @@ async function accessToken(db: pg.Pool, req: Request, settingDocument?: Xml): Pr
   });
   const token = asText(result.access_token);
   const refreshToken = asText(result.refresh_token);
-  if (!token || !refreshToken) throw new Error('Direct token response is incomplete.');
+  if (!token || !refreshToken) throw new Error(pageText['Direct token response is incomplete.']);
   setting.refreshToken = refreshToken;
   setDirectSetting(document, setting);
   await saveDirectDocument(db, 'Setting', document, true, req);
@@ -691,7 +692,7 @@ async function sendMessage(access: string, talkId: string, content: string): Pro
     JSON.stringify({ type: 1, content }),
   );
   const id = asText(result.message_id);
-  if (!id) throw new Error('Direct message response is incomplete.');
+  if (!id) throw new Error(pageText['Direct message response is incomplete.']);
   return id;
 }
 
@@ -701,7 +702,7 @@ async function createPairTalk(access: string, domainId: string, email: string): 
     email,
   });
   const id = asText(result.talk_id);
-  if (!id) throw new Error('Direct talk response is incomplete.');
+  if (!id) throw new Error(pageText['Direct talk response is incomplete.']);
   return id;
 }
 
@@ -854,7 +855,7 @@ function logPageDefaults(
   limit: number,
 ): Record<string, unknown> {
   return {
-    title: 'Direct send log',
+    title: pageText['Direct send log'],
     filters,
     pageIndex,
     pageSize,
@@ -980,7 +981,8 @@ async function copyDirectMailAddresses(db: pg.Pool, req: Request, body: Record<s
   const domainId = field(body, 'copyDomainId');
   const selected = Array.from({ length: 5 }, (_, index) => bool(body[`isCopyMailAddressDirectUser[${index}]`]));
   const slots = selected.flatMap((checked, index) => (checked ? [index + 1] : []));
-  if (!domainId || !slots.length) throw new Error('Select a destination domain and at least one Direct user slot.');
+  if (!domainId || !slots.length)
+    throw new Error(pageText['Select a destination domain and at least one Direct user slot.']);
   const client = await db.connect();
   const term = req.ip ?? '';
   const userId = req.session?.userId ?? '';
@@ -1110,7 +1112,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         });
       }
       return showDirect(res, 'chat', {
-        title: 'Direct notice setting',
+        title: pageText['Direct notice setting'],
         setting: { ...setting, directUserName },
         linked: Boolean(setting.refreshToken),
         templates,
@@ -1127,13 +1129,13 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         res,
         'chat',
         {
-          title: 'Direct notice setting',
+          title: pageText['Direct notice setting'],
           setting: { ...directSetting({ direct: {} }), directUserName: '' },
           linked: false,
           templates: [],
           notifications: notificationFields.map((key) => ({ key, label: notificationNames[key], enabled: false })),
           permissions: await permissionFlags(db, req, 'system', ['read', 'edit', 'create', 'delete']),
-          error: 'Server error.',
+          error: pageText['Server error.'],
         },
         'DirectChat',
         500,
@@ -1156,7 +1158,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       await saveDirectDocument(db, 'Setting', document, true, req);
       return res.redirect(`${root}/DirectChat`);
     } catch {
-      return res.status(500).type('text/plain').send('The Direct link could not be deleted.');
+      return res.status(500).type('text/plain').send(pageText['The Direct link could not be deleted.']);
     }
   });
 
@@ -1166,7 +1168,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     try {
       const setting = directSetting(await loadDirectDocument(db, 'Setting', true));
       return showDirect(res, 'settingEdit', {
-        title: 'Direct application link Edit',
+        title: pageText['Direct application link Edit'],
         model: { clientId: setting.clientId, clientSecret: setting.clientSecret, redirectUrl: setting.redirectUrl },
         error: '',
         errors: {},
@@ -1176,9 +1178,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         res,
         'settingEdit',
         {
-          title: 'Direct application link Edit',
+          title: pageText['Direct application link Edit'],
           model: { clientId: '', clientSecret: '', redirectUrl: '' },
-          error: 'Server error.',
+          error: pageText['Server error.'],
           errors: {},
         },
         'DirectChat',
@@ -1201,7 +1203,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     if (!model.redirectUrl.trim()) errors.redirectUrl = 'Redirect URL is required.';
     if (Object.keys(errors).length)
       return showDirect(res.status(400), 'settingEdit', {
-        title: 'Direct application link Edit',
+        title: pageText['Direct application link Edit'],
         model,
         error: '',
         errors,
@@ -1223,9 +1225,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       return res.redirect(url.toString());
     } catch {
       return showDirect(res.status(500), 'settingEdit', {
-        title: 'Direct application link Edit',
+        title: pageText['Direct application link Edit'],
         model,
-        error: 'Direct application link could not be updated.',
+        error: pageText['Direct application link could not be updated.'],
         errors: {},
       });
     }
@@ -1240,9 +1242,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     const state = typeof query.state === 'string' ? query.state : '';
     if (!code || !pending || state !== pending.state) {
       return showDirect(res.status(400), 'settingEdit', {
-        title: 'Direct application link Edit',
+        title: pageText['Direct application link Edit'],
         model,
-        error: 'Direct application link could not be updated.',
+        error: pageText['Direct application link could not be updated.'],
         errors: {},
       });
     }
@@ -1255,7 +1257,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         redirect_uri: callbackUrl(model.redirectUrl),
       });
       const refreshToken = asText(response.refresh_token);
-      if (!refreshToken) throw new Error('Direct token response is incomplete.');
+      if (!refreshToken) throw new Error(pageText['Direct token response is incomplete.']);
       const document = await loadDirectDocument(db, 'Setting', true);
       const setting = directSetting(document);
       setting.clientId = model.clientId;
@@ -1268,9 +1270,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       return res.redirect(`${root}/DirectChat`);
     } catch {
       return showDirect(res.status(502), 'settingEdit', {
-        title: 'Direct application link Edit',
+        title: pageText['Direct application link Edit'],
         model,
-        error: 'Direct application link could not be updated.',
+        error: pageText['Direct application link could not be updated.'],
         errors: {},
       });
     }
@@ -1282,7 +1284,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     try {
       const setting = directSetting(await loadDirectDocument(db, 'Setting', true));
       return showDirect(res, 'notificationEdit', {
-        title: 'Notification settings Edit',
+        title: pageText['Notification settings Edit'],
         notifications: notificationFields.map((key) => ({
           key,
           label: notificationNames[key],
@@ -1292,9 +1294,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       });
     } catch {
       return showDirect(res.status(500), 'notificationEdit', {
-        title: 'Notification settings Edit',
+        title: pageText['Notification settings Edit'],
         notifications: notificationFields.map((key) => ({ key, label: notificationNames[key], enabled: false })),
-        error: 'Server error.',
+        error: pageText['Server error.'],
       });
     }
   });
@@ -1312,9 +1314,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       return res.redirect(`${root}/DirectChat`);
     } catch {
       return showDirect(res.status(500), 'notificationEdit', {
-        title: 'Notification settings Edit',
+        title: pageText['Notification settings Edit'],
         notifications: notificationFields.map((key) => ({ key, label: notificationNames[key], enabled: false })),
-        error: 'Notification settings could not be updated.',
+        error: pageText['Notification settings could not be updated.'],
       });
     }
   });
@@ -1325,7 +1327,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     const key = typeof req.query.id === 'string' ? req.query.id : '';
     const permission = templateId ? 'edit' : 'create';
     if (!templateKeys.includes(key as (typeof templateKeys)[number]))
-      return res.status(400).type('text/plain').send('Invalid Direct template type.');
+      return res.status(400).type('text/plain').send(pageText['Invalid Direct template type.']);
     if (!(await can(req, res, 'system', permission))) return;
     try {
       const document = await loadDirectDocument(db, key, false);
@@ -1340,7 +1342,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         })),
       );
       return showDirect(res, 'templateEdit', {
-        title: `${templateNames[key as keyof typeof templateNames]} template ${templateId ? 'Edit' : 'Register'}`,
+        title: `${templateNames[key as keyof typeof templateNames]} template ${templateId ? pageText['Edit'] : pageText['Register']}`,
         key,
         label: templateNames[key as keyof typeof templateNames],
         template,
@@ -1355,7 +1357,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       });
     } catch {
       return showDirect(res.status(500), 'templateEdit', {
-        title: 'Direct template Edit',
+        title: pageText['Direct template Edit'],
         key,
         label: templateNames[key as keyof typeof templateNames],
         template: emptyTemplate(),
@@ -1364,7 +1366,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         destinationOptions: selectedDirectDestinationOptions(key),
         domainLists: Array.from({ length: 10 }, () => [{ value: '', label: '' }]),
         testDomainSelectList: [{ value: '', label: '' }],
-        error: 'Server error.',
+        error: pageText['Server error.'],
         errors: {},
         permissions: {},
       });
@@ -1376,7 +1378,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     const body = req.body as Record<string, unknown>;
     const model = readTemplateModel(body);
     if (!templateKeys.includes(model.key as (typeof templateKeys)[number]))
-      return res.status(400).type('text/plain').send('Invalid Direct template type.');
+      return res.status(400).type('text/plain').send(pageText['Invalid Direct template type.']);
     const permission = model.template.templateId ? 'edit' : 'create';
     if (!(await can(req, res, 'system', permission))) return;
     try {
@@ -1384,7 +1386,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       const data = templateSetting(document);
       const existingIndex = data.templates.findIndex((template) => template.templateId === model.template.templateId);
       if (model.template.templateId && existingIndex < 0)
-        return res.status(404).type('text/plain').send('Direct template not found.');
+        return res.status(404).type('text/plain').send(pageText['Direct template not found.']);
       const errors = validateTemplate(model.template);
       if (errors.length) {
         const domains = await directDomains(db, req);
@@ -1429,14 +1431,14 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       return res.redirect(`${root}/DetailsDirectTemplate?id=${encodeURIComponent(`${model.key},${templateId}`)}`);
     } catch {
       return showDirect(res.status(500), 'templateEdit', {
-        title: 'Direct template Edit',
+        title: pageText['Direct template Edit'],
         ...model,
         label: templateNames[model.key as keyof typeof templateNames] ?? model.key,
         domains: [],
         destinationOptions: selectedDirectDestinationOptions(model.key),
         domainLists: Array.from({ length: 10 }, () => [{ value: '', label: '' }]),
         testDomainSelectList: [{ value: '', label: '' }],
-        error: 'Server error.',
+        error: pageText['Server error.'],
         errors: {},
         permissions: {},
       });
@@ -1479,12 +1481,12 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     const key = parts[0] ?? '';
     const templateId = parts[1] ?? '';
     if (!templateKeys.includes(key as (typeof templateKeys)[number]) || !templateId)
-      return res.status(400).type('text/plain').send('Invalid Direct template identifier.');
+      return res.status(400).type('text/plain').send(pageText['Invalid Direct template identifier.']);
     try {
       const templateDoc = await loadDirectDocument(db, key, false);
       const data = templateSetting(templateDoc);
       const template = data.templates.find((item) => item.templateId === templateId);
-      if (!template) return res.status(404).type('text/plain').send('Direct template not found.');
+      if (!template) return res.status(404).type('text/plain').send(pageText['Direct template not found.']);
       const domains = await directDomains(db, req);
       const labels = new Map(domains.map((domain) => [domain.value, domain.label]));
       template.destinations = template.destinations.map((destination) => ({
@@ -1503,14 +1505,14 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       });
     } catch {
       return showDirect(res.status(500), 'templateDetails', {
-        title: 'Direct template details',
+        title: pageText['Direct template details'],
         key,
         label: templateNames[key as keyof typeof templateNames],
         template: emptyTemplate(),
         isDefaultTemplate: false,
         destinationNames,
         permissions: {},
-        error: 'Server error.',
+        error: pageText['Server error.'],
       });
     }
   });
@@ -1528,14 +1530,14 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       const document = await loadDirectDocument(db, key, false);
       const data = templateSetting(document);
       if (!data.templates.some((template) => template.templateId === templateId))
-        return res.status(404).type('text/plain').send('Direct template not found.');
+        return res.status(404).type('text/plain').send(pageText['Direct template not found.']);
       data.templates = data.templates.filter((template) => template.templateId !== templateId);
       if (data.defaultTemplateId === templateId) data.defaultTemplateId = '';
       setTemplateSetting(document, data.templates, data.defaultTemplateId);
       await saveDirectDocument(db, key, document, false, req);
       return res.redirect(`${root}/DirectChat`);
     } catch {
-      return res.status(500).type('text/plain').send('Direct template could not be deleted.');
+      return res.status(500).type('text/plain').send(pageText['Direct template could not be deleted.']);
     }
   });
 
@@ -1570,7 +1572,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         {
           ...logPageDefaults(readLogFilters({}, true), 0, 20, 'send_time', 'DESC', [], 0, 0),
           permissions: {},
-          error: 'Server error.',
+          error: pageText['Server error.'],
         },
         'DirectSendLog',
       );
@@ -1623,7 +1625,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         ).rows[0] as DirectLogRow | undefined;
         if (row) {
           const token = await accessToken(db, req);
-          if (!token) throw new Error('Resend failed. not linked to direct.');
+          if (!token) throw new Error(pageText['Resend failed. not linked to direct.']);
           const key = asText(row.notification_type);
           if (row.destination_mail_address)
             await sendDirectByMail(
@@ -1792,7 +1794,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       res,
       'userList',
       {
-        title: 'User management - Direct linkage',
+        title: pageText['User management - Direct linkage'],
         users: rows.map((row) => {
           const user = toDirectUser(row);
           asObject(user.directUser).direct_group_talk_id = asText(row.direct_group_talk_domain_id);
@@ -1817,7 +1819,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     if (!(await can(req, res, 'user', 'read'))) return;
     const id = typeof req.query.id === 'string' ? req.query.id : '';
     const user = await loadDirectUser(db, id);
-    if (!user) return res.status(404).type('text/plain').send('User not found.');
+    if (!user) return res.status(404).type('text/plain').send(pageText['User not found.']);
     const domains = await directDomains(db, req).catch(() => []);
     const labels = new Map(domains.map((domain) => [domain.value, domain.label]));
     const direct = asObject(user.directUser);
@@ -1834,7 +1836,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       res,
       'userDetails',
       {
-        title: 'User Direct linkage details',
+        title: pageText['User Direct linkage details'],
         user,
         recipients,
         talk: {
@@ -1854,7 +1856,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     if (!(await can(req, res, 'user', 'edit'))) return;
     const id = typeof req.query.id === 'string' ? req.query.id : '';
     const user = await loadDirectUser(db, id);
-    if (!user) return res.status(404).type('text/plain').send('User not found.');
+    if (!user) return res.status(404).type('text/plain').send(pageText['User not found.']);
     const direct = asObject(user.directUser);
     if (!asText(direct.user_id)) direct.user_id = asText(user.userId);
     const domains = await directDomains(db, req).catch(() => []);
@@ -1869,7 +1871,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     return showDirect(
       res,
       'userEdit',
-      { title: 'User Direct linkage Edit', user, domains, domainLists, error: '', errors: {} },
+      { title: pageText['User Direct linkage Edit'], user, domains, domainLists, error: '', errors: {} },
       'UserList',
     );
   });
@@ -1879,9 +1881,9 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
     if (!(await can(req, res, 'user', 'edit'))) return;
     const body = req.body as Record<string, unknown>;
     const user = readDirectUser(body);
-    if (!user.userId) return res.status(400).type('text/plain').send('User ID is required.');
+    if (!user.userId) return res.status(400).type('text/plain').send(pageText['User ID is required.']);
     if (!(await loadDirectUser(db, asText(user.userId))))
-      return res.status(404).type('text/plain').send('User not found.');
+      return res.status(404).type('text/plain').send(pageText['User not found.']);
     const errors = validateDirectUser(user);
     const domains = await directDomains(db, req).catch(() => []);
     const direct = asObject(user.directUser);
@@ -1897,7 +1899,14 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       return showDirect(
         res.status(400),
         'userEdit',
-        { title: 'User Direct linkage Edit', user, domains, domainLists, error: errors.join(' '), errors: {} },
+        {
+          title: pageText['User Direct linkage Edit'],
+          user,
+          domains,
+          domainLists,
+          error: errors.join(' '),
+          errors: {},
+        },
         'UserList',
       );
     try {
@@ -1907,7 +1916,14 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
       return showDirect(
         res.status(500),
         'userEdit',
-        { title: 'User Direct linkage Edit', user, domains, domainLists, error: 'Server error.', errors: {} },
+        {
+          title: pageText['User Direct linkage Edit'],
+          user,
+          domains,
+          domainLists,
+          error: pageText['Server error.'],
+          errors: {},
+        },
         'UserList',
       );
     }
@@ -1928,7 +1944,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         ),
       );
     } catch {
-      return res.status(500).json({ error: 'Server error.' });
+      return res.status(500).json({ error: pageText['Server error.'] });
     }
   });
 
@@ -1941,7 +1957,7 @@ export function registerDirect(app: Express, db: pg.Pool, render: Render): void 
         await directSearchGroupTalk(db, req, field(body, 'searchTalkDomainId'), field(body, 'searchTalkName')),
       );
     } catch {
-      return res.status(500).json({ error: 'Server error.' });
+      return res.status(500).json({ error: pageText['Server error.'] });
     }
   });
 }

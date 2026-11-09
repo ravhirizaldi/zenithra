@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import type pg from 'pg';
 import { randomBytes } from 'node:crypto';
@@ -70,8 +71,9 @@ export function registerDocumentController(
     return requireAuth(req, res, async (error) => {
       if (error) return next(error);
       try {
-        if (!db) return res.status(503).send('Database is not configured.');
-        if (licenseStatus().freeDrawOnly) return res.status(403).send('Documents is unavailable with this license.');
+        if (!db) return res.status(503).send(pageText['Database is not configured.']);
+        if (licenseStatus().freeDrawOnly)
+          return res.status(403).send(pageText['Documents is unavailable with this license.']);
         if (authEnabled) {
           req.session.csrfToken ??= randomBytes(32).toString('hex');
           res.locals.csrfToken = req.session.csrfToken;
@@ -79,11 +81,11 @@ export function registerDocumentController(
             !['GET', 'HEAD'].includes(req.method) &&
             labelString(req.body?.__RequestVerificationToken) !== req.session.csrfToken
           )
-            return res.status(403).send('Invalid form verification token.');
+            return res.status(403).send(pageText['Invalid form verification token.']);
         }
         const settings = await documentSettings(db);
         const permissions = await documentPermissions(db, req.session?.userId ?? '', settings);
-        if (!permissions.refer) return res.status(403).send('Role authority is insufficient.');
+        if (!permissions.refer) return res.status(403).send(pageText['Role authority is insufficient.']);
         res.locals.documentSettings = settings;
         res.locals.documentPermissions = permissions;
         res.set('Cache-Control', 'no-store');
@@ -137,25 +139,26 @@ export function registerDocumentController(
       ].includes(action)
     )
       return res.status(501).send(pending);
-    if (!req.session) return res.status(503).send('A Manager session is required for label display preferences.');
+    if (!req.session)
+      return res.status(503).send(pageText['A Manager session is required for label display preferences.']);
     try {
       if (action === 'LABEL_MANAGEMENT_ADD' || action === 'LABEL_MANAGEMENT_DELETE') {
         const permissions = await labelPermissions(db!, req.session.userId ?? '');
         if (!permissions[action === 'LABEL_MANAGEMENT_ADD' ? 'create' : 'delete'])
-          return res.status(403).send('Role authority is insufficient.');
+          return res.status(403).send(pageText['Role authority is insufficient.']);
         const selected = labelString(req.body.LabelSelectID);
         const id = ['', 'All', 'NoLabel', 'Charge'].includes(selected) ? -1 : labelInteger(selected);
         if (action === 'LABEL_MANAGEMENT_ADD') {
           const quick = labelString(req.body.LabelCreateMode);
           if (!['0', '1'].includes(quick) || (quick === '1' && id <= 0))
-            throw new LabelValidationError('LabelCreateMode', 'Invalid label creation mode.');
+            throw new LabelValidationError('LabelCreateMode', pageText['Invalid label creation mode.']);
           const record = labelInput(req.body, 'Rep');
           if (record.label_icon_id < 1 || record.label_icon_id > 10)
-            throw new LabelValidationError('mst_label.label_icon_id', 'Invalid label icon.');
+            throw new LabelValidationError('mst_label.label_icon_id', pageText['Invalid label icon.']);
           await saveLabel(db!, 'Rep', record, req.session.userId ?? '', { quick: quick as '0' | '1', base: id });
           req.session.documentLabelHidden = false;
         } else {
-          if (id <= 0) throw new LabelValidationError('LabelSelectID', 'Select a label to delete.');
+          if (id <= 0) throw new LabelValidationError('LabelSelectID', pageText['Select a label to delete.']);
           await deleteLabel(db!, 'Rep', id);
         }
       } else req.session.documentLabelHidden = action === 'LABEL_MODE_CHANGE_HIDDEN';
@@ -178,7 +181,8 @@ export function registerDocumentController(
       const state = stateFor(req, res, req.body);
       let wrongIds: string[] = [];
       if (action.startsWith('DELETE_')) {
-        if (!res.locals.documentPermissions.delete) return res.status(403).send('Role authority is insufficient.');
+        if (!res.locals.documentPermissions.delete)
+          return res.status(403).send(pageText['Role authority is insufficient.']);
         wrongIds = await documentDelete(
           db!,
           req.body.ChkRepTopID,
@@ -188,7 +192,8 @@ export function registerDocumentController(
         );
       }
       if (action === 'LINK_LABEL') {
-        if (!res.locals.documentPermissions.update) return res.status(403).send('Role authority is insufficient.');
+        if (!res.locals.documentPermissions.update)
+          return res.status(403).send(pageText['Role authority is insufficient.']);
         await documentLinkLabels(
           db!,
           req.body.ChkRepTopID,
@@ -233,7 +238,7 @@ export function registerDocumentController(
   const labelView = async (req: Request, res: Response) => {
     const input = { ...req.query, ...req.body };
     if (!['Rep', '0'].includes(labelString(input.reportMode ?? input.LabelReportMode) || 'Rep'))
-      return res.status(501).send('This label navigation mode has not been migrated.');
+      return res.status(501).send(pageText['This label navigation mode has not been migrated.']);
     const settings = await labelSettings(db!);
     const search = labelString(input.SearchNameLabelView);
     const rows = await documentLabels(
@@ -268,7 +273,7 @@ export function registerDocumentController(
   app.post(common, labelView);
   app.post(`${base}/InputReport/GetIdentificationRequired`, async (req, res) => {
     if (req.get('X-Requested-With') !== 'XMLHttpRequest') return res.status(500).send('');
-    if (!req.session) return res.status(503).send('A Manager session is required.');
+    if (!req.session) return res.status(503).send(pageText['A Manager session is required.']);
     delete req.session.documentApprovalIdentity;
     try {
       const required = await documentIdentificationRequired(db!, req.body.repTopIds, req.session.userId ?? '');
@@ -307,7 +312,8 @@ export function registerDocumentController(
   app.post(`${base}/Common/TaskList`, taskList);
   const registTask = async (req: Request, res: Response) => {
     try {
-      if (!res.locals.documentPermissions.schedule) return res.status(403).send('Role authority is insufficient.');
+      if (!res.locals.documentPermissions.schedule)
+        return res.status(403).send(pageText['Role authority is insufficient.']);
       const input = req.method === 'POST' ? req.body : req.query;
       if (
         (labelString(input.RequestKbn ?? input.requestKbn) || '0') !== '0' ||
@@ -316,7 +322,7 @@ export function registerDocumentController(
         labelChecked(input['SchData.report_type']) ||
         labelString(input.SelectDefTask)
       )
-        return res.status(501).send('This task mode has not been migrated. No changes were saved.');
+        return res.status(501).send(pageText['This task mode has not been migrated. No changes were saved.']);
       const state = documentTaskState(req.method === 'POST' ? input : {});
       if (req.method === 'GET') {
         const year = labelInteger(input.year, 0),
@@ -332,7 +338,7 @@ export function registerDocumentController(
       try {
         const action = req.method === 'POST' ? labelString(input.SchAction) : '';
         if (!['', 'Submit', 'UserSearch', 'GroupSelect', 'Cancel'].includes(action))
-          return res.status(501).send('This task action has not been migrated. No changes were saved.');
+          return res.status(501).send(pageText['This task action has not been migrated. No changes were saved.']);
         if (action === 'Submit') {
           if (await documentRegistTask(db!, state, req.session?.userId ?? '')) {
             const [year, month, day] = state.record.start_date.split(/[/-]/);

@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Response } from 'express';
 import type pg from 'pg';
 import { hostname } from 'node:os';
@@ -14,7 +15,7 @@ export function registerAdmin(
       active: 'System',
       section: 'UserList',
       login: false,
-      title: 'Change Password of Administrator',
+      title: pageText['Change Password of Administrator'],
       userName: res.locals.userName,
       adminForm: { error },
     });
@@ -23,7 +24,8 @@ export function registerAdmin(
     const password = typeof req.body.new_password === 'string' ? req.body.new_password : '';
     if (!password) return show(res.status(400), 'New password is required.');
     if (password !== req.body.confirm_password) return show(res.status(400), 'The passwords do not match.');
-    if (!process.env.CONMAS_LEGACY_KEY) return res.status(503).send('Password encryption key is not configured.');
+    if (!process.env.CONMAS_LEGACY_KEY)
+      return res.status(503).send(pageText['Password encryption key is not configured.']);
     const id = req.session.userId;
     if (id !== 'conmasadmin') return res.sendStatus(403);
     await db.query(

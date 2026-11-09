@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/shared/resources.js';
 import type pg from 'pg';
 import { directIsLinked } from '../../../controllers/manager/system/direct.js';
 import { webhookIsLinked } from '../../../controllers/manager/system/webhook.js';
@@ -60,11 +61,11 @@ export async function reportNotificationOptions(db: Database, locale: string) {
 export function reportNotificationValues(input: unknown, multiple: boolean): string[] {
   const values = Array.isArray(input) ? input : [input];
   if (values.some((item) => typeof item !== 'string'))
-    throw new LabelValidationError('', 'Invalid notification setting.');
+    throw new LabelValidationError('', pageText['Invalid notification setting.']);
   const result = multiple
     ? (values as string[]).flatMap((item) => item.split(',')).filter(Boolean)
     : (values as string[]);
   if ((!multiple && result.length !== 1) || result.some((item) => item.length > 4000))
-    throw new LabelValidationError('', 'Invalid notification setting.');
+    throw new LabelValidationError('', pageText['Invalid notification setting.']);
   return result;
 }

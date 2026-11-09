@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/library/resources.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import type pg from 'pg';
 import { randomBytes, randomUUID } from 'node:crypto';
@@ -76,11 +77,11 @@ export function registerManagerLibraryController(
   requireAuth: RequestHandler,
 ) {
   app.use(`${base}/Library`, requireAuth, async (req, res, next) => {
-    if (!db) return res.status(503).send('Database is not configured.');
+    if (!db) return res.status(503).send(pageText['Database is not configured.']);
     const permissions = await managerLibraryPermissions(db, req.session?.userId ?? '');
     res.locals.libraryPermissions = permissions;
     if (!permissions.refer || !managerTabAllowed('Library'))
-      return res.status(403).send('Role authority is insufficient.');
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     return next();
   });
   const uploads = multer({ dest: tmpdir(), limits: { fileSize: 100_000_000, files: 10, fields: 4000 } }).fields([
@@ -91,7 +92,7 @@ export function registerManagerLibraryController(
   app.use(`${base}/Library`, (req, res, next) => {
     if (!req.is('multipart/form-data')) return next();
     if (Number(req.headers['content-length']) > 1_000_000_000)
-      return res.status(413).send('The upload exceeds the request size limit.');
+      return res.status(413).send(pageText['The upload exceeds the request size limit.']);
     return uploads(req, res, (error) => {
       const files = Array.isArray(req.files) ? req.files : Object.values(req.files ?? {}).flat();
       const cleanup = () => {
@@ -101,7 +102,7 @@ export function registerManagerLibraryController(
       res.once('close', cleanup);
       if (error) {
         cleanup();
-        return res.status(400).send('Invalid or oversized library upload.');
+        return res.status(400).send(pageText['Invalid or oversized library upload.']);
       }
       return next();
     });
@@ -114,15 +115,15 @@ export function registerManagerLibraryController(
         !['GET', 'HEAD'].includes(req.method) &&
         libraryText(req.body?.__RequestVerificationToken) !== req.session.csrfToken
       )
-        return res.status(403).send('Invalid form verification token.');
+        return res.status(403).send(pageText['Invalid form verification token.']);
     }
     try {
       const mode = libraryMode(source(req).mode ?? source(req).Mode);
       if (licenseStatus().freeDrawOnly && mode === 'RepLIb')
-        return res.status(403).send('Role authority is insufficient.');
+        return res.status(403).send(pageText['Role authority is insufficient.']);
       res.locals.libraryMode = mode;
     } catch {
-      return res.status(400).send('Invalid library mode.');
+      return res.status(400).send(pageText['Invalid library mode.']);
     }
     return next();
   });
@@ -149,7 +150,7 @@ export function registerManagerLibraryController(
       active: 'Library',
       section: '',
       login: false,
-      title: 'Library',
+      title: pageText['Library'],
       userName: req.session?.userName,
       libraryPage: data,
     });
@@ -197,11 +198,11 @@ export function registerManagerLibraryController(
       create = detailsMode === 'Create' || detailsMode === '1';
     const edit = detailsMode === 'Edit' || detailsMode === '2';
     if ((create && !data.permissions.create) || (edit && !data.permissions.edit))
-      return res.status(403).send('Role authority is insufficient.');
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     const document = create
       ? { document_id: 0, document_name: '', document_save_kbn: 0, document_mobile_save: 1, is_other_app_open: 1 }
       : await libraryDocument(db, data.mode, id, data.user, edit);
-    if (!document) return res.status(404).send('Document is not accessible.');
+    if (!document) return res.status(404).send(pageText['Document is not accessible.']);
     const draft = await draftFor(req, data.mode, create ? 0 : id);
     let item = document;
     if ((create || edit) && Object.keys(draft.input).length) {
@@ -269,7 +270,7 @@ export function registerManagerLibraryController(
     try {
       const permissions = res.locals.labelPermissions;
       if (input.LabelAct === 'LABEL_MANAGEMENT_ADD') {
-        if (!permissions?.create) return res.status(403).send('Role authority is insufficient.');
+        if (!permissions?.create) return res.status(403).send(pageText['Role authority is insufficient.']);
         const quick = libraryText(input.LabelCreateMode);
         if (quick !== '0' && quick !== '1') return res.sendStatus(400);
         await saveLabel(db, mode, labelInput(input, mode), req.session.userId ?? '', {
@@ -277,9 +278,9 @@ export function registerManagerLibraryController(
           base: labelInteger(input.LabelSelectID, -1),
         });
       } else if (input.LabelAct === 'LABEL_MANAGEMENT_DELETE') {
-        if (!permissions?.delete) return res.status(403).send('Role authority is insufficient.');
+        if (!permissions?.delete) return res.status(403).send(pageText['Role authority is insufficient.']);
         await deleteLabel(db, mode, labelInteger(input.LabelSelectID));
-      } else return res.status(400).send('Unknown action.');
+      } else return res.status(400).send(pageText['Unknown action.']);
       return res.redirect(`${base}/Library?mode=${mode}&Act=BACK_INDEX`);
     } catch (error) {
       return renderIndex(req, res, fail(res, error));
@@ -318,9 +319,9 @@ export function registerManagerLibraryController(
       const create = ['Create', '1'].includes(libraryText(input.DetailsMode)),
         actor = req.session.userId ?? '';
       if (!res.locals.libraryPermissions[create ? 'create' : 'edit'])
-        return res.status(403).send('Role authority is insufficient.');
+        return res.status(403).send(pageText['Role authority is insufficient.']);
       if (!create && !(await libraryDocument(db, mode, id, actor, true)))
-        return res.status(403).send('Role authority is insufficient.');
+        return res.status(403).send(pageText['Role authority is insufficient.']);
       if (input.act === 'EDIT_CANCEL') {
         await clearDraft(req);
         return res.redirect(`${base}/Library?mode=${mode}&Act=BACK_INDEX`);
@@ -331,7 +332,7 @@ export function registerManagerLibraryController(
         // FreeDraw state transitions need their original lock/concurrency contract, not an ordinary metadata update.
         throw new LibraryPendingError(
           '',
-          'FreeDraw lock/state transitions are not implemented yet. No changes were saved.',
+          pageText['FreeDraw lock/state transitions are not implemented yet. No changes were saved.'],
         );
       }
       if (
@@ -339,7 +340,7 @@ export function registerManagerLibraryController(
       )
         throw new LibraryPendingError(
           '',
-          'Linked form/document selection is not implemented yet. No changes were saved.',
+          pageText['Linked form/document selection is not implemented yet. No changes were saved.'],
         );
       if (input.act === 'FILE_DELETE') {
         const tokens = libraryText(input.DeleteObjectId).split(',');
@@ -349,7 +350,7 @@ export function registerManagerLibraryController(
       }
       const uploaded = Array.isArray(req.files) ? req.files : Object.values(req.files ?? {}).flat();
       if (draft.files.length + uploaded.filter((file) => file.size).length > 10)
-        throw new LibraryError('', 'A maximum of ten files may be uploaded.');
+        throw new LibraryError('', pageText['A maximum of ten files may be uploaded.']);
       for (const file of uploaded.filter((file) => file.size)) {
         if (!draft.directory) draft.directory = await mkdtemp(join(tmpdir(), 'conmas-library-'));
         const token = randomUUID(),
@@ -375,7 +376,7 @@ export function registerManagerLibraryController(
           ErrorMessage: '',
         });
       if (input.act === 'PageType') return renderDetail(req, res);
-      if (input.act && input.act !== 'SAVE') return res.status(400).send('Unknown action.');
+      if (input.act && input.act !== 'SAVE') return res.status(400).send(pageText['Unknown action.']);
       const selectedLabels = libraryIds(input.LabelIds);
       for (const key of Object.keys(input)) {
         const match = /^labels\[(\d+)\]\.ID$/.exec(key);
@@ -424,7 +425,7 @@ export function registerManagerLibraryController(
           roles,
           noRoles: labelChecked(input.IsRoleNone),
         });
-      } else if (input.ActionCommonType !== 'CancelType') return res.status(400).send('Unknown action.');
+      } else if (input.ActionCommonType !== 'CancelType') return res.status(400).send(pageText['Unknown action.']);
       await clearDraft(req);
       return res.redirect(`${base}/Library/Role?mode=${mode}&documentId=${id}&detailsMode=Search`);
     } catch (error) {
@@ -445,7 +446,7 @@ export function registerManagerLibraryController(
       const document = await libraryDocument(db, mode, id, actor);
       if (document) return document;
     }
-    res.status(404).send('Document is not accessible.');
+    res.status(404).send(pageText['Document is not accessible.']);
   };
   const binary = (res: Response, data: Buffer, name: string, type: string) =>
     res
@@ -459,7 +460,8 @@ export function registerManagerLibraryController(
   ] as const)
     app.get(`${base}/Library/${action}`, async (req, res) => {
       try {
-        if (!res.locals.libraryPermissions.read) return res.status(403).send('Role authority is insufficient.');
+        if (!res.locals.libraryPermissions.read)
+          return res.status(403).send(pageText['Role authority is insufficient.']);
         const document = await findDocument(req, res);
         if (!document) return;
         const mode = res.locals.libraryMode as LibraryMode;
@@ -469,7 +471,7 @@ export function registerManagerLibraryController(
           );
         const revision = req.query.selectedRevNo === undefined ? undefined : labelInteger(req.query.selectedRevNo);
         const irfd = await libraryIrfdContent(db, document.document_id, revision);
-        if (!irfd) return res.status(404).send('FreeDraw revision was not found.');
+        if (!irfd) return res.status(404).send(pageText['FreeDraw revision was not found.']);
         return full(req, res, {
           ...(await state(req, res)),
           view,
@@ -548,14 +550,14 @@ export function registerManagerLibraryController(
   });
   app.get(`${base}/Library/GetIrfdImage`, async (req, res) => {
     try {
-      if (!res.locals.libraryPermissions.read) return res.status(403).send('Role authority is insufficient.');
+      if (!res.locals.libraryPermissions.read) return res.status(403).send(pageText['Role authority is insufficient.']);
       const document = await findDocument(req, res);
       if (!document) return;
       const revision = labelInteger(req.query.revNo),
         pageNumber = labelInteger(req.query.pageNumber),
         format = libraryText(req.query.format),
         name = libraryText(req.query.name);
-      if (!['jpeg', 'png'].includes(format)) return res.status(400).send('Invalid image format.');
+      if (!['jpeg', 'png'].includes(format)) return res.status(400).send(pageText['Invalid image format.']);
       const row = (
         await db.query('SELECT irfd_file FROM common_document_irfd WHERE document_id=$1 AND rev_no=$2', [
           document.document_id,
@@ -591,7 +593,7 @@ export function registerManagerLibraryController(
       controller = libraryText(input.RetrunControllerName),
       action = libraryText(input.RetrunActionMethod);
     if (!['DefReport', 'InputReport'].includes(controller) || !['Details', 'Library'].includes(action))
-      return res.status(400).send('Invalid return destination.');
+      return res.status(400).send(pageText['Invalid return destination.']);
     req.session.librarySelection = {
       mode: res.locals.libraryMode,
       ids: input.ReturnAct === 'CANCEL' ? [] : libraryIds(input.ChkSelectDocID),
@@ -599,7 +601,7 @@ export function registerManagerLibraryController(
     // The calling Manager tabs remain blocked; never pretend their pending selection handlers executed.
     return res
       .status(501)
-      .send('The calling Forms/Documents workflow is not implemented yet. Selection has not been applied.');
+      .send(pageText['The calling Forms/Documents workflow is not implemented yet. Selection has not been applied.']);
   });
 }
 function mergeRoles(input: Record<string, unknown>, roles: LibraryRoles) {
@@ -614,7 +616,7 @@ function mergeRoles(input: Record<string, unknown>, roles: LibraryRoles) {
 }
 async function libraryLog(db: pg.Pool, id: number, input: Record<string, unknown>) {
   const kind = libraryText(input['WhereData.LogKbn']) || '0';
-  if (!['0', '1'].includes(kind)) throw new LibraryError('', 'Invalid log type.');
+  if (!['0', '1'].includes(kind)) throw new LibraryError('', pageText['Invalid log type.']);
   const table = kind === '1' ? 'log_library_refer' : 'log_library_download';
   return (
     await db.query(

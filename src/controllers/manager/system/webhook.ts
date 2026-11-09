@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { createCipheriv } from 'node:crypto';
@@ -592,7 +593,7 @@ function generalLogContent(raw: string): GeneralLogContent {
   const value = JSON.parse(raw) as Partial<Omit<GeneralLogContent, 'body'>> & {
     body?: Partial<GeneralLogContent['body']>;
   };
-  if (!value || typeof value.url !== 'string') throw new Error('Webhook log parameter content is invalid.');
+  if (!value || typeof value.url !== 'string') throw new Error(pageText['Webhook log parameter content is invalid.']);
   return {
     url: value.url,
     queryStrings: value.queryStrings ?? {},
@@ -940,7 +941,7 @@ async function sendRequest(options: {
   acceptAnyStatus?: boolean;
 }): Promise<number> {
   const { url, method, retries, acceptAnyStatus = false } = options;
-  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) throw new Error('Invalid request method.');
+  if (!['GET', 'POST', 'PUT', 'DELETE'].includes(method)) throw new Error(pageText['Invalid request method.']);
   new URL(url);
   const headers = new Headers(options.headers ?? {});
   const values = options.values ?? [];
@@ -974,14 +975,14 @@ async function sendRequest(options: {
   }
   if (acceptAnyStatus) throw new Error(lastError || 'Request failed.');
   throw new Error(
-    `webhook API request failed ${attempts} times. URL:${url} StatusCode:${lastStatus}(${lastStatus ? 'HTTP response' : 'request error'}) ErrorMessage:${lastError || 'null'}`,
+    `webhook API request failed ${attempts} times. URL:${url} StatusCode:${lastStatus}(${lastStatus ? pageText['HTTP response'] : pageText['request error']}) ErrorMessage:${lastError || 'null'}`,
   );
 }
 function classicTestParameters(params: Param[], userId: string): Record<string, string> {
   const values: Record<string, string> = {};
   for (const param of params) {
     if (!paramTypes.includes(param.paramType)) continue;
-    if (Object.hasOwn(values, param.paramType)) throw new Error('Duplicate webhook parameter.');
+    if (Object.hasOwn(values, param.paramType)) throw new Error(pageText['Duplicate webhook parameter.']);
     values[param.paramType] = param.paramContent.replace(/\{\w+\}/g, (match) =>
       match.slice(1, -1) === 'login_user_id' ? userId : '',
     );
@@ -1069,9 +1070,9 @@ async function resendWebhook(db: pg.Pool, userId: string, logId: string): Promis
       [logId],
     )
   ).rows[0] as Record<string, unknown> | undefined;
-  if (!row) throw new Error('Webhook send log was not found.');
+  if (!row) throw new Error(pageText['Webhook send log was not found.']);
   const setting = await loadSetting(db, Number(row.webhook_id));
-  if (!setting) throw new Error('Webhook setting was not found.');
+  if (!setting) throw new Error(pageText['Webhook setting was not found.']);
   const type = stringValue(row.notification_type);
   const raw = stringValue(row.paramcontent);
   try {
@@ -1123,14 +1124,14 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
       login: false,
       title:
         section === 'WebhookSendLog'
-          ? 'Webhook send log'
+          ? pageText['Webhook send log']
           : page.mode === 'list'
-            ? 'Webhook List'
+            ? pageText['Webhook List']
             : page.mode === 'edit' || page.mode === 'generalEdit'
-              ? 'Application linkage settingEdit'
+              ? pageText['Application linkage settingEdit']
               : page.mode === 'notificationEdit'
-                ? 'Notification SettingsEdit'
-                : 'Webhook notice setting',
+                ? pageText['Notification SettingsEdit']
+                : pageText['Webhook notice setting'],
       userName: res.locals.userName,
       webhookPage: {
         ...page,
@@ -1148,7 +1149,9 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
   const licenseBlocked = (res: Response, section: 'WebhookList' | 'WebhookSendLog', unavailable = false) =>
     show(unavailable ? res.status(503) : res, section, {
       mode: 'denied',
-      error: unavailable ? 'License information is unavailable.' : 'Role authority is insufficient.',
+      error: unavailable
+        ? pageText['License information is unavailable.']
+        : pageText['Role authority is insufficient.'],
       linked: false,
     });
   app.use((req, res, next) => {
@@ -1221,7 +1224,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
         const id = integer(body[`webhookList[${match[1]}].webhookId`], 0);
         if (id > 0) selected.push(id);
       }
-      if (!selected.length) return res.status(400).send('Select a webhook setting to delete.');
+      if (!selected.length) return res.status(400).send(pageText['Select a webhook setting to delete.']);
       await db.query('DELETE FROM mst_webhook WHERE webhook_id = ANY($1::int[])', [selected]);
     }
     const defaultSize = await defaultPageSize(db);
@@ -1257,25 +1260,25 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
   app.get(`${root}/WebhookChat`, async (req, res) => {
     if (!(await allowed(req, 'system', 'read'))) return denied(res, 'WebhookList');
     const id = integer(req.query.id, 0);
-    if (id !== -1 && id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id !== -1 && id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     const setting = await loadSetting(db, id);
-    if (!setting) return res.status(404).send('Webhook setting was not found.');
+    if (!setting) return res.status(404).send(pageText['Webhook setting was not found.']);
     const flags = await controlFlags(req);
     return show(res, 'WebhookList', { mode: 'chat', linked: await isLinked(), setting, ...flags, error: '' });
   });
 
   app.get(`${root}/EditWebhookSetting`, async (req, res) => {
     const id = integer(req.query.id, 0);
-    if (id !== -1 && id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id !== -1 && id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     if (!(await allowed(req, 'system', 'edit')) || (id === -1 && !(await allowed(req, 'data', 'create'))))
       return denied(res, 'WebhookList');
     const setting = await loadSetting(db, id);
-    if (!setting) return res.status(404).send('Webhook setting was not found.');
+    if (!setting) return res.status(404).send(pageText['Webhook setting was not found.']);
     const requestedType = field(req.query as Record<string, unknown>, 'webhookTo');
     if (requestedType === 'General' || (id === -1 && !requestedType))
       return res.redirect(`${root}/EditWebhookSettingGeneral?id=${id}`);
     if (requestedType && !regularTargets.includes(requestedType as (typeof regularTargets)[number]))
-      return res.status(400).send('Invalid webhook notification address.');
+      return res.status(400).send(pageText['Invalid webhook notification address.']);
     if (requestedType) {
       setting.webhook_to = requestedType;
       if (setting.webhook_to !== 'General' && !setting.webhookParams.length)
@@ -1306,7 +1309,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
     const body = req.body as Record<string, unknown>;
     const setting = readRegularModel(body);
     const id = setting.webhook_id;
-    if (id !== -1 && id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id !== -1 && id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     if (!(await allowed(req, 'system', 'edit')) || (id === -1 && !(await allowed(req, 'data', 'create'))))
       return denied(res, 'WebhookList');
     const act = field(body, 'act');
@@ -1378,7 +1381,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
           ...settingDropdowns(setting.webhook_to),
           ...(await controlFlags(req)),
           errors: [],
-          error: 'Failed to send',
+          error: pageText['Failed to send'],
         });
       }
     }
@@ -1411,7 +1414,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
         return res.redirect(`${root}/WebhookChat?id=${newId}`);
       }
       const existing = await loadSetting(db, id);
-      if (!existing) return res.status(404).send('Webhook setting was not found.');
+      if (!existing) return res.status(404).send(pageText['Webhook setting was not found.']);
       const conflicts = checkParameterTriggers(params, existing);
       if (conflicts.length)
         return show(res.status(400), 'WebhookList', {
@@ -1452,18 +1455,18 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
         ...settingDropdowns(setting.webhook_to),
         ...(await controlFlags(req)),
         errors: [],
-        error: 'Failed to update the webhook setting.',
+        error: pageText['Failed to update the webhook setting.'],
       });
     }
   });
 
   app.get(`${root}/EditWebhookSettingGeneral`, async (req, res) => {
     const id = integer(req.query.id, 0);
-    if (id !== -1 && id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id !== -1 && id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     if (!(await allowed(req, 'system', 'edit')) || (id === -1 && !(await allowed(req, 'data', 'create'))))
       return denied(res, 'WebhookList');
     const stored = await loadSetting(db, id);
-    if (!stored) return res.status(404).send('Webhook setting was not found.');
+    if (!stored) return res.status(404).send(pageText['Webhook setting was not found.']);
     if (id !== -1 && stored.webhook_to !== 'General')
       return res.redirect(`${root}/EditWebhookSetting?id=${id}&webhookTo=${encodeURIComponent(stored.webhook_to)}`);
     const setting = id === -1 ? defaultSetting(-1, 'General') : stored;
@@ -1491,7 +1494,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
   app.post(`${root}/EditWebhookSettingGeneral`, async (req, res) => {
     const body = req.body as Record<string, unknown>;
     const id = integer(body.WebhookId, -2);
-    if (id !== -1 && id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id !== -1 && id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     if (!(await allowed(req, 'system', 'edit')) || (id === -1 && !(await allowed(req, 'data', 'create'))))
       return denied(res, 'WebhookList');
     const model = readGeneralModel(body, id);
@@ -1522,7 +1525,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
     }
     try {
       const old = id === -1 ? null : await loadSetting(db, id);
-      if (id !== -1 && !old) return res.status(404).send('Webhook setting was not found.');
+      if (id !== -1 && !old) return res.status(404).send(pageText['Webhook setting was not found.']);
       const savedItem = generalValue(prepareGeneralModel(model.GeneralRequestItem));
       const endpoint = model.Endpoint.includes('?')
         ? model.Endpoint.slice(0, model.Endpoint.indexOf('?'))
@@ -1569,10 +1572,10 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
 
   app.get(`${root}/EditWebhookNotification`, async (req, res) => {
     const id = integer(req.query.id, 0);
-    if (id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     if (!(await allowed(req, 'system', 'edit'))) return denied(res, 'WebhookList');
     const setting = await loadSetting(db, id);
-    if (!setting) return res.status(404).send('Webhook setting was not found.');
+    if (!setting) return res.status(404).send(pageText['Webhook setting was not found.']);
     return show(res, 'WebhookList', {
       mode: 'notificationEdit',
       linked: await isLinked(),
@@ -1586,12 +1589,12 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
   app.post(`${root}/EditWebhookNotification`, async (req, res) => {
     const body = req.body as Record<string, unknown>;
     const id = integer(body.webhook_id, 0);
-    if (id <= 0) return res.status(400).send('Invalid webhook ID.');
+    if (id <= 0) return res.status(400).send(pageText['Invalid webhook ID.']);
     if (!(await allowed(req, 'system', 'edit'))) return denied(res, 'WebhookList');
     if (field(body, 'isCanceled')) return res.redirect(`${root}/WebhookChat?id=${id}`);
     const submitted = readNotificationModel(body, id);
     const setting = await loadSetting(db, id);
-    if (!setting) return res.status(404).send('Webhook setting was not found.');
+    if (!setting) return res.status(404).send(pageText['Webhook setting was not found.']);
     const errors = checkEventTriggers(setting.webhookParams, { ...setting, ...submitted });
     if (errors.length)
       return show(res.status(400), 'WebhookList', {
@@ -1632,7 +1635,7 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
         setting: { ...setting, ...submitted },
         ...(await controlFlags(req)),
         errors: [],
-        error: 'Failed to update notification settings.',
+        error: pageText['Failed to update notification settings.'],
       });
     }
   });
@@ -1709,11 +1712,11 @@ export function registerWebhook(app: Express, db: pg.Pool, render: Render): void
         const id = field(body, `SendLogList[${match[1]}].LogId`);
         if (/^\d{1,64}$/.test(id)) selected.push(id);
       }
-      if (!selected.length) return res.status(400).send('Select a webhook send log to delete.');
+      if (!selected.length) return res.status(400).send(pageText['Select a webhook send log to delete.']);
       await db.query('DELETE FROM conmas_webhook_send_log WHERE log_id = ANY($1::text[])', [selected]);
     } else if (resendId) {
       if (!(await allowed(req, 'system', 'edit'))) return denied(res, 'WebhookSendLog');
-      if (!/^\d{1,64}$/.test(resendId)) return res.status(400).send('Invalid webhook send log ID.');
+      if (!/^\d{1,64}$/.test(resendId)) return res.status(400).send(pageText['Invalid webhook send log ID.']);
       try {
         await resendWebhook(db, req.session?.userId ?? '', resendId);
       } catch {

@@ -1,10 +1,10 @@
-<% const p = systemGroupPage; const has = (row, field) => row[field] === true || row[field] === 1 || row[field] === '1' || row[field] === 't'; %>
+<% const ui = managerResources["system"]; %><% const p = systemGroupPage; const has = (row, field) => row[field] === true || row[field] === 1 || row[field] === '1' || row[field] === 't'; %>
 <% if (p.mode === 'list') { %>
   <% const layout = p.layout; const systemColumns = layout.system.flatMap(group => group.columns); const managerColumns = layout.manager.flatMap(group => group.columns); %>
   <div class="PartialViewMessage"><% if (p.error) { %><ul><li><%= p.error %></li></ul><% } %></div>
   <div id="DetailTop">
-    <span id="infoTitle">Groups</span>
-    <span id="functionBar"><a class="img_add" href="<%= base %>/System/CreateGroup" title="Add" aria-label="Add group"> </a></span>
+    <span id="infoTitle"><%= ui["Groups"] %></span>
+    <span id="functionBar"><a class="img_add" href="<%= base %>/System/CreateGroup" title="<%= ui["Add"] %>" aria-label="<%= ui["Add group"] %>"> </a></span>
   </div>
   <div id="DetailSection">
     <div class="info">
@@ -12,47 +12,47 @@
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>" />
         <input type="hidden" name="pageIndex" value="0" />
         <div>
-          Group ID&nbsp;<input type="text" name="searchId" value="<%= p.searchId %>" />
-          &nbsp;&nbsp;Group Name&nbsp;<input type="text" name="searchName" value="<%= p.searchName %>" />
+          <%= ui["Group ID "] %><input type="text" name="searchId" value="<%= p.searchId %>" />
+          <%= ui["  Group Name "] %><input type="text" name="searchName" value="<%= p.searchName %>" />
           &nbsp;&nbsp;<input type="submit" value="Search" class="image-search_user" onclick="groupListResetPage()" />
         </div>
         <div class="PageSection">
-          Displayed number&nbsp;<select name="pageSize" onchange="groupListResetPage();this.form.requestSubmit()">
+          <%= ui["Displayed number "] %><select name="pageSize" onchange="groupListResetPage();this.form.requestSubmit()">
             <% p.pageSizes.forEach(size => { %><option value="<%= size %>" <%= Number(p.pageSize) === size ? 'selected' : '' %>><%= size %></option><% }) %>
           </select>
           &nbsp;
           <% if (p.pageIndex > 0) { %>
-            <a href="#" onclick="return groupListPage(0)" style="padding-right:5px;">First</a>
-            <a href="#" onclick="return groupListPage(<%= p.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="Previous page"> </a>
-          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d" /><% } %>
+            <a href="#" onclick="return groupListPage(0)" style="padding-right:5px;"><%= ui["First"] %></a>
+            <a href="#" onclick="return groupListPage(<%= p.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>" /><% } %>
           &nbsp;<%= p.total === 0 ? 0 : p.pageIndex + 1 %>&nbsp;/&nbsp;<%= p.pages %>&nbsp;
           <% if (p.pageIndex + 1 < p.pages) { %>
-            <a href="#" onclick="return groupListPage(<%= p.pageIndex + 1 %>)" class="img_page_next_e" aria-label="Next page"> </a>
-            <a href="#" onclick="return groupListPage(<%= p.pages - 1 %>)" style="padding-left:5px;">Last</a>
-          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d" /><% } %>
+            <a href="#" onclick="return groupListPage(<%= p.pageIndex + 1 %>)" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a>
+            <a href="#" onclick="return groupListPage(<%= p.pages - 1 %>)" style="padding-left:5px;"><%= ui["Last"] %></a>
+          <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>" /><% } %>
         </div>
       <div style="overflow:auto; width:100%;">
         <table cellpadding="0" cellspacing="0" class="table_information verticality" style="width:<%= p.features.freeDrawOnly ? '2200px' : '3500px' %>; min-width:<%= p.features.freeDrawOnly ? '2200px' : '3500px' %>;">
           <thead>
             <tr>
-              <th scope="col" rowspan="3" style="width:50px;">ID</th>
-              <th scope="col" rowspan="3" style="width:450px;">Group Name</th>
-              <% if (p.features.groupKeyMode) { %><th scope="col" rowspan="3" style="width:90px;">System key </th><% } %>
-              <th scope="col" colspan="4" rowspan="2" class="system_role">System</th>
+              <th scope="col" rowspan="3" style="width:50px;"><%= ui["ID"] %></th>
+              <th scope="col" rowspan="3" style="width:450px;"><%= ui["Group Name"] %></th>
+              <% if (p.features.groupKeyMode) { %><th scope="col" rowspan="3" style="width:90px;"><%= ui["System key"] %> </th><% } %>
+              <th scope="col" colspan="4" rowspan="2" class="system_role"><%= ui["System"] %></th>
               <th scope="col" colspan="<%= systemColumns.length - 4 %>" class="system_role"></th>
-              <th scope="col" colspan="<%= managerColumns.length %>" class="manager_role">Manager permission</th>
-              <th scope="col" rowspan="3" style="width:45px;">API</th>
-              <% if (layout.designer.length) { %><th scope="col" colspan="<%= layout.designer.length %>" class="designer_role">Designer permission</th><% } %>
-              <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="7">Default authority of form</th><% } %>
-              <% if (layout.freeDraw.length) { %><th scope="col" colspan="2">Default i-Repo FreeDraw authority</th><% } %>
-              <th scope="col" rowspan="3">Remarks</th>
-              <% if (p.features.freeDraw) { %><th scope="col" rowspan="3" style="width:140px;">i-Repo FreeDraw setting template ID</th><% } %>
+              <th scope="col" colspan="<%= managerColumns.length %>" class="manager_role"><%= ui["Manager permission"] %></th>
+              <th scope="col" rowspan="3" style="width:45px;"><%= ui["API"] %></th>
+              <% if (layout.designer.length) { %><th scope="col" colspan="<%= layout.designer.length %>" class="designer_role"><%= ui["Designer permission"] %></th><% } %>
+              <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="7"><%= ui["Default authority of form"] %></th><% } %>
+              <% if (layout.freeDraw.length) { %><th scope="col" colspan="2"><%= ui["Default i-Repo FreeDraw authority"] %></th><% } %>
+              <th scope="col" rowspan="3"><%= ui["Remarks"] %></th>
+              <% if (p.features.freeDraw) { %><th scope="col" rowspan="3" style="width:140px;"><%= ui["i-Repo FreeDraw setting template ID"] %></th><% } %>
             </tr>
             <tr>
               <% layout.system.slice(1).forEach(group => { %><th scope="col" colspan="<%= group.columns.length %>" class="system_role"><%= group.title %></th><% }) %>
               <% layout.manager.forEach(group => { %><th scope="col" colspan="<%= group.columns.length %>" rowspan="<%= group.rowspan || 1 %>" class="manager_role"><%= group.title %></th><% }) %>
               <% layout.designer.forEach(column => { %><th scope="col" rowspan="2" class="designer_role"><%= column.label %></th><% }) %>
-              <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="3">Form</th><th scope="col" colspan="4">Document</th><% } %>
+              <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="3"><%= ui["Form"] %></th><th scope="col" colspan="4"><%= ui["Document"] %></th><% } %>
               <% layout.freeDraw.forEach(column => { %><th scope="col" rowspan="2"><%= column.label %></th><% }) %>
             </tr>
             <tr>
@@ -82,18 +82,18 @@
         </table>
       </div>
       <div class="PageSection">
-        Displayed number&nbsp;<select aria-label="Displayed number" onchange="groupListSetPageSize(this.value)">
+        <%= ui["Displayed number "] %><select aria-label="<%= ui["Displayed number"] %>" onchange="groupListSetPageSize(this.value)">
           <% p.pageSizes.forEach(size => { %><option value="<%= size %>" <%= Number(p.pageSize) === size ? 'selected' : '' %>><%= size %></option><% }) %>
         </select>
-        &nbsp;<% if (p.pageIndex > 0) { %><a href="#" onclick="return groupListPage(0)" style="padding-right:5px;">First</a><a href="#" onclick="return groupListPage(<%= p.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="Previous page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d" /><% } %>
+        &nbsp;<% if (p.pageIndex > 0) { %><a href="#" onclick="return groupListPage(0)" style="padding-right:5px;"><%= ui["First"] %></a><a href="#" onclick="return groupListPage(<%= p.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>" /><% } %>
         &nbsp;<%= p.total === 0 ? 0 : p.pageIndex + 1 %>&nbsp;/&nbsp;<%= p.pages %>&nbsp;
-        <% if (p.pageIndex + 1 < p.pages) { %><a href="#" onclick="return groupListPage(<%= p.pageIndex + 1 %>)" class="img_page_next_e" aria-label="Next page"> </a><a href="#" onclick="return groupListPage(<%= p.pages - 1 %>)" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d" /><% } %>
+        <% if (p.pageIndex + 1 < p.pages) { %><a href="#" onclick="return groupListPage(<%= p.pageIndex + 1 %>)" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a><a href="#" onclick="return groupListPage(<%= p.pages - 1 %>)" style="padding-left:5px;"><%= ui["Last"] %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>" /><% } %>
       </div>
 
       <% if (!p.features.freeDrawOnly) { %>
         <div class="toggle" onclick="document.getElementById('default-role-summary').hidden=!document.getElementById('default-role-summary').hidden"><h2>▼<%= p.settingLabels.autoHeading %></h2></div>
         <div id="default-role-summary">
-          <div style="text-align:right; padding-bottom:10px;"><a class="img_edit" href="<%= base %>/System/EditDefaultRole" title="Edit"> </a></div>
+          <div style="text-align:right; padding-bottom:10px;"><a class="img_edit" href="<%= base %>/System/EditDefaultRole" title="<%= ui["Edit"] %>"> </a></div>
           <table cellpadding="0" cellspacing="0" class="table_information horizontal">
             <tr><th scope="row" style="width:250px;"><%= p.settingLabels.autoFlagLabel %></th><td><%= p.settingLabels.enabledName %></td></tr>
             <% if (p.settings.enable === '1') { %>
@@ -108,7 +108,7 @@
       <% if (p.features.freeDraw) { %>
         <div class="toggle" onclick="document.getElementById('fd-role-summary').hidden=!document.getElementById('fd-role-summary').hidden"><h2>▼<%= p.settingLabels.freeDrawHeading %></h2></div>
         <div id="fd-role-summary">
-          <div style="text-align:right; padding-bottom:10px;"><a class="img_edit" href="<%= base %>/System/EditFdRole" title="Edit"> </a></div>
+          <div style="text-align:right; padding-bottom:10px;"><a class="img_edit" href="<%= base %>/System/EditFdRole" title="<%= ui["Edit"] %>"> </a></div>
           <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:250px;"><%= p.settingLabels.fdLabel %></th><td><%= p.settingLabels.fdName %></td></tr></table>
         </div>
       <% } %>
@@ -140,10 +140,10 @@
   <% const group = p.group; const layout = p.layout; const systemColumns = layout.system.flatMap(section => section.columns); const managerColumns = layout.manager.flatMap(section => section.columns); %>
   <div class="PartialViewMessage"><% if (p.error) { %><ul><li><%= p.error %></li></ul><% } %></div>
   <div id="DetailTop">
-    <span id="infoTitle">Group reference</span>
+    <span id="infoTitle"><%= ui["Group reference"] %></span>
     <span id="functionBar">
-      <a class="img_edit" href="<%= base %>/System/EditGroup?id=<%= encodeURIComponent(group.group_id) %>" title="Edit"> </a>
-      <a class="img_delete" href="#" title="Delete" onclick="var message='Group would be deleted. Are you sure you want to delete?';var descendants=document.getElementById('group-delete-message').value;if(descendants){message+='\n'+descendants;}if(confirm(message)){document.getElementById('group-delete-form').requestSubmit();}return false;"> </a>
+      <a class="img_edit" href="<%= base %>/System/EditGroup?id=<%= encodeURIComponent(group.group_id) %>" title="<%= ui["Edit"] %>"> </a>
+      <a class="img_delete" href="#" title="<%= ui["Delete"] %>" onclick="var message='Group would be deleted. Are you sure you want to delete?';var descendants=document.getElementById('group-delete-message').value;if(descendants){message+='\n'+descendants;}if(confirm(message)){document.getElementById('group-delete-form').requestSubmit();}return false;"> </a>
       <form id="group-delete-form" method="post" action="<%= base %>/System/DetailsGroup">
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>" />
         <input type="hidden" name="act" value="delete" />
@@ -154,28 +154,28 @@
   </div>
   <div id="DetailSection"><div class="info">
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Group ID</th><td><%= group.group_id %></td></tr>
-      <tr><th scope="row">Group Name</th><td><%= group.group_name %></td></tr>
-      <tr><th scope="row">Parent group name path</th><td><%= group.upper_group_name_path || '' %></td></tr>
-      <% if (p.features.groupKeyMode) { %><tr><th scope="row">System key </th><td><%= group.system_key || '' %></td></tr><% } %>
+      <tr><th scope="row"><%= ui["Group ID"] %></th><td><%= group.group_id %></td></tr>
+      <tr><th scope="row"><%= ui["Group Name"] %></th><td><%= group.group_name %></td></tr>
+      <tr><th scope="row"><%= ui["Parent group name path"] %></th><td><%= group.upper_group_name_path || '' %></td></tr>
+      <% if (p.features.groupKeyMode) { %><tr><th scope="row"><%= ui["System key"] %> </th><td><%= group.system_key || '' %></td></tr><% } %>
     </table>
     <div style="overflow:auto; width:100%;">
       <table cellpadding="0" cellspacing="0" class="table_information verticality" style="width:<%= p.features.freeDrawOnly ? '2200px' : '3500px' %>; min-width:<%= p.features.freeDrawOnly ? '2200px' : '3500px' %>;">
         <thead>
           <tr>
-            <th scope="col" colspan="4" rowspan="2" class="system_role">System</th>
+            <th scope="col" colspan="4" rowspan="2" class="system_role"><%= ui["System"] %></th>
             <th scope="col" colspan="<%= systemColumns.length - 4 %>" class="system_role"></th>
-            <th scope="col" colspan="<%= managerColumns.length %>" class="manager_role">Manager permission</th>
-            <th scope="col" rowspan="3">API</th>
-            <% if (layout.designer.length) { %><th scope="col" colspan="<%= layout.designer.length %>" class="designer_role">Designer permission</th><% } %>
-            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="7">Default authority of form</th><% } %>
-            <% if (layout.freeDraw.length) { %><th scope="col" colspan="2">Default i-Repo FreeDraw authority</th><% } %>
+            <th scope="col" colspan="<%= managerColumns.length %>" class="manager_role"><%= ui["Manager permission"] %></th>
+            <th scope="col" rowspan="3"><%= ui["API"] %></th>
+            <% if (layout.designer.length) { %><th scope="col" colspan="<%= layout.designer.length %>" class="designer_role"><%= ui["Designer permission"] %></th><% } %>
+            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="7"><%= ui["Default authority of form"] %></th><% } %>
+            <% if (layout.freeDraw.length) { %><th scope="col" colspan="2"><%= ui["Default i-Repo FreeDraw authority"] %></th><% } %>
           </tr>
           <tr>
             <% layout.system.slice(1).forEach(section => { %><th scope="col" colspan="<%= section.columns.length %>" class="system_role"><%= section.title %></th><% }) %>
             <% layout.manager.forEach(section => { %><th scope="col" colspan="<%= section.columns.length %>" rowspan="<%= section.rowspan || 1 %>" class="manager_role"><%= section.title %></th><% }) %>
             <% layout.designer.forEach(column => { %><th scope="col" rowspan="2" class="designer_role"><%= column.label %></th><% }) %>
-            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="3">Form</th><th scope="col" colspan="4">Document</th><% } %>
+            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="3"><%= ui["Form"] %></th><th scope="col" colspan="4"><%= ui["Document"] %></th><% } %>
             <% layout.freeDraw.forEach(column => { %><th scope="col" rowspan="2"><%= column.label %></th><% }) %>
           </tr>
           <tr>
@@ -195,12 +195,12 @@
       </table>
     </div>
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Group Remarks</th><td><%= group.group_remarks || '' %></td></tr>
-      <% if (p.features.freeDraw) { %><tr><th scope="row" style="width:250px;">i-Repo FreeDraw setting template</th><td><%= group.irfd_template_name || '' %></td></tr><% } %>
+      <tr><th scope="row"><%= ui["Group Remarks"] %></th><td><%= group.group_remarks || '' %></td></tr>
+      <% if (p.features.freeDraw) { %><tr><th scope="row" style="width:250px;"><%= ui["i-Repo FreeDraw setting template"] %></th><td><%= group.irfd_template_name || '' %></td></tr><% } %>
     </table>
-    <div><h2>Affiliation of user</h2></div>
+    <div><h2><%= ui["Affiliation of user"] %></h2></div>
     <table cellpadding="0" cellspacing="0" class="table_information verticality">
-      <tr><th scope="col">ID</th><th scope="col">Name</th><th scope="col">E-mail address</th><th scope="col">Starting date and time</th><th scope="col">Expire date and time</th></tr>
+      <tr><th scope="col"><%= ui["ID"] %></th><th scope="col"><%= ui["Name"] %></th><th scope="col"><%= ui["E-mail address"] %></th><th scope="col"><%= ui["Starting date and time"] %></th><th scope="col"><%= ui["Expire date and time"] %></th></tr>
       <% p.users.forEach(user => { %><tr><td><%= user.user_id %></td><td><%= user.user_name %></td><td><%= user.e_mail %></td><td><%= user.use_start_time %></td><td><%= user.use_end_time %></td></tr><% }) %>
     </table>
   </div></div>
@@ -210,16 +210,16 @@
   <div style="border-style:solid; border-width:1px; border-color:#D6D6D6; padding:3px;"><div>
     <form method="post" action="<%= base %>/System/EditDefaultRole" id="group-default-role-form">
       <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>" />
-      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;">Valid or invalid for mode</th><td><input type="checkbox" name="IsAutoGroupSetting" value="1" <%= s.enable === '1' ? 'checked' : '' %> /></td></tr></table>
-      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;">Authorization setting type</th><td><select id="SystemRoleModeAutoType" name="SystemRoleModeAutoType" onchange="groupRoleModeChanged()"><option value="0" <%= s.autoType !== '1' ? 'selected' : '' %>>Auto setting</option><option value="1" <%= s.autoType === '1' ? 'selected' : '' %>>Set with default form rights of group management</option></select></td></tr></table>
-      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><div id="SystemDefRoleMode0">Edit authority for created form</div><div id="SystemDefRoleMode1">Authorization group for forms</div></th><td><select name="SystemDefRoleMode"><option value="1" <%= s.definition === '1' ? 'selected' : '' %>>User group that the user who created the form belonging to only can edit.</option><option value="2" <%= s.definition === '2' ? 'selected' : '' %>>User group that the user who created the form belonging to and the upper groups can only edit.</option></select></td></tr></table>
-      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><div id="SystemRepRoleMode0">Authority to create new document from the form on iPad</div><div id="SystemRepRoleMode1">Authorization group for input documents</div></th><td><select name="SystemRepRoleMode"><option value="1" <%= s.report === '1' ? 'selected' : '' %>>User group that the user who created the form belonging to only can create.</option><option value="2" <%= s.report === '2' ? 'selected' : '' %>>User group that the user who created the form belonging to and the upper groups can only create.</option><option value="3" <%= s.report === '3' ? 'selected' : '' %>>User group that the user who created the form belonging to and the upper or lower groups can only create.</option><option value="4" <%= s.report === '4' ? 'selected' : '' %>>Available to create by all users.</option></select></td></tr>
-        <tr><th scope="row" style="width:300px;"><div id="DefaultRepCreateRoleMode0">Authority for viewing and editing on iPad.</div><div id="DefaultRepCreateRoleMode1">Authority group settings when the document is issued.</div></th><td>
-          <div id="DefaultRepCreateRoleList0"><select name="DefaultRepCreateRoleMode0"><option value="1" <%= s.defaultReport === '1' ? 'selected' : '' %>>User group that the user who created document newly belonging to only can refer and edit.</option><option value="2" <%= s.defaultReport === '2' ? 'selected' : '' %>>User group that the user who created document newly belonging to, and the upper groups only can refer and edit.</option><option value="0" <%= s.defaultReport === '0' ? 'selected' : '' %>>User group that the user who created document newly belonging to, other same level groups and those upper groups only can refer and edit.</option><option value="3" <%= s.defaultReport === '3' ? 'selected' : '' %>>User group that the user who created document newly belonging to and the upper or lower groups only can refer and edit.</option></select></div>
-          <div id="DefaultRepCreateRoleList1"><select name="DefaultRepCreateRoleMode1"><option value="0" <%= s.defaultReport === '0' ? 'selected' : '' %>>Same as setting of the form.</option><option value="1" <%= s.defaultReport === '1' ? 'selected' : '' %>>Allocate authority only for the group that the user belongs to.</option><option value="2" <%= s.defaultReport === '2' ? 'selected' : '' %>>Allocate authority for the groups that the user belongs to and its upper groups.</option><option value="3" <%= s.defaultReport === '3' ? 'selected' : '' %>>User group that the user who created document belonging to, and the upper or lower groups only.</option></select></div>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><%= ui["Valid or invalid for mode"] %></th><td><input type="checkbox" name="IsAutoGroupSetting" value="1" <%= s.enable === '1' ? 'checked' : '' %> /></td></tr></table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><%= ui["Authorization setting type"] %></th><td><select id="SystemRoleModeAutoType" name="SystemRoleModeAutoType" onchange="groupRoleModeChanged()"><option value="0" <%= s.autoType !== '1' ? 'selected' : '' %>><%= ui["Auto setting"] %></option><option value="1" <%= s.autoType === '1' ? 'selected' : '' %>><%= ui["Set with default form rights of group management"] %></option></select></td></tr></table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><div id="SystemDefRoleMode0"><%= ui["Edit authority for created form"] %></div><div id="SystemDefRoleMode1"><%= ui["Authorization group for forms"] %></div></th><td><select name="SystemDefRoleMode"><option value="1" <%= s.definition === '1' ? 'selected' : '' %>><%= ui["User group that the user who created the form belonging to only can edit."] %></option><option value="2" <%= s.definition === '2' ? 'selected' : '' %>><%= ui["User group that the user who created the form belonging to and the upper groups can only edit."] %></option></select></td></tr></table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><div id="SystemRepRoleMode0"><%= ui["Authority to create new document from the form on iPad"] %></div><div id="SystemRepRoleMode1"><%= ui["Authorization group for input documents"] %></div></th><td><select name="SystemRepRoleMode"><option value="1" <%= s.report === '1' ? 'selected' : '' %>><%= ui["User group that the user who created the form belonging to only can create."] %></option><option value="2" <%= s.report === '2' ? 'selected' : '' %>><%= ui["User group that the user who created the form belonging to and the upper groups can only create."] %></option><option value="3" <%= s.report === '3' ? 'selected' : '' %>><%= ui["User group that the user who created the form belonging to and the upper or lower groups can only create."] %></option><option value="4" <%= s.report === '4' ? 'selected' : '' %>><%= ui["Available to create by all users."] %></option></select></td></tr>
+        <tr><th scope="row" style="width:300px;"><div id="DefaultRepCreateRoleMode0"><%= ui["Authority for viewing and editing on iPad."] %></div><div id="DefaultRepCreateRoleMode1"><%= ui["Authority group settings when the document is issued."] %></div></th><td>
+          <div id="DefaultRepCreateRoleList0"><select name="DefaultRepCreateRoleMode0"><option value="1" <%= s.defaultReport === '1' ? 'selected' : '' %>><%= ui["User group that the user who created document newly belonging to only can refer and edit."] %></option><option value="2" <%= s.defaultReport === '2' ? 'selected' : '' %>><%= ui["User group that the user who created document newly belonging to, and the upper groups only can refer and edit."] %></option><option value="0" <%= s.defaultReport === '0' ? 'selected' : '' %>><%= ui["User group that the user who created document newly belonging to, other same level groups and those upper groups only can refer and edit."] %></option><option value="3" <%= s.defaultReport === '3' ? 'selected' : '' %>><%= ui["User group that the user who created document newly belonging to and the upper or lower groups only can refer and edit."] %></option></select></div>
+          <div id="DefaultRepCreateRoleList1"><select name="DefaultRepCreateRoleMode1"><option value="0" <%= s.defaultReport === '0' ? 'selected' : '' %>><%= ui["Same as setting of the form."] %></option><option value="1" <%= s.defaultReport === '1' ? 'selected' : '' %>><%= ui["Allocate authority only for the group that the user belongs to."] %></option><option value="2" <%= s.defaultReport === '2' ? 'selected' : '' %>><%= ui["Allocate authority for the groups that the user belongs to and its upper groups."] %></option><option value="3" <%= s.defaultReport === '3' ? 'selected' : '' %>><%= ui["User group that the user who created document belonging to, and the upper or lower groups only."] %></option></select></div>
         </td></tr>
       </table>
-      <div style="padding:5px;"><input id="roleEditButton" type="submit" value="Confirm" class="image-ok_btn" />&nbsp;<a href="<%= base %>/System/GroupList" class="image-cancel_label" id="image-cancel_btn">Cancel</a></div>
+      <div style="padding:5px;"><input id="roleEditButton" type="submit" value="Confirm" class="image-ok_btn" />&nbsp;<a href="<%= base %>/System/GroupList" class="image-cancel_label" id="image-cancel_btn"><%= ui["Cancel"] %></a></div>
     </form>
   </div></div>
   <script>
@@ -239,11 +239,11 @@
   <div style="border-style:solid; border-width:1px; border-color:#D6D6D6; padding:3px;"><div>
     <form method="post" action="<%= base %>/System/EditFdRole">
       <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>" />
-      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;">Groups to apply i-Repo FreeDraw authority</th><td>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal"><tr><th scope="row" style="width:300px;"><%= ui["Groups to apply i-Repo FreeDraw authority"] %></th><td>
         <% const fd = p.settings.freeDraw; %>
-        <select name="DefaultFdRoleMode"><option value="1" <%= fd === '1' ? 'selected' : '' %>>Only the group to which the user who newly created a document belongs.</option><option value="2" <%= fd === '2' ? 'selected' : '' %>>Only the group to which the user who newly created a document belongs and its upper groups.</option><option value="3" <%= fd === '3' ? 'selected' : '' %>>Only the group to which the user who newly created a document belongs and its upper and lower groups.</option><option value="4" <%= fd === '4' ? 'selected' : '' %>>Follow the default i-Repo FreeDraw authorities</option></select>
+        <select name="DefaultFdRoleMode"><option value="1" <%= fd === '1' ? 'selected' : '' %>><%= ui["Only the group to which the user who newly created a document belongs."] %></option><option value="2" <%= fd === '2' ? 'selected' : '' %>><%= ui["Only the group to which the user who newly created a document belongs and its upper groups."] %></option><option value="3" <%= fd === '3' ? 'selected' : '' %>><%= ui["Only the group to which the user who newly created a document belongs and its upper and lower groups."] %></option><option value="4" <%= fd === '4' ? 'selected' : '' %>><%= ui["Follow the default i-Repo FreeDraw authorities"] %></option></select>
       </td></tr></table>
-      <div style="padding:5px;"><input id="fdRoleEditButton" type="submit" value="Confirm" class="image-ok_btn" />&nbsp;<a href="<%= base %>/System/GroupList" class="image-cancel_label" id="image-cancel_btn">Cancel</a></div>
+      <div style="padding:5px;"><input id="fdRoleEditButton" type="submit" value="Confirm" class="image-ok_btn" />&nbsp;<a href="<%= base %>/System/GroupList" class="image-cancel_label" id="image-cancel_btn"><%= ui["Cancel"] %></a></div>
     </form>
   </div></div>
 <% } %>

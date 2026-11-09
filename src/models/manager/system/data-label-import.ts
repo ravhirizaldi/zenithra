@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type pg from 'pg';
 import { importRowResult, importXmlRecords, parseImportCsv, type ImportResult } from './data-import.js';
 
@@ -15,7 +16,7 @@ const specs = {
 
 export function labelLinkImportRows(text: string, format: string, kind: LabelLinkKind): string[][] {
   if (format === 'csv') return parseImportCsv(text);
-  if (format !== 'xml') throw new Error('Invalid format.');
+  if (format !== 'xml') throw new Error(pageText['Invalid format.']);
   const spec = specs[kind];
   return importXmlRecords(text, spec.tag).map((row) =>
     ['action', spec.field, 'labelId'].map((field) => String(row[field] ?? '')),

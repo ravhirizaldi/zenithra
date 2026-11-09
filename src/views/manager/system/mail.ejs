@@ -1,4 +1,4 @@
-<% const root=`${base}/System`;const labels=mailPage.labels;const model=mailPage.model??{};const errors=mailPage.errors??[]; %>
+<% const ui = managerResources["system"]; %><% const root=`${base}/System`;const labels=mailPage.labels;const model=mailPage.model??{};const errors=mailPage.errors??[]; %>
 <% if(mailPage.mode==='template') { %>
   <%- include('mail-templates',{mailTemplatePage:mailPage.templatePage}) %>
 <% } else if(mailPage.mode==='denied') { %>
@@ -31,11 +31,11 @@
   <div id="DetailSection">
     <div class="info">
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-        <tr><th scope="row">ManagerRoot</th><td><%= model.ManagerRoot %></td></tr>
+        <tr><th scope="row"><%= ui["ManagerRoot"] %></th><td><%= model.ManagerRoot %></td></tr>
       </table>
       <div style="margin-left:36px;margin-bottom:8px;">
         <label><input type="radio" name="mailBase.UseOAuth" value="false" id="UseSmtpAuth" disabled readonly <%= !model.UseOAuth?'checked':'' %>> <%= labels.smtpAuthentication %></label>
-        <label style="margin-left:10px;"><input type="radio" name="mailBase.UseOAuth" value="true" id="UseOAuth" disabled readonly <%= model.UseOAuth?'checked':'' %>> OAuth</label>
+        <label style="margin-left:10px;"><input type="radio" name="mailBase.UseOAuth" value="true" id="UseOAuth" disabled readonly <%= model.UseOAuth?'checked':'' %>> <%= ui["OAuth"] %></label>
       </div>
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
         <% if(!model.UseOAuth) { %>
@@ -92,13 +92,13 @@
       <div class="info">
         <table cellpadding="0" cellspacing="0" class="table_information horizontal">
           <tr>
-            <th scope="row"><label for="mailBase_ManagerRoot">ManagerRoot</label></th>
+            <th scope="row"><label for="mailBase_ManagerRoot"><%= ui["ManagerRoot"] %></label></th>
             <td><input class="EditValue1" id="mailBase_ManagerRoot" name="mailBase.ManagerRoot" value="<%= model.ManagerRoot??'' %>"><% if(mailPage.fieldErrors?.['mailBase.ManagerRoot']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.ManagerRoot'] %></span><% } %></td>
           </tr>
         </table>
         <div style="margin-left:36px;margin-bottom:8px;">
           <label><input type="radio" name="mailBase.UseOAuth" value="false" id="UseSmtpAuth" <%= !model.UseOAuth?'checked':'' %>> <%= labels.smtpAuthentication %></label>
-          <label style="margin-left:10px;"><input type="radio" name="mailBase.UseOAuth" value="true" id="UseOAuth" <%= model.UseOAuth?'checked':'' %>> OAuth</label>
+          <label style="margin-left:10px;"><input type="radio" name="mailBase.UseOAuth" value="true" id="UseOAuth" <%= model.UseOAuth?'checked':'' %>> <%= ui["OAuth"] %></label>
         </div>
         <table cellpadding="0" cellspacing="0" class="table_information horizontal">
           <tr id="row_server"><th scope="row"><label for="mailBase_server"><%= labels.server %></label></th><td><input class="EditValue1" id="mailBase_server" name="mailBase.server" value="<%= model.server??'' %>"><% if(mailPage.fieldErrors?.['mailBase.server']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.server'] %></span><% } %></td></tr>
@@ -107,7 +107,7 @@
           <tr id="row_new_pass"><th scope="row"><label for="new_pass"><%= labels.newPassword %></label></th><td><input class="EditValue1" id="new_pass" name="new_pass" type="password" autocomplete="<%= mailPage.autocomplete??'on' %>"></td></tr>
           <tr id="row_confirm_pass"><th scope="row"><label for="confirm_pass"><%= labels.confirmPassword %></label></th><td><input class="EditValue1" id="confirm_pass" name="confirm_pass" type="password" autocomplete="<%= mailPage.autocomplete??'on' %>"><% if(mailPage.fieldErrors?.confirm_pass) { %><span class="field-validation-error"><%= mailPage.fieldErrors.confirm_pass %></span><% } %></td></tr>
           <tr id="row_ssl"><th scope="row"><label for="mailBase_ssl"><%= labels.ssl %></label></th><td><input type="checkbox" id="mailBase_ssl" name="mailBase.ssl" value="true" <%= model.ssl?'checked':'' %>><input type="hidden" name="mailBase.ssl" value="false"><span id="legendSSL"><%= model.ssl?labels.toUseSSL:labels.notUseSSL %></span></td></tr>
-          <tr id="row_oauth_provider"><th scope="row"><%= labels.provider %></th><td><label><input type="radio" name="mailBase.OAuthProvider" value="google" id="OAuthProviderGoogle" <%= model.OAuthProvider==='google'?'checked':'' %>>Google</label> <label><input type="radio" name="mailBase.OAuthProvider" value="microsoft" id="OAuthProviderMicrosoft" <%= model.OAuthProvider==='microsoft'?'checked':'' %>>Microsoft</label></td></tr>
+          <tr id="row_oauth_provider"><th scope="row"><%= labels.provider %></th><td><label><input type="radio" name="mailBase.OAuthProvider" value="google" id="OAuthProviderGoogle" <%= model.OAuthProvider==='google'?'checked':'' %>><%= ui["Google"] %></label> <label><input type="radio" name="mailBase.OAuthProvider" value="microsoft" id="OAuthProviderMicrosoft" <%= model.OAuthProvider==='microsoft'?'checked':'' %>><%= ui["Microsoft"] %></label></td></tr>
           <tr id="row_oauth_clientid"><th scope="row"><label for="mailBase_OAuthClientId"><%= labels.clientId %></label></th><td><input class="EditValue1" id="mailBase_OAuthClientId" name="mailBase.OAuthClientId" value="<%= model.OAuthClientId??'' %>"><% if(mailPage.fieldErrors?.['mailBase.OAuthClientId']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.OAuthClientId'] %></span><% } %></td></tr>
           <tr id="row_oauth_clientsecret"><th scope="row"><label for="mailBase_OAuthClientSecret"><%= labels.clientSecret %></label></th><td><input class="EditValue1" id="mailBase_OAuthClientSecret" name="mailBase.OAuthClientSecret" value="<%= model.OAuthClientSecret??'' %>"><% if(mailPage.fieldErrors?.['mailBase.OAuthClientSecret']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.OAuthClientSecret'] %></span><% } %></td></tr>
           <tr id="row_oauth_tenantid"><th scope="row"><label for="mailBase_OAuthTenantId"><%= labels.tenantId %></label></th><td><input class="EditValue1" id="mailBase_OAuthTenantId" name="mailBase.OAuthTenantId" value="<%= model.OAuthTenantId??'' %>"><% if(mailPage.fieldErrors?.['mailBase.OAuthTenantId']) { %><span class="field-validation-error"><%= mailPage.fieldErrors['mailBase.OAuthTenantId'] %></span><% } %></td></tr>

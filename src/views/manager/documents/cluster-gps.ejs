@@ -1,4 +1,4 @@
-<% const lat = String(row.gps_lat ?? ''), lon = String(row.gps_lon ?? '');
+<% const ui = managerResources["documents"]; %><% const lat = String(row.gps_lat ?? ''), lon = String(row.gps_lon ?? '');
    if (row.cluster_role !== '2' && lat && lon && lat !== '0.000000' && lon !== '0.000000') { %>
   <div><%= r.gps_lat %>:<%= lat %></div>
   <div><%= r.gps_lon %>:<%= lon %></div>

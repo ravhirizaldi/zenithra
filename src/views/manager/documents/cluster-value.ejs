@@ -1,4 +1,4 @@
-<% const isVerified = row.summary_verified ?? (Number(row.verified) === 1 && (['FixedText','FreeText','Image','DrawingImage','FreeDraw','AudioRecording'].includes(row.cluster_type)
+<% const ui = managerResources["documents"]; %><% const isVerified = row.summary_verified ?? (Number(row.verified) === 1 && (['FixedText','FreeText','Image','DrawingImage','FreeDraw','AudioRecording'].includes(row.cluster_type)
   ? String(row.input_value) !== '1' : row.cluster_type === 'Check' ? !row.display_value || String(row.display_value).toUpperCase() === 'FALSE' : !row.display_value));
 if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
 <% } else if (isVerified) { %><div style="color:Red;"><%= r.VarifiedMessage %></div>
@@ -8,12 +8,12 @@ if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
     ? base + '/InputReport/GetHistoryImage?' + new URLSearchParams({historyId: String(row.history_id), imageType, isResize: String(resize)}).toString()
     : base + '/InputReport/' + (imageType === '2' ? 'GetRecordingValue' : 'GetInputValueImage') + '?' + new URLSearchParams({repSheetId: String(row.rep_sheet_id), clusterId: String(row.cluster_id), signFlg: String(imageType === '1'), inputValueFlg: 'true', isResize: String(resize)}).toString();
   if (['FixedText','FreeText','Image','DrawingImage','FreeDraw'].includes(row.cluster_type)) { %>
-    <% if (historic ? row.has_image : String(row.input_value) === '1') { %><a href="<%= media('0') %>"><%= r.Download %></a><br><img src="<%= media('0', true) %>" alt="[image]">
+    <% if (historic ? row.has_image : String(row.input_value) === '1') { %><a href="<%= media('0') %>"><%= r.Download %></a><br><img src="<%= media('0', true) %>" alt="<%= ui["[image]"] %>">
       <% if (!historic && row.cluster_type === 'FreeDraw') { %>
         <table cellpadding="0" cellspacing="0" class="table_information horizontal"><% if (row.display_value) { %><tr><th><%= r.FreeDrawText %></th><td><% for (const text of String(row.display_value).split(',')) { %><div><%= text %></div><% } %></td></tr><% } %></table>
         <% if (row.draws?.length) { %><table cellpadding="0" cellspacing="0" class="table_information verticality" width="100%"><tr><th style="width:23px;" scope="col"><%= r.rep_cluster_draw %></th></tr>
           <% for (const draw of row.draws) { const url = base + '/InputReport/GetLayerDraw?' + new URLSearchParams({repSheetId: String(row.rep_sheet_id), layerId: String(draw.key_id), imageNo: String(draw.image_no), type: 'cluster'}).toString(); %>
-            <tr><td style="text-align:center;"><a href="<%= url %>&amp;isResize=false"><%= r.Download %></a><br><img src="<%= url %>&amp;isResize=true" alt="[layer]"></td></tr>
+            <tr><td style="text-align:center;"><a href="<%= url %>&amp;isResize=false"><%= r.Download %></a><br><img src="<%= url %>&amp;isResize=true" alt="<%= ui["[layer]"] %>"></td></tr>
           <% } %></table><% } %>
       <% } %>
     <% } %>
@@ -36,6 +36,6 @@ if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
       <div class="box_head_left">[<%= userLabel %>]</div><div>：<%= row.approver_name %></div><br style="line-height:5px">
       <div class="box_head_left">[<%= dateLabel %>]</div><div class="datetime">：<%= row.approver_date %></div><br style="line-height:5px">
       <div class="box_head_left">[<%= historic ? r.DatabaseResource_comment : v.comment %>]</div><div>：<%= row.approver_comment %></div>
-    </td></tr><% if (row.has_signature && (!approve || complete)) { %><tr><td align="center"><img src="<%= media('1') %>" alt="[image]"></td></tr><% } %></table><% } %></div>
+    </td></tr><% if (row.has_signature && (!approve || complete)) { %><tr><td align="center"><img src="<%= media('1') %>" alt="<%= ui["[image]"] %>"></td></tr><% } %></table><% } %></div>
   <% } else { %><%= row.display_value %><% } %>
 <% } %>

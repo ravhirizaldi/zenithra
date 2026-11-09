@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { createReadStream } from 'node:fs';
 import { open, readdir, stat, unlink } from 'node:fs/promises';
 import path from 'node:path';
@@ -43,7 +44,7 @@ function licenseStatusError(): { message: string; status: number } | null {
   try {
     return licenseStatus().freeDrawOnly ? { message: roleError, status: 403 } : null;
   } catch {
-    return { message: 'License information is unavailable.', status: 503 };
+    return { message: pageText['License information is unavailable.'], status: 503 };
   }
 }
 
@@ -57,8 +58,8 @@ function show(res: Response, render: Render, page: Record<string, unknown>) {
       typeof page.title === 'string'
         ? page.title
         : mode === 'create'
-          ? 'File upload for reference'
-          : 'List of file upload for reference',
+          ? pageText['File upload for reference']
+          : pageText['List of file upload for reference'],
     userName: res.locals.userName,
     systemUploadsPage: page,
   });
@@ -107,7 +108,7 @@ async function directorySettings(db: pg.Pool): Promise<DirectorySettings> {
   );
   const values: Record<string, string> = Object.fromEntries(result.rows.map((row) => [row.com_name, row.com_value]));
   if (!Object.hasOwn(values, 'REFERENCE_PHYSICAL') || !Object.hasOwn(values, 'REFERENCE_VIRTUAL'))
-    throw new Error('Upload directory settings are missing.');
+    throw new Error(pageText['Upload directory settings are missing.']);
   const physicalValue = values.REFERENCE_PHYSICAL ?? '';
   const physical = physicalValue ? configuredPath(physicalValue) : '';
   return {
@@ -331,9 +332,9 @@ export function registerSystemUploads(app: Express, db: pg.Pool, render: Render)
         });
       }
       const settings = await directorySettings(db);
-      if (!settings.physical) throw new Error('Upload directory is not configured.');
+      if (!settings.physical) throw new Error(pageText['Upload directory is not configured.']);
       const directory = await stat(settings.physical);
-      if (!directory.isDirectory()) throw new Error('Upload directory is not available.');
+      if (!directory.isDirectory()) throw new Error(pageText['Upload directory is not available.']);
       const errors: string[] = [];
       for (const file of files) {
         if (file.size === 0) continue;

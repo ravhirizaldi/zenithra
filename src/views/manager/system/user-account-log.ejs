@@ -1,4 +1,4 @@
-<% const logPage = userAccountLogPage; const filters = logPage.filters; %>
+<% const ui = managerResources["system"]; %><% const logPage = userAccountLogPage; const filters = logPage.filters; %>
 <script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js"></script>
 <script src="<%= base %>/Scripts/jquery.timepicker.js"></script>
 <script src="<%= base %>/Scripts/conmas.paging.action.js"></script>
@@ -11,7 +11,7 @@
 </div>
 
 <div id="DetailTop">
-  <span id="infoTitle">Users - User Account Log</span>
+  <span id="infoTitle"><%= ui["Users - User Account Log"] %></span>
 </div>
 <div id="DetailSection">
   <div class="info">
@@ -24,11 +24,11 @@
       <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= logPage.sortColumn %>">
       <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= logPage.sortDirection %>">
 
-      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2>▼SearchConditions</h2></div>
+      <div class="toggle" onclick="fConMasToggle('SearchLogLibraryBox');"><h2><%= ui["▼SearchConditions"] %></h2></div>
       <div id="SearchLogLibraryBox">
         <table cellpadding="0" cellspacing="0" class="table_information horizontal">
           <tr>
-            <th scope="row">Operation date and time</th>
+            <th scope="row"><%= ui["Operation date and time"] %></th>
             <td>
               <div class="datetime" style="float:left; padding:3px;">
                 <input type="text" id="whereData_SearchChild_TimeFrom" name="whereData.SearchChild.TimeFrom" value="<%= filters.timeFrom %>" style="width:90px;" onchange="fConMasTimeInitFrom();">
@@ -47,21 +47,21 @@
           </tr>
           <tr>
             <th scope="row">
-              <label>Operation type <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label>
+              <label><%= ui["Operation type"] %> <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label>
             </th>
             <td>
-              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeInsert" value="true" <%= filters.operationTypeInsert ? 'checked' : '' %>> Insert</label>
-              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeUpdate" value="true" <%= filters.operationTypeUpdate ? 'checked' : '' %>> Update</label>
-              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeDelete" value="true" <%= filters.operationTypeDelete ? 'checked' : '' %>> Delete</label>
+              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeInsert" value="true" <%= filters.operationTypeInsert ? 'checked' : '' %>> <%= ui["Insert"] %></label>
+              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeUpdate" value="true" <%= filters.operationTypeUpdate ? 'checked' : '' %>> <%= ui["Update"] %></label>
+              <label><input type="checkbox" name="whereData.SearchChild.OperationTypeDelete" value="true" <%= filters.operationTypeDelete ? 'checked' : '' %>> <%= ui["Delete"] %></label>
             </td>
           </tr>
           <tr>
-            <th scope="row">User</th>
+            <th scope="row"><%= ui["User"] %></th>
             <td>
               <div style="float:left;">
-                <div style="float:left;">User ID <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></div>
+                <div style="float:left;"><%= ui["User ID"] %> <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></div>
                 <div style="float:left;">&nbsp;&nbsp;</div>
-                <div style="float:left;">User name <input type="text" name="whereData.SearchChild.UserName" value="<%= filters.userName %>"></div>
+                <div style="float:left;"><%= ui["User name"] %> <input type="text" name="whereData.SearchChild.UserName" value="<%= filters.userName %>"></div>
               </div>
             </td>
           </tr>
@@ -71,51 +71,51 @@
           <input type="submit" value="CSV" class="img_output_csv2" onclick="fConMasSetAction('CsvType');">
         </div>
         <% if (logPage.limitOfDownloadCount > 0) { %>
-          <div style="text-align:right; padding-top:8px;">The maximum number to download once is <%= Number(logPage.limitOfDownloadCount).toLocaleString('en-US') %>.</div>
+          <div style="text-align:right; padding-top:8px;"><%= ui["The maximum number to download once is"] %> <%= Number(logPage.limitOfDownloadCount).toLocaleString('en-US') %>.</div>
         <% } %>
       </div>
 
-      <div class="toggle" onclick="fConMasToggle('resultLogLibraryBox');"><h2>▼SearchResult</h2></div>
+      <div class="toggle" onclick="fConMasToggle('resultLogLibraryBox');"><h2><%= ui["▼SearchResult"] %></h2></div>
       <div id="resultLogLibraryBox" style="overflow:auto;">
         <div class="PageSection">
-          Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="return fConMasPageSubmitAction('PageType');">
+          <%= ui["Displayed number "] %><select id="PageData_PageSize" name="PageData.PageSize" onchange="return fConMasPageSubmitAction('PageType');">
             <% for (const option of logPage.pageSizeOptions) { %><option value="<%= option.value %>" <%= logPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
           </select>
           &nbsp;
           <% if (logPage.pageIndex > 0) { %>
-            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;">First</a>
-            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a>
+            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;"><%= ui["First"] %></a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a>
           <% } else { %>
-            <img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d">
+            <img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>">
           <% } %>
           &nbsp;<%= logPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= logPage.totalPages %>&nbsp;
           <% if (logPage.pageIndex + 1 < logPage.totalPages) { %>
-            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="Next page"> </a>
-            <a href="#" onclick="return fConMasPageAction(<%= logPage.totalPages - 1 %>, 'PageType');" style="padding-left:5px;">Last</a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.totalPages - 1 %>, 'PageType');" style="padding-left:5px;"><%= ui["Last"] %></a>
           <% } else { %>
-            <img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d">
+            <img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>">
           <% } %>
         </div>
 
         <table class="GridCommon" border="0" cellspacing="1">
           <tr>
             <% const columns = [
-              ['log_time', 'Operation date and time'],
-              ['operation_type', 'Operation type'],
-              ['operation_content', 'Operation content'],
-              ['user_id', 'User ID'],
-              ['user_name', 'User name'],
-              ['term_id', 'Device ID'],
-              ['physical_id', 'Device ID'],
-              ['term_name', 'Device name'],
-              ['client_ip_address', 'Client address'],
-              ['app_type', 'Application type'],
-              ['update_user_id', 'Update User ID'],
+              ['log_time', ui["Operation date and time"]],
+              ['operation_type', ui["Operation type"]],
+              ['operation_content', ui["Operation content"]],
+              ['user_id', ui["User ID"]],
+              ['user_name', ui["User name"]],
+              ['term_id', ui["Device ID"]],
+              ['physical_id', ui["Device ID"]],
+              ['term_name', ui["Device name"]],
+              ['client_ip_address', ui["Client address"]],
+              ['app_type', ui["Application type"]],
+              ['update_user_id', ui["Update User ID"]],
             ]; %>
             <% for (const [column, label] of columns) { %>
               <th scope="col" class="<%= logPage.sortColumn === column ? 'sorting' : '' %>">
                 <span><%= label %></span>
-                <a href="#" class="sort<%= logPage.sortColumn === column ? ' ' + logPage.sortDirection.toLowerCase() : '' %>" onclick="return fConMasPageSortAction('<%= column %>', 'PageType');">sort</a>
+                <a href="#" class="sort<%= logPage.sortColumn === column ? ' ' + logPage.sortDirection.toLowerCase() : '' %>" onclick="return fConMasPageSortAction('<%= column %>', 'PageType');"><%= ui["sort"] %></a>
               </th>
             <% } %>
           </tr>
@@ -136,29 +136,29 @@
           <% } %>
         </table>
         <div class="PageSection">
-          Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="$('#PageData_PageSize').val($(this).val()); return fConMasPageSubmitAction('PageType');">
+          <%= ui["Displayed number "] %><select id="PageData_PageSize" name="PageData.PageSize" onchange="$('#PageData_PageSize').val($(this).val()); return fConMasPageSubmitAction('PageType');">
             <% for (const option of logPage.pageSizeOptions) { %><option value="<%= option.value %>" <%= logPage.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
           </select>
           &nbsp;
           <% if (logPage.pageIndex > 0) { %>
-            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;">First</a>
-            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a>
+            <a href="#" onclick="return fConMasPageAction(0, 'PageType');" style="padding-right:5px;"><%= ui["First"] %></a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex - 1 %>, 'PageType');" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a>
           <% } else { %>
-            <img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d">
+            <img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>">
           <% } %>
           &nbsp;<%= logPage.pageIndex + 1 %>&nbsp;/&nbsp;<%= logPage.totalPages %>&nbsp;
           <% if (logPage.pageIndex + 1 < logPage.totalPages) { %>
-            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="Next page"> </a>
-            <a href="#" onclick="return fConMasPageAction(<%= logPage.totalPages - 1 %>, 'PageType');" style="padding-left:5px;">Last</a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.pageIndex + 1 %>, 'PageType');" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a>
+            <a href="#" onclick="return fConMasPageAction(<%= logPage.totalPages - 1 %>, 'PageType');" style="padding-left:5px;"><%= ui["Last"] %></a>
           <% } else { %>
-            <img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d">
+            <img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>">
           <% } %>
         </div>
       </div>
     </form>
   </div>
 </div>
-<div id="domMessage" style="display:none;"><h1>In process</h1></div>
+<div id="domMessage" style="display:none;"><h1><%= ui["In process"] %></h1></div>
 
 <script>
   $(function () {

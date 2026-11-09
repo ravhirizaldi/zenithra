@@ -1,16 +1,16 @@
-<% const route = `${base}/System`; const page = mbCloudPage; %>
+<% const ui = managerResources["system"]; %><% const route = `${base}/System`; const page = mbCloudPage; %>
 <% if (page.error && page.kind !== 'forbidden') { %><div class="PartialViewMessage" role="alert"><%= page.error %></div><% } %>
 <% if (page.kind === 'forbidden') { %>
   <div role="alert"><%= page.error %></div>
 <% } else if (page.kind === 'setting') { const model = page.model; const edit = model.act === 'edit'; %>
   <div id="DetailTop">
-    <span id="infoTitle">MotionBoard Cloud linkage setting</span>
+    <span id="infoTitle"><%= ui["MotionBoard Cloud linkage setting"] %></span>
     <span id="functionBar">
-      <% if (!edit && page.canEdit) { %><span><a id="mbCloudFunction" class="img_edit" title="Edit" href="<%= route %>/MbCloudSetting?act=edit"> </a></span><% } %>
+      <% if (!edit && page.canEdit) { %><span><a id="mbCloudFunction" class="img_edit" title="<%= ui["Edit"] %>" href="<%= route %>/MbCloudSetting?act=edit"> </a></span><% } %>
       <% if (!edit && page.canDelete) { %><form method="post" action="<%= route %>/MbCloudSetting" style="display:inline">
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
         <input type="hidden" name="act" value="delete">
-        <button type="submit" id="delete" class="img_delete" title="Delete" aria-label="Delete" style="cursor:pointer" onclick="return confirm('Release the linkage. Continue?')"></button>
+        <button type="submit" id="delete" class="img_delete" title="<%= ui["Delete"] %>" aria-label="<%= ui["Delete"] %>" style="cursor:pointer" onclick="return confirm(<%= managerScriptText(ui["Release the linkage. Continue?"], "'") %>)"></button>
       </form><% } %>
     </span>
   </div>
@@ -22,24 +22,24 @@
         <input type="hidden" name="IsNew" value="<%= model.IsNew %>">
         <div id="mbCloudSetting">
           <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
-            <tr><th scope="row"><label for="mbcloud-url">Directly import (synchronize) Resource URI for CSV file snapshots</label></th><td><input id="mbcloud-url" name="Url" class="EditValue1" value="<%= model.Url %>" required></td></tr>
-            <tr><th scope="row"><label for="mbcloud-endpoint">Create or update Resource URI for snapshot settings</label></th><td><input id="mbcloud-endpoint" name="EndpointCreateDefReplication" class="EditValue1" value="<%= model.EndpointCreateDefReplication %>" required></td></tr>
-            <tr><th scope="row"><label for="mbcloud-tenant">tenant</label></th><td><input id="mbcloud-tenant" name="Tenant" class="EditValue1" value="<%= model.Tenant %>" required></td></tr>
-            <tr><th scope="row"><label for="mbcloud-id">ID</label></th><td><input id="mbcloud-id" name="MbId" class="EditValue1" value="<%= model.MbId %>" required></td></tr>
-            <tr><th scope="row"><label for="mbcloud-password">Password</label></th><td><input id="mbcloud-password" name="<%= model.IsNew ? 'Password' : 'PasswordEdit' %>" class="EditValue1" type="password" autocomplete="new-password" <%= model.IsNew ? 'required' : '' %>></td></tr>
-            <tr><th scope="row">Realtime data connection</th><td><label><input type="radio" name="RealtimeLinkageEnabled" value="1" <%= model.RealtimeLinkageEnabled === '1' ? 'checked' : '' %>>Yes</label> <label><input type="radio" name="RealtimeLinkageEnabled" value="0" <%= model.RealtimeLinkageEnabled === '0' ? 'checked' : '' %>>No</label></td></tr>
+            <tr><th scope="row"><label for="mbcloud-url"><%= ui["Directly import (synchronize) Resource URI for CSV file snapshots"] %></label></th><td><input id="mbcloud-url" name="Url" class="EditValue1" value="<%= model.Url %>" required></td></tr>
+            <tr><th scope="row"><label for="mbcloud-endpoint"><%= ui["Create or update Resource URI for snapshot settings"] %></label></th><td><input id="mbcloud-endpoint" name="EndpointCreateDefReplication" class="EditValue1" value="<%= model.EndpointCreateDefReplication %>" required></td></tr>
+            <tr><th scope="row"><label for="mbcloud-tenant"><%= ui["tenant"] %></label></th><td><input id="mbcloud-tenant" name="Tenant" class="EditValue1" value="<%= model.Tenant %>" required></td></tr>
+            <tr><th scope="row"><label for="mbcloud-id"><%= ui["ID"] %></label></th><td><input id="mbcloud-id" name="MbId" class="EditValue1" value="<%= model.MbId %>" required></td></tr>
+            <tr><th scope="row"><label for="mbcloud-password"><%= ui["Password"] %></label></th><td><input id="mbcloud-password" name="<%= model.IsNew ? 'Password' : 'PasswordEdit' %>" class="EditValue1" type="password" autocomplete="new-password" <%= model.IsNew ? 'required' : '' %>></td></tr>
+            <tr><th scope="row"><%= ui["Realtime data connection"] %></th><td><label><input type="radio" name="RealtimeLinkageEnabled" value="1" <%= model.RealtimeLinkageEnabled === '1' ? 'checked' : '' %>><%= ui["Yes"] %></label> <label><input type="radio" name="RealtimeLinkageEnabled" value="0" <%= model.RealtimeLinkageEnabled === '0' ? 'checked' : '' %>><%= ui["No"] %></label></td></tr>
           </table>
         </div>
-        <% if (page.canEdit) { %><p><button type="submit" class="image-ok_btn">Confirm</button> <a href="<%= route %>/Index?mode=mbCloud&amp;act=back" id="image-cancel_btn" class="image-cancel_label">Cancel</a></p><% } %>
+        <% if (page.canEdit) { %><p><button type="submit" class="image-ok_btn"><%= ui["Confirm"] %></button> <a href="<%= route %>/Index?mode=mbCloud&amp;act=back" id="image-cancel_btn" class="image-cancel_label"><%= ui["Cancel"] %></a></p><% } %>
       </form>
     <% } else { %>
       <div id="mbCloudSetting">
         <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
-          <tr><th scope="row">Directly import (synchronize) Resource URI for CSV file snapshots</th><td><%= model.Url %></td></tr>
-          <tr><th scope="row">Create or update Resource URI for snapshot settings</th><td><%= model.EndpointCreateDefReplication %></td></tr>
-          <tr><th scope="row">tenant</th><td><%= model.Tenant %></td></tr>
-          <tr><th scope="row">ID</th><td><%= model.MbId %></td></tr>
-          <tr><th scope="row">Realtime data connection</th><td><%= model.RealtimeLinkageEnabled === '1' ? 'Yes' : 'No' %></td></tr>
+          <tr><th scope="row"><%= ui["Directly import (synchronize) Resource URI for CSV file snapshots"] %></th><td><%= model.Url %></td></tr>
+          <tr><th scope="row"><%= ui["Create or update Resource URI for snapshot settings"] %></th><td><%= model.EndpointCreateDefReplication %></td></tr>
+          <tr><th scope="row"><%= ui["tenant"] %></th><td><%= model.Tenant %></td></tr>
+          <tr><th scope="row"><%= ui["ID"] %></th><td><%= model.MbId %></td></tr>
+          <tr><th scope="row"><%= ui["Realtime data connection"] %></th><td><%= model.RealtimeLinkageEnabled === '1' ? ui["Yes"] : ui["No"] %></td></tr>
         </table>
       </div>
     <% } %>
@@ -51,7 +51,7 @@
   <script src="<%= base %>/Scripts/jquery.ui.datepicker-ja.js"></script>
   <script src="<%= base %>/Scripts/jquery.timepicker.js"></script>
   <div id="MessageWrap"></div>
-  <div id="DetailTop"><span id="infoTitle">MotionBoard Cloud linkage log</span></div>
+  <div id="DetailTop"><span id="infoTitle"><%= ui["MotionBoard Cloud linkage log"] %></span></div>
   <div id="DetailSection"><div class="info">
     <form method="post" action="<%= route %>/MbCloudSendLog" enctype="multipart/form-data" id="conmasPageForm">
       <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
@@ -59,69 +59,69 @@
       <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= page.pageIndex %>">
       <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= sortColumn %>">
       <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= sortDirection %>">
-      <div class="toggle" role="button" tabindex="0" aria-controls="SearchLogBox" aria-expanded="true" onclick="toggleLogSection(this, 'SearchLogBox')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleLogSection(this,'SearchLogBox')}"><h2 style="margin-top:5px;">▼Search Conditions</h2></div>
+      <div class="toggle" role="button" tabindex="0" aria-controls="SearchLogBox" aria-expanded="true" onclick="toggleLogSection(this, 'SearchLogBox')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleLogSection(this,'SearchLogBox')}"><h2 style="margin-top:5px;"><%= ui["▼Search Conditions"] %></h2></div>
       <div id="SearchLogBox">
         <table style="padding:0;border-spacing:0;border-collapse:collapse;" class="table_information horizontal">
-          <tr><th scope="row">Send date and time</th><td>
-            <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeFrom" aria-label="From date" name="WhereData.SendTimeFrom" value="<%= filters.SendTimeFrom %>" style="width:90px;"></div>
-            <div style="float:left;padding:3px;"><input id="WhereData_SendTimeFromHour" aria-label="From time" name="WhereData.SendTimeFromHour" value="<%= filters.SendTimeFromHour %>" style="width:70px;"></div>
+          <tr><th scope="row"><%= ui["Send date and time"] %></th><td>
+            <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeFrom" aria-label="<%= ui["From date"] %>" name="WhereData.SendTimeFrom" value="<%= filters.SendTimeFrom %>" style="width:90px;"></div>
+            <div style="float:left;padding:3px;"><input id="WhereData_SendTimeFromHour" aria-label="<%= ui["From time"] %>" name="WhereData.SendTimeFromHour" value="<%= filters.SendTimeFromHour %>" style="width:70px;"></div>
             <div class="datetime" style="float:left;padding:3px;">～</div>
-            <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeTo" aria-label="To date" name="WhereData.SendTimeTo" value="<%= filters.SendTimeTo %>" style="width:90px;"></div>
-            <div style="float:left;padding:3px;"><input id="WhereData_SendTimeToHour" aria-label="To time" name="WhereData.SendTimeToHour" value="<%= filters.SendTimeToHour %>" style="width:70px;"></div>
+            <div class="datetime" style="float:left;padding:3px;"><input id="WhereData_SendTimeTo" aria-label="<%= ui["To date"] %>" name="WhereData.SendTimeTo" value="<%= filters.SendTimeTo %>" style="width:90px;"></div>
+            <div style="float:left;padding:3px;"><input id="WhereData_SendTimeToHour" aria-label="<%= ui["To time"] %>" name="WhereData.SendTimeToHour" value="<%= filters.SendTimeToHour %>" style="width:70px;"></div>
           </td></tr>
-          <tr><th scope="row"><label>Status <input type="checkbox" id="statusCheck" aria-label="Select all statuses" onchange="toggleAll(this, 'whereDataStatus')"></label></th><td id="whereDataStatus">
-            <% for (const [field,label] of [['StatusSuccess','Succeeded to send'],['StatusFailure','Failed to send'],['StatusRetrying','Retrying to send']]) { %><label><input type="hidden" name="WhereData.<%= field %>" value="false"><input type="checkbox" name="WhereData.<%= field %>" value="true" <%= filters[field] ? 'checked' : '' %>><%= label %></label><% } %>
+          <tr><th scope="row"><label><%= ui["Status"] %> <input type="checkbox" id="statusCheck" aria-label="<%= ui["Select all statuses"] %>" onchange="toggleAll(this, 'whereDataStatus')"></label></th><td id="whereDataStatus">
+            <% for (const [field,label] of [['StatusSuccess',ui["Succeeded to send"]],['StatusFailure',ui["Failed to send"]],['StatusRetrying',ui["Retrying to send"]]]) { %><label><input type="hidden" name="WhereData.<%= field %>" value="false"><input type="checkbox" name="WhereData.<%= field %>" value="true" <%= filters[field] ? 'checked' : '' %>><%= label %></label><% } %>
           </td></tr>
-          <tr><th scope="row"><label for="WhereData_IreporterUser">i-Reporter users</label></th><td><input id="WhereData_IreporterUser" name="WhereData.IreporterUser" value="<%= filters.IreporterUser %>"></td></tr>
-          <tr><th scope="row"><label for="WhereData_RepTopId">Document ID</label></th><td><input id="WhereData_RepTopId" name="WhereData.RepTopId" value="<%= filters.RepTopId %>"></td></tr>
-          <tr><th scope="row"><label for="WhereData_RepTopName">Form name</label></th><td><input id="WhereData_RepTopName" name="WhereData.RepTopName" value="<%= filters.RepTopName %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_IreporterUser"><%= ui["i-Reporter users"] %></label></th><td><input id="WhereData_IreporterUser" name="WhereData.IreporterUser" value="<%= filters.IreporterUser %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_RepTopId"><%= ui["Document ID"] %></label></th><td><input id="WhereData_RepTopId" name="WhereData.RepTopId" value="<%= filters.RepTopId %>"></td></tr>
+          <tr><th scope="row"><label for="WhereData_RepTopName"><%= ui["Form name"] %></label></th><td><input id="WhereData_RepTopName" name="WhereData.RepTopName" value="<%= filters.RepTopName %>"></td></tr>
         </table>
-        <div style="text-align:right;"><button type="submit" class="image-ok_btn" onclick="setLogAction('SearchType')">Search</button></div>
+        <div style="text-align:right;"><button type="submit" class="image-ok_btn" onclick="setLogAction('SearchType')"><%= ui["Search"] %></button></div>
       </div>
-      <div class="toggle" role="button" tabindex="0" aria-controls="resultList" aria-expanded="true" onclick="toggleLogSection(this, 'resultList')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleLogSection(this,'resultList')}"><h2>▼Search Result</h2></div>
+      <div class="toggle" role="button" tabindex="0" aria-controls="resultList" aria-expanded="true" onclick="toggleLogSection(this, 'resultList')" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();toggleLogSection(this,'resultList')}"><h2><%= ui["▼Search Result"] %></h2></div>
       <div id="resultList" style="overflow:auto;">
-        <% if (page.canResend && rows.some(row => Number(row.status) === 1)) { %><p id="mbcloud-resend-unavailable" role="status">Resend disabled: this Node app lacks the legacy report CSV exporter and MotionBoard Cloud upload runtime.</p><% } %>
+        <% if (page.canResend && rows.some(row => Number(row.status) === 1)) { %><p id="mbcloud-resend-unavailable" role="status"><%= ui["Resend disabled: this Node app lacks the legacy report CSV exporter and MotionBoard Cloud upload runtime."] %></p><% } %>
         <div style="float:left;">
-          <% if (page.canDelete) { %><div style="float:left;"><button type="submit" class="img_delete2" title="Delete" aria-label="Delete selected logs" onclick="return deleteCloudLogs()"></button></div><% } %>
-          <button type="submit" class="img_output_csv2" title="CSV" onclick="setLogAction('CsvType')">CSV</button>
+          <% if (page.canDelete) { %><div style="float:left;"><button type="submit" class="img_delete2" title="<%= ui["Delete"] %>" aria-label="<%= ui["Delete selected logs"] %>" onclick="return deleteCloudLogs()"></button></div><% } %>
+          <button type="submit" class="img_output_csv2" title="<%= ui["CSV"] %>" onclick="setLogAction('CsvType')"><%= ui["CSV"] %></button>
         </div>
         <div class="PageSection">
-          Displayed number&nbsp;<select id="PageData_PageSize" aria-label="Displayed number" name="PageData.PageSize" onchange="setLogAction('PageType');this.form.submit()"><% for (const option of page.pageSizeOptions) { %><option value="<%= option.value %>" <%= page.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %></select>
+          <%= ui["Displayed number "] %><select id="PageData_PageSize" aria-label="<%= ui["Displayed number"] %>" name="PageData.PageSize" onchange="setLogAction('PageType');this.form.submit()"><% for (const option of page.pageSizeOptions) { %><option value="<%= option.value %>" <%= page.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %></select>
           &nbsp;
-          <% if (page.pageIndex > 0) { %><a href="#" onclick="return pageTo(0)" style="padding-right:5px;">First</a><a href="#" onclick="return pageTo(<%= page.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="Previous page"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page unavailable"><% } %>
+          <% if (page.pageIndex > 0) { %><a href="#" onclick="return pageTo(0)" style="padding-right:5px;"><%= ui["First"] %></a><a href="#" onclick="return pageTo(<%= page.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["Previous page unavailable"] %>"><% } %>
           &nbsp;<%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>&nbsp;
-          <% if (page.pageIndex + 1 < page.totalPages) { %><a href="#" onclick="return pageTo(<%= page.pageIndex + 1 %>)" class="img_page_next_e" aria-label="Next page"></a><a href="#" onclick="return pageTo(<%= page.totalPages - 1 %>)" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page unavailable"><% } %>
+          <% if (page.pageIndex + 1 < page.totalPages) { %><a href="#" onclick="return pageTo(<%= page.pageIndex + 1 %>)" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"></a><a href="#" onclick="return pageTo(<%= page.totalPages - 1 %>)" style="padding-left:5px;"><%= ui["Last"] %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["Next page unavailable"] %>"><% } %>
         </div>
-        <% if (page.limitOfDownloadCount > 0) { %><div style="clear:left;padding-bottom:8px;">The maximum number to download once is <%= page.limitOfDownloadCount.toLocaleString('en-US') %>.</div><% } %>
+        <% if (page.limitOfDownloadCount > 0) { %><div style="clear:left;padding-bottom:8px;"><%= ui["The maximum number to download once is"] %> <%= page.limitOfDownloadCount.toLocaleString('en-US') %>.</div><% } %>
         <table class="GridCommon" border="0" cellspacing="1" id="sendLogDataTable">
           <thead><tr>
-            <th scope="col" class="checkCol" style="width:20px;"><input type="checkbox" id="chkTopHead" aria-label="Select all log rows" onchange="toggleAll(this, 'sendLogDataTable')"></th>
-            <% for (const [column,label] of [['sys_update_time','Send date and time'],['status','Status'],['sys_update_user','i-Reporter users'],['rep_top_id','Document ID'],['rep_top_name','Form name'],['view_name','View physical name'],['error_message','Error message']]) { const selected = sortColumn === column; %>
-              <th scope="col" class="<%= selected ? 'sorting' : '' %>"><span><%= label %></span><a href="#" class="sort <%= selected ? sortDirection.toLowerCase() : '' %>" aria-label="Sort by <%= label %>" onclick="return sortLog('<%= column %>')">sort</a></th>
+            <th scope="col" class="checkCol" style="width:20px;"><input type="checkbox" id="chkTopHead" aria-label="<%= ui["Select all log rows"] %>" onchange="toggleAll(this, 'sendLogDataTable')"></th>
+            <% for (const [column,label] of [['sys_update_time',ui["Send date and time"]],['status',ui["Status"]],['sys_update_user',ui["i-Reporter users"]],['rep_top_id',ui["Document ID"]],['rep_top_name',ui["Form name"]],['view_name',ui["View physical name"]],['error_message',ui["Error message"]]]) { const selected = sortColumn === column; %>
+              <th scope="col" class="<%= selected ? 'sorting' : '' %>"><span><%= label %></span><a href="#" class="sort <%= selected ? sortDirection.toLowerCase() : '' %>" aria-label="<%= ui["Sort by"] %> <%= label %>" onclick="return sortLog('<%= column %>')"><%= ui["sort"] %></a></th>
             <% } %>
             <th scope="col"></th>
           </tr></thead>
           <tbody>
             <% rows.forEach((row,index) => { const status = Number(row.status); %>
               <tr class="<%= index % 2 === 0 ? 'odd' : 'even' %>">
-                <td class="CenterCol"><input type="checkbox" name="SendLogList[<%= index %>].IsSelect" value="true" aria-label="Select log <%= row.log_id %>"><input type="hidden" name="SendLogList[<%= index %>].LogId" value="<%= row.log_id %>"></td>
+                <td class="CenterCol"><input type="checkbox" name="SendLogList[<%= index %>].IsSelect" value="true" aria-label="<%= ui["Select log"] %> <%= row.log_id %>"><input type="hidden" name="SendLogList[<%= index %>].LogId" value="<%= row.log_id %>"></td>
                 <td class="LeftCol"><%= row.sys_update_time_display %></td>
-                <td class="LeftCol"><%= status === 0 ? 'Succeeded to send' : status === 1 ? 'Failed to send' : 'Retrying to send' %></td>
+                <td class="LeftCol"><%= status === 0 ? ui["Succeeded to send"] : status === 1 ? ui["Failed to send"] : ui["Retrying to send"] %></td>
                 <td class="LeftCol"><%= row.sys_update_user %>:<%= row.sys_update_user_name %></td>
                 <td class="LeftCol"><%= row.rep_top_id %></td>
                 <td class="LeftCol"><%= row.rep_top_name %></td>
                 <td class="LeftCol"><%= row.view_name %></td>
                 <td class="LeftCol"><%= row.error_message %></td>
-                <td class="CenterCol"><% if (status === 1 && page.canResend) { %><button type="button" disabled aria-disabled="true" aria-describedby="mbcloud-resend-unavailable" title="Requires the legacy report CSV exporter and MotionBoard Cloud upload runtime.">Resend</button><% } %></td>
+                <td class="CenterCol"><% if (status === 1 && page.canResend) { %><button type="button" disabled aria-disabled="true" aria-describedby="mbcloud-resend-unavailable" title="<%= ui["Requires the legacy report CSV exporter and MotionBoard Cloud upload runtime."] %>"><%= ui["Resend"] %></button><% } %></td>
               </tr>
             <% }); %>
-            <% if (!rows.length) { %><tr><td colspan="9">No MotionBoard Cloud send logs match these conditions.</td></tr><% } %>
+            <% if (!rows.length) { %><tr><td colspan="9"><%= ui["No MotionBoard Cloud send logs match these conditions."] %></td></tr><% } %>
           </tbody>
         </table>
         <div class="PageSection">
-          Displayed number&nbsp;<select id="PageData_PageSizeBottom" aria-label="Displayed number" onchange="document.getElementById('PageData_PageSize').value=this.value;setLogAction('PageType');this.form.submit()"><% for (const option of page.pageSizeOptions) { %><option value="<%= option.value %>" <%= page.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %></select>
-          &nbsp;<% if (page.pageIndex > 0) { %><a href="#" onclick="return pageTo(0)" style="padding-right:5px;">First</a><a href="#" onclick="return pageTo(<%= page.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="Previous page"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page unavailable"><% } %>
-          &nbsp;<%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>&nbsp;<% if (page.pageIndex + 1 < page.totalPages) { %><a href="#" onclick="return pageTo(<%= page.pageIndex + 1 %>)" class="img_page_next_e" aria-label="Next page"></a><a href="#" onclick="return pageTo(<%= page.totalPages - 1 %>)" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page unavailable"><% } %>
+          <%= ui["Displayed number "] %><select id="PageData_PageSizeBottom" aria-label="<%= ui["Displayed number"] %>" onchange="document.getElementById('PageData_PageSize').value=this.value;setLogAction('PageType');this.form.submit()"><% for (const option of page.pageSizeOptions) { %><option value="<%= option.value %>" <%= page.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %></select>
+          &nbsp;<% if (page.pageIndex > 0) { %><a href="#" onclick="return pageTo(0)" style="padding-right:5px;"><%= ui["First"] %></a><a href="#" onclick="return pageTo(<%= page.pageIndex - 1 %>)" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["Previous page unavailable"] %>"><% } %>
+          &nbsp;<%= page.pageIndex + 1 %>&nbsp;/&nbsp;<%= page.totalPages %>&nbsp;<% if (page.pageIndex + 1 < page.totalPages) { %><a href="#" onclick="return pageTo(<%= page.pageIndex + 1 %>)" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"></a><a href="#" onclick="return pageTo(<%= page.totalPages - 1 %>)" style="padding-left:5px;"><%= ui["Last"] %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["Next page unavailable"] %>"><% } %>
         </div>
       </div>
     </form>
@@ -153,10 +153,10 @@
     }
     function deleteCloudLogs() {
       if (!document.querySelectorAll('#sendLogDataTable input[type="checkbox"]:checked').length) {
-        alert('Please check on the target logs to be deleted');
+        alert(<%- managerScriptText(ui["Please check on the target logs to be deleted"], "'") %>);
         return false;
       }
-      if (!confirm('Delete the checked logs. Contine?')) return false;
+      if (!confirm(<%- managerScriptText(ui["Delete the checked logs. Contine?"], "'") %>)) return false;
       setLogAction('DeleteType');
       return true;
     }

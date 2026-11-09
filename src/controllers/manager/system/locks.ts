@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { hasSystemPermission } from '../../../middleware/manager/system/permissions.js';
@@ -183,7 +184,8 @@ async function pageSettings(db: pg.Pool) {
       ? 20
       : pageSizes[0];
   const defaultPublicStatus = result.rows.find((row) => row.com_key === 'DEFAULT_PUBLIC_STATUS')?.com_value;
-  if (defaultPublicStatus === undefined) throw new LockConfigurationError('DEFAULT_PUBLIC_STATUS is not configured.');
+  if (defaultPublicStatus === undefined)
+    throw new LockConfigurationError(pageText['DEFAULT_PUBLIC_STATUS is not configured.']);
   return { pageSizes, defaultPageSize, defaultPublicStatus };
 }
 
@@ -293,7 +295,7 @@ export function registerSystemLocks(app: Express, db: pg.Pool, render: Render): 
       active: 'System',
       section: 'LockManagement',
       login: false,
-      title: 'Batch unlock',
+      title: pageText['Batch unlock'],
       userName: res.locals.userName,
       systemLocksPage,
     });
@@ -318,7 +320,7 @@ export function registerSystemLocks(app: Express, db: pg.Pool, render: Render): 
       const canEdit = await hasSystemPermission(db, userId, 'data', 'edit');
       const action = req.method === 'POST' ? stringValue(values, 'LockManagementAction') : '';
       if (action === '1' || action === '2') {
-        if (!canEdit) return res.status(403).type('text/plain').send('Role authority is insufficient.');
+        if (!canEdit) return res.status(403).type('text/plain').send(pageText['Role authority is insufficient.']);
         let ids: number[];
         if (action === '1') {
           const currentPage = await loadLockPage(db, userId, filters, pageIndex, pageSize, sortColumn, sortDirection);
@@ -348,7 +350,7 @@ export function registerSystemLocks(app: Express, db: pg.Pool, render: Render): 
     } catch (error) {
       if (error instanceof InvalidLockInput) return res.status(400).type('text/plain').send(error.message);
       if (error instanceof LockConfigurationError) return res.status(503).type('text/plain').send(error.message);
-      return res.status(500).type('text/plain').send('Server error.');
+      return res.status(500).type('text/plain').send(pageText['Server error.']);
     }
   };
   app.get(`${root}/LockManagement`, handler);

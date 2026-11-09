@@ -1,4 +1,4 @@
-<script type="text/javascript">
+<% const ui = managerResources["documents"]; %><script type="text/javascript">
   $(function () {
     $('#MessageWrap .PartialViewMessage').empty();
     if ($('.PartialViewMessage li').length === 1 && $('.PartialViewMessage li').css('display') === 'none') $('.PartialViewMessage').css('display','none');
@@ -8,7 +8,7 @@
 <div class="PartialViewMessage"><div class="validation-summary-valid"><ul><li style="display:none"></li></ul></div></div>
 <div id="DetailTop"><span id="infoTitle"><%= r.DefReportResource_reportName %> : <%= name %></span></div>
 <div id="DetailSection"><div class="info">
-  <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td id="previewLeftTop"><br></td><td rowspan="2" id="previewImage"><embed src="<%= base %>/InputReport/GetFdPdf?repTopId=<%= repTopId %>&amp;fdSheetNo=<%= fdSheetNo %>" alt="[pdf]" width="100%" height="100%"></td><td id="previewRightTop"><br></td></tr></table>
+  <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr><td id="previewLeftTop"><br></td><td rowspan="2" id="previewImage"><embed src="<%= base %>/InputReport/GetFdPdf?repTopId=<%= repTopId %>&amp;fdSheetNo=<%= fdSheetNo %>" alt="<%= ui["[pdf]"] %>" width="100%" height="100%"></td><td id="previewRightTop"><br></td></tr></table>
   <div class="toggle" onclick="fConMasToggle('ImageList');"><h2>▼<%= r.InnerImageInfo %></h2></div>
   <div id="ImageList"><table cellpadding="0" cellspacing="0" class="table_information verticality"><tr><th scope="col"><%= r.MenuImage %></th><th scope="col"><%= r.LocationInfo %></th></tr>
     <% for (const image of images) { const url=base+'/InputReport/GetIrfdImage?'+new URLSearchParams({repTopId:String(repTopId),fdSheetNo:String(fdSheetNo),pageNumber:String(image.pageNumber),format:image.format,name:image.name}).toString(); %>

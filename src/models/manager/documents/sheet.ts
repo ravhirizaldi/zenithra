@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { documentAdministratorId, documentDetail } from './details.js';
@@ -18,7 +19,7 @@ import { labelString, LabelValidationError } from '../labels/index.js';
 type Database = Pick<pg.Pool, 'query'>;
 export async function documentSheet(db: Database, id: number, pageIndex: number, user: string, edit = false) {
   const report = await documentDetail(db, id, user);
-  if (!report) throw new LabelValidationError('access', 'Role authority is insufficient.');
+  if (!report) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
   const sheets = (
     await db.query(
       `SELECT s.*,t.def_top_id,t.edit_refer_status,t.use_applicant_lock,t.use_input_history,t.use_change_reason,
@@ -29,7 +30,8 @@ export async function documentSheet(db: Database, id: number, pageIndex: number,
       [id],
     )
   ).rows;
-  if (pageIndex < 0 || pageIndex >= sheets.length) throw new LabelValidationError('', 'Invalid sheet page index.');
+  if (pageIndex < 0 || pageIndex >= sheets.length)
+    throw new LabelValidationError('', pageText['Invalid sheet page index.']);
   const sheet = sheets[pageIndex];
   const administrator = await documentAdministratorId();
   const [clusters, references, layers, draws] = await Promise.all([
@@ -117,9 +119,10 @@ export async function documentSaveSheetMetadata(
     await client.query('BEGIN');
     await client.query('SELECT rep_top_id FROM rep_top WHERE rep_top_id=$1 FOR UPDATE', [id]);
     const model = await documentSheet(client, id, pageIndex, user, true);
-    if (!model.report.role_update) throw new LabelValidationError('access', 'Role authority is insufficient.');
+    if (!model.report.role_update)
+      throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
     if ((await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount)
-      throw new LabelValidationError('', 'The report is locked by another user.');
+      throw new LabelValidationError('', pageText['The report is locked by another user.']);
     if (
       model.report.workflow_locked ||
       !model.report.current ||
@@ -128,7 +131,7 @@ export async function documentSaveSheetMetadata(
     )
       throw new LabelValidationError(
         'pending',
-        'This report state requires an unmigrated sheet-editing workflow. No changes were saved.',
+        pageText['This report state requires an unmigrated sheet-editing workflow. No changes were saved.'],
       );
     documentCheckUnchangedClusters(input, model.clusters);
     const row = (await client.query('SELECT xml_data FROM rep_top WHERE rep_top_id=$1', [id])).rows[0];
@@ -137,7 +140,8 @@ export async function documentSaveSheetMetadata(
     const sheet = children(must(top, 'sheets'), 'sheet').find(
       (node) => optionalField(node, 'repSheetId') === String(model.sheet.rep_sheet_id),
     );
-    if (!sheet || optionalField(top, 'repTopId') !== String(id)) throw new Error('Report XML identity differs.');
+    if (!sheet || optionalField(top, 'repTopId') !== String(id))
+      throw new Error(pageText['Report XML identity differs.']);
     await checkReportSaveFeatures(client, top);
     if (
       (
@@ -149,7 +153,7 @@ export async function documentSaveSheetMetadata(
     )
       throw new LabelValidationError(
         'pending',
-        'Sheet history, output or notifications have not been migrated. No changes were saved.',
+        pageText['Sheet history, output or notifications have not been migrated. No changes were saved.'],
       );
     const names = ['rep_sheet_name', ...Array.from({ length: 10 }, (_, index) => 'sheet_remarks' + (index + 1))];
     const supported = new Set([
@@ -162,9 +166,12 @@ export async function documentSaveSheetMetadata(
       ...names.map((name) => 'rep_sheets[0].' + name),
     ]);
     if (Object.keys(input).some((key) => key.startsWith('rep_sheets') && !supported.has(key)))
-      throw new LabelValidationError('pending', 'This sheet setting has not been migrated. No changes were saved.');
+      throw new LabelValidationError(
+        'pending',
+        pageText['This sheet setting has not been migrated. No changes were saved.'],
+      );
     if (labelString(input['rep_sheets[0].rep_sheet_id']) !== String(model.sheet.rep_sheet_id))
-      throw new LabelValidationError('', 'The selected sheet has changed.');
+      throw new LabelValidationError('', pageText['The selected sheet has changed.']);
     if (
       optionalField(top, 'lockMode') === '1' ||
       optionalField(top, 'useAutoNumbering') === '1' ||
@@ -177,7 +184,7 @@ export async function documentSaveSheetMetadata(
     )
       throw new LabelValidationError(
         'pending',
-        'Numbering, cooperative editing or binder persistence has not been migrated. No changes were saved.',
+        pageText['Numbering, cooperative editing or binder persistence has not been migrated. No changes were saved.'],
       );
     const now = new Date();
     const parameters: unknown[] = [model.sheet.rep_sheet_id, user, hostname(), now];
@@ -186,8 +193,9 @@ export async function documentSaveSheetMetadata(
       const key = 'rep_sheets[0].' + name;
       if (!Object.hasOwn(input, key)) continue;
       const value = labelString(input[key]);
-      if (name === 'rep_sheet_name' && !value.trim()) throw new LabelValidationError(key, 'Enter a sheet name.');
-      if (value.length > 4000) throw new LabelValidationError(key, 'The value is too long.');
+      if (name === 'rep_sheet_name' && !value.trim())
+        throw new LabelValidationError(key, pageText['Enter a sheet name.']);
+      if (value.length > 4000) throw new LabelValidationError(key, pageText['The value is too long.']);
       parameters.push(value);
       assignments.push(name + '=$' + parameters.length);
       documentPatchXml(

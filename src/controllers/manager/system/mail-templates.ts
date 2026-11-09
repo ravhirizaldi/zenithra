@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { randomUUID } from 'node:crypto';
@@ -277,7 +278,7 @@ export function saveTemplate(
     };
     templates.push(node);
   }
-  if (!node) throw new Error('Template not found.');
+  if (!node) throw new Error(pageText['Template not found.']);
   if (model.defaultTemp) mail['@_default'] = id;
   else if (!create && mail['@_default'] === id) mail['@_default'] = '';
   node['@_priority'] = model.priority;
@@ -355,7 +356,7 @@ export function registerMailTemplates(
     const row = (
       await db.query<{ xml_data: string }>('SELECT xml_data FROM mst_mail WHERE mail_file_name = $1', [file])
     ).rows[0];
-    if (!row?.xml_data) throw new Error('Mail settings record is missing.');
+    if (!row?.xml_data) throw new Error(pageText['Mail settings record is missing.']);
     return parseMailXml(row.xml_data);
   };
   const save = async (file: string, document: MailDocument, userId: string, term: string) =>

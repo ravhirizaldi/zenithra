@@ -1,4 +1,4 @@
-<% if (active === 'InputReport') { %><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><% } else { %><!doctype html><% } %>
+<% const ui = managerResources["shared"]; %><% if (active === 'InputReport') { %><!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><% } else { %><!doctype html><% } %>
 <html lang="en">
 <head>
   <meta http-equiv="X-UA-Compatible" content="IE=EmulateIE8">
@@ -17,6 +17,7 @@
   <link rel="stylesheet" href="<%= base %>/Content/ConMas/jquery.timepicker.css?20250901-01">
   <% if (webhookPage?.mode === 'generalEdit') { %><link rel="stylesheet" href="<%= base %>/Content/fontawesome-free-5.14.0-web/css/all.min.css"><% } %>
   <% if (!['System', 'Label', 'Library', 'DataOutput', 'InputReport'].includes(active)) { %><link rel="stylesheet" href="<%= base %>/preview.css"><% } %>
+  <link rel="stylesheet" href="<%= base %>/manager-theme.css?v=20261109-zenithra-hub-nav2">
   <% if (['System', 'Label', 'Library', 'DataOutput', 'InputReport'].includes(active)) { const fileVer = '20250901-01'; %>
     <script src="<%= base %>/Scripts/jquery-3.7.1.min.js?<%= fileVer %>"></script>
     <script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js?<%= fileVer %>"></script>
@@ -48,24 +49,21 @@
 </head>
 <body id="conmasmanagermain">
   <div id="Header" class="HeaderNormal">
-    <div id="title"><a id="Logo" class="LogoNormal" href="<%= active === 'InputReport' ? '#' : `${base}/System` %>"<% if (active === 'InputReport') { %> style="width:295px"<% } %>>ConMas Manager</a></div>
+    <div id="title"><a id="Logo" class="LogoNormal" href="<%= active === 'InputReport' ? '#' : `${base}/System` %>"<% if (active === 'InputReport') { %> style="width:295px"<% } %>><%= ui["Zenithra Hub"] %></a></div>
     <div id="LoginStatus">
-      <% if (userName && active === 'InputReport') { %><div><%= documentPage.r.LoggedIn %>：<strong><a href="<%= base %>/Account/PasswordChange" style="color:#FFFFFF; text-decoration:underline;"><%= userName %></a></strong> [ <a class="a2" href="<%= base %>/Account/LogOff"><%= documentPage.r.Logout %></a> ]</div>
-      <% } else if (userName) { %>Logged-in : <strong><%= userName %></strong> [ <a class="a2" href="<%= base %>/Account/LogOff">Logout</a> ]
-      <% } else if (!authEnabled && !login) { %>Logged-in : <strong>Local preview</strong> [ <a class="a2" href="<%= base %>/Account/LogOff">Logout</a> ]<% } %>
-      <div id="ManagerVersion">Version:8.2.25101</div>
+      <% if (userName && active === 'InputReport') { %><div><%= ui['Logged-in'] %>：<strong><a href="<%= base %>/Account/PasswordChange" style="text-decoration:underline;"><%= userName %></a></strong> [ <a class="a2" href="<%= base %>/Account/LogOff"><%= ui.Logout %></a> ]</div>
+      <% } else if (userName) { %><%= ui['Logged-in'] %> : <strong><%= userName %></strong> [ <a class="a2" href="<%= base %>/Account/LogOff"><%= ui.Logout %></a> ]
+      <% } else if (!authEnabled && !login) { %><%= ui['Logged-in'] %> : <strong><%= ui["Local preview"] %></strong> [ <a class="a2" href="<%= base %>/Account/LogOff"><%= ui.Logout %></a> ]<% } %>
+      <div id="ManagerVersion"><%= ui["Version:8.2.25101"] %></div>
     </div>
     <% if (!login) { %>
       <% const customMenu = active === 'InputReport' ? documentPage.settings.menu : {};
-      const menuNumber = (name,fallback) => /^[+-]?\d+$/.test((customMenu[name] ?? '').trim()) && Number(customMenu[name]) >= -2147483648 && Number(customMenu[name]) <= 2147483647 ? Number(customMenu[name]) : fallback;
       const menuKeys = { DefReport:'DEF_REPORT',InputReport:'REP_REPORT',DataOutput:'OUTPUT',AutoGenerate:'AUTO_GENERATE',Label:'LABEL',Library:'LIBRALY',Schedule:'SCHEDULE',CustomMaster:'CustomMaster',CustomMenu:'CustomMenu',Binder:'Binder',System:'SYSTEM' }; %>
-      <div id="GMenu"<% if (active === 'InputReport') { %> style="font-size:<%= menuNumber('FONT_SIZE',14) %>px;"<% } %>><ul>
+      <div id="GMenu"><ul>
         <% for (const [label, route] of menus) { %>
           <% if (label === 'Labels' && !labelPermissions?.refer) continue; %>
-          <% const key = menuKeys[route.split(/[/?]/)[0]], text = customMenu[key] ?? label;
-          const wideDefault = ['Master Manager','Custom menu','Binder'].includes(label) && !Object.hasOwn(customMenu,key);
-          const width = wideDefault ? 120 : menuNumber('WIDTH',100); %>
-          <li class="<%= route.split(/[/?]/)[0] === active ? 'current' : '' %>"><% if (['System','Labels','Library','Data Output','Documents'].includes(label)) { %><a href="<%= base %>/<%= route %>"<% if (label !== 'System' || active === 'InputReport') { %> style="width:<%= width %>px;"<% } %>><%= text %></a><% } else { %><a class="disabled-menu" aria-disabled="true" tabindex="-1" style="width:<%= width %>px;"><%= text %></a><% } %></li>
+          <% const key = menuKeys[route.split(/[/?]/)[0]], text = customMenu[key] ?? ui[label]; %>
+          <li class="<%= route.split(/[/?]/)[0] === active ? 'current' : '' %>"><% if (['System','Labels','Library','Data Output','Documents'].includes(label)) { %><a href="<%= base %>/<%= route %>"><%= text %></a><% } else { %><a class="disabled-menu" aria-disabled="true" tabindex="-1"><%= text %></a><% } %></li>
         <% } %>
       </ul></div>
     <% } %>
@@ -76,15 +74,15 @@
         <% if (loginError) { %><p class="login-error" role="alert"><%= loginError %></p><% } %>
         <% if (authEnabled) { %>
           <form method="post" action="<%= base %>/Account/LogOn">
-            <div id="LoginField"><div><div><label for="UserName">User name</label></div><div><label for="Password">Password</label></div></div>
+            <div id="LoginField"><div><div><label for="UserName"><%= ui["User name"] %></label></div><div><label for="Password"><%= ui["Password"] %></label></div></div>
               <div><div><input id="UserName" name="UserName" autocomplete="username" required autofocus></div><div><input id="Password" name="Password" type="password" autocomplete="current-password" required></div></div>
             </div>
-            <p><button id="image-login_btn" type="submit">Log-in</button></p>
+            <p><button id="image-login_btn" type="submit"><%= ui["Log-in"] %></button></p>
           </form>
         <% } else { %>
-          <p><%= loggedOut ? 'Local preview closed.' : 'Authentication is pending migration.' %></p>
-          <p>Authentication is disabled, so this does not restrict access.</p>
-          <p><a class="local-enter" href="<%= base %>/DefReport/Index">Open read-only Manager</a></p>
+          <p><%= loggedOut ? ui["Local preview closed."] : ui["Authentication is pending migration."] %></p>
+          <p><%= ui["Authentication is disabled, so this does not restrict access."] %></p>
+          <p><a class="local-enter" href="<%= base %>/DefReport/Index"><%= ui["Open read-only Manager"] %></a></p>
         <% } %>
       </div>
     <% } else if (documentPage) { %>
@@ -124,10 +122,10 @@
       <% if (!pageOwnsMessageWrap) { %><div id="MessageWrap"></div><% } %>
       <div id="Wrap">
         <div id="SideWrap">
-          <% if (pageBackHref) { %><div id="BackIndex"><a href="<%= pageBackHref %>">BACK</a></div><% } %>
+          <% if (pageBackHref) { %><div id="BackIndex"><a href="<%= pageBackHref %>"><%= ui["BACK"] %></a></div><% } %>
           <div id="LabelSection">
             <ul id="Labels" class="treeview">
-              <li><span>System Manager</span><ul class="rank1">
+              <li><span><%= ui["System Manager"] %></span><ul class="rank1">
                 <% const renderSystemMenu = (items) => { for (const item of items ?? []) { %>
                   <li>
                     <% if (item.href) { %><a id="<%= item.id %>" href="<%= item.href %>" class="<%= item.key === section || item.activeSections?.includes(section) ? 'current' : '' %>"><%= item.label %></a><% } else { %><div><%= item.label %></div><% } %>
@@ -191,8 +189,8 @@
             <% if (adminForm.error) { %><p class="login-error" role="alert"><%= adminForm.error %></p><% } %>
             <form method="post" action="<%= base %>/System/EditAdmin">
               <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
-              <table class="table_information horizontal"><tr><th>Administrator ID</th><td>conmasadmin</td></tr><tr><th><label for="new_password">New password</label></th><td><input id="new_password" name="new_password" type="password" required autocomplete="new-password"></td></tr><tr><th><label for="confirm_password">Confirm password</label></th><td><input id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password"></td></tr></table>
-              <p><button class="image-ok_btn" type="submit">Fix</button> <a href="<%= base %>/System/UserList">Cancel</a></p>
+              <table class="table_information horizontal"><tr><th><%= ui["Administrator ID"] %></th><td><%= ui["conmasadmin"] %></td></tr><tr><th><label for="new_password"><%= ui["New password"] %></label></th><td><input id="new_password" name="new_password" type="password" required autocomplete="new-password"></td></tr><tr><th><label for="confirm_password"><%= ui["Confirm password"] %></label></th><td><input id="confirm_password" name="confirm_password" type="password" required autocomplete="new-password"></td></tr></table>
+              <p><button class="image-ok_btn" type="submit"><%= ui["Fix"] %></button> <a href="<%= base %>/System/UserList"><%= ui["Cancel"] %></a></p>
             </form>
           <% } else if (section === 'UserList') { %>
             <%- include('system/users') %>
@@ -202,7 +200,7 @@
     <% } else { %>
       <div id="Wrap" class="preview-workspace">
         <div id="SideWrap"><div id="LabelSection"><strong><%= title %></strong></div></div>
-        <div id="MainWrap"><h2><%= title %></h2><p class="migration-state">This section's data and actions are pending migration.</p></div>
+        <div id="MainWrap"><h2><%= title %></h2><p class="migration-state"><%= ui["This section's data and actions are pending migration."] %></p></div>
       </div>
     <% } %>
   </div>

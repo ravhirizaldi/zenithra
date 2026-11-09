@@ -1,4 +1,4 @@
-<% const p = systemLogsPage; const filters = p.filters; const route = `${base}/System/${p.route}`; const deleteRoute = `${base}/System/${p.deleteRoute}`; const currentLink = p.kind === 'operation' ? (p.mode === 'list' ? 'opeartionLogFunction' : 'deleteOperationLogFunction') : p.kind === 'definition' ? (p.mode === 'list' ? 'definitionFormOperationLogFunction' : 'deleteDefinitionFormOperationLogFunction') : (p.mode === 'list' ? 'inputReportOperationLogFunction' : 'deleteInputReportOperationLogFunction'); %>
+<% const ui = managerResources["system"]; %><% const p = systemLogsPage; const filters = p.filters; const route = `${base}/System/${p.route}`; const deleteRoute = `${base}/System/${p.deleteRoute}`; const currentLink = p.kind === 'operation' ? (p.mode === 'list' ? 'opeartionLogFunction' : 'deleteOperationLogFunction') : p.kind === 'definition' ? (p.mode === 'list' ? 'definitionFormOperationLogFunction' : 'deleteDefinitionFormOperationLogFunction') : (p.mode === 'list' ? 'inputReportOperationLogFunction' : 'deleteInputReportOperationLogFunction'); %>
 <script src="<%= base %>/Scripts/jquery-ui-1.14.1.min.js"></script>
 <script src="<%= base %>/Scripts/jquery.timepicker.js"></script>
 <script src="<%= base %>/Scripts/conmas.paging.action.js"></script>
@@ -8,7 +8,7 @@
   <% if (p.errorMessage) { %><div class="PartialViewMessage" role="alert"><ul><li><%= p.errorMessage %></li></ul></div><% } %>
 </div>
 <div id="DetailTop">
-  <span id="infoTitle"><%= p.title %><% if (p.mode === 'delete') { %>&nbsp;&nbsp;Log deletion<% } %></span>
+  <span id="infoTitle"><%= p.title %><% if (p.mode === 'delete') { %><%= ui["  Log deletion"] %><% } %></span>
 </div>
 <div id="DetailSection">
   <div class="info">
@@ -16,13 +16,13 @@
       <form method="post" action="<%= deleteRoute %>" enctype="multipart/form-data" id="conmasPageForm">
         <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
         <div>
-          <table><tr><td>Log deletion days&nbsp;<input type="text" name="DeleteDays" value="<%= p.deleteDays %>" style="width:50px;"></td></tr></table>
+          <table><tr><td><%= ui["Log deletion days "] %><input type="text" name="DeleteDays" value="<%= p.deleteDays %>" style="width:50px;"></td></tr></table>
           <p><input type="button" value="Delete" class="button_custom" style="width:100px;" onclick="fConMasDeletePost();"></p>
         </div>
         <div id="ResultSection">
           <% if (p.deleteResult > -1) { %>
-            <div>Result</div>
-            <div>&nbsp;&nbsp;Deletion number<%= p.deleteResult %>Number</div>
+            <div><%= ui["Result"] %></div>
+            <div><%= ui["  Deletion number"] %><%= p.deleteResult %><%= ui["Number"] %></div>
           <% } %>
         </div>
       </form>
@@ -36,11 +36,11 @@
         <input type="hidden" id="PageData_SortColumn" name="PageData.SortColumn" value="<%= p.sortColumn %>">
         <input type="hidden" id="PageData_SortDirection" name="PageData.SortDirection" value="<%= p.sortDirection %>">
 
-        <div class="toggle" role="button" tabindex="0" onclick="fConMasToggle('SearchLogLibraryBox');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();fConMasToggle('SearchLogLibraryBox');}"><h2>▼SearchFilter</h2></div>
+        <div class="toggle" role="button" tabindex="0" onclick="fConMasToggle('SearchLogLibraryBox');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();fConMasToggle('SearchLogLibraryBox');}"><h2><%= ui["▼SearchFilter"] %></h2></div>
         <div id="SearchLogLibraryBox">
           <table cellpadding="0" cellspacing="0" class="table_information horizontal">
             <tr>
-              <th scope="row">Operation date and time</th>
+              <th scope="row"><%= ui["Operation date and time"] %></th>
               <td>
                 <div class="datetime" style="float:left; padding:3px;"><input type="text" id="whereData_SearchChild_TimeFrom" name="whereData.SearchChild.TimeFrom" value="<%= filters.timeFrom %>" style="width:90px;" onchange="fConMasTimeInitFrom();"></div>
                 <div style="float:left; padding:3px;"><input type="text" id="whereData_SearchChild_TimeFromHour" name="whereData.SearchChild.TimeFromHour" value="<%= filters.timeFromHour %>" style="width:70px;"></div>
@@ -51,86 +51,86 @@
             </tr>
             <% if (p.kind === 'operation') { %>
               <tr>
-                <th scope="row"><label>Operation type <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label></th>
+                <th scope="row"><label><%= ui["Operation type"] %> <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label></th>
                 <td>
-                  <label><input type="hidden" name="whereData.SearchChild.OperationTypeLogin" value="false"><input type="checkbox" id="whereData_SearchChild_OperationTypeLogin" name="whereData.SearchChild.OperationTypeLogin" value="true" <%= filters.operationTypeLogin ? 'checked' : '' %>> Log In</label>
-                  <label><input type="hidden" name="whereData.SearchChild.OperationTypeLogout" value="false"><input type="checkbox" id="whereData_SearchChild_OperationTypeLogout" name="whereData.SearchChild.OperationTypeLogout" value="true" <%= filters.operationTypeLogout ? 'checked' : '' %>> Logout</label>
+                  <label><input type="hidden" name="whereData.SearchChild.OperationTypeLogin" value="false"><input type="checkbox" id="whereData_SearchChild_OperationTypeLogin" name="whereData.SearchChild.OperationTypeLogin" value="true" <%= filters.operationTypeLogin ? 'checked' : '' %>> <%= ui["Log In"] %></label>
+                  <label><input type="hidden" name="whereData.SearchChild.OperationTypeLogout" value="false"><input type="checkbox" id="whereData_SearchChild_OperationTypeLogout" name="whereData.SearchChild.OperationTypeLogout" value="true" <%= filters.operationTypeLogout ? 'checked' : '' %>> <%= ui["Logout"] %></label>
                 </td>
               </tr>
               <tr>
-                <th scope="row"><label>Application type <input type="checkbox" id="conmasAppTypeCheck" name="conmasAppTypeCheck" value="" onclick="fConMasAllCheck('conmasAppTypeCheck');"></label></th>
+                <th scope="row"><label><%= ui["Application type"] %> <input type="checkbox" id="conmasAppTypeCheck" name="conmasAppTypeCheck" value="" onclick="fConMasAllCheck('conmasAppTypeCheck');"></label></th>
                 <td>
-                  <label><input type="hidden" name="whereData.SearchChild.AppTypeTablet" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeTablet" name="whereData.SearchChild.AppTypeTablet" value="true" onclick="fConMasDeviceTypeVisible();" <%= filters.appTypeTablet ? 'checked' : '' %>> Tablet</label>
-                  <label><input type="hidden" name="whereData.SearchChild.AppTypeDesigner" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeDesigner" name="whereData.SearchChild.AppTypeDesigner" value="true" <%= filters.appTypeDesigner ? 'checked' : '' %>> ConMas Designer</label>
-                  <label><input type="hidden" name="whereData.SearchChild.AppTypeManager" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeManager" name="whereData.SearchChild.AppTypeManager" value="true" <%= filters.appTypeManager ? 'checked' : '' %>> ConMas Manager</label>
-                  <label><input type="hidden" name="whereData.SearchChild.AppTypeApi" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeApi" name="whereData.SearchChild.AppTypeApi" value="true" <%= filters.appTypeApi ? 'checked' : '' %>> Web API</label>
+                  <label><input type="hidden" name="whereData.SearchChild.AppTypeTablet" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeTablet" name="whereData.SearchChild.AppTypeTablet" value="true" onclick="fConMasDeviceTypeVisible();" <%= filters.appTypeTablet ? 'checked' : '' %>> <%= ui["Tablet"] %></label>
+                  <label><input type="hidden" name="whereData.SearchChild.AppTypeDesigner" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeDesigner" name="whereData.SearchChild.AppTypeDesigner" value="true" <%= filters.appTypeDesigner ? 'checked' : '' %>> <%= ui["ConMas Designer"] %></label>
+                  <label><input type="hidden" name="whereData.SearchChild.AppTypeManager" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeManager" name="whereData.SearchChild.AppTypeManager" value="true" <%= filters.appTypeManager ? 'checked' : '' %>> <%= ui["ConMas Manager"] %></label>
+                  <label><input type="hidden" name="whereData.SearchChild.AppTypeApi" value="false"><input type="checkbox" id="whereData_SearchChild_AppTypeApi" name="whereData.SearchChild.AppTypeApi" value="true" <%= filters.appTypeApi ? 'checked' : '' %>> <%= ui["Web API"] %></label>
                   <div id="conmasDeviceTypeRow">
-                    <label><input type="hidden" name="whereData.SearchChild.DeviceTypeiPad" value="false"><input type="checkbox" id="whereData_SearchChild_DeviceTypeiPad" name="whereData.SearchChild.DeviceTypeiPad" value="true" <%= filters.deviceTypeiPad ? 'checked' : '' %>> iOS</label>
-                    <label><input type="hidden" name="whereData.SearchChild.DeviceTypeWindows" value="false"><input type="checkbox" id="whereData_SearchChild_DeviceTypeWindows" name="whereData.SearchChild.DeviceTypeWindows" value="true" <%= filters.deviceTypeWindows ? 'checked' : '' %>> Windows</label>
-                    <label><input type="hidden" name="whereData.SearchChild.DeviceTypeiRepoFreeDraw" value="false"><input type="checkbox" id="whereData_SearchChild_DeviceTypeiRepoFreeDraw" name="whereData.SearchChild.DeviceTypeiRepoFreeDraw" value="true" <%= filters.deviceTypeiRepoFreeDraw ? 'checked' : '' %>> i-Repo FreeDraw</label>
+                    <label><input type="hidden" name="whereData.SearchChild.DeviceTypeiPad" value="false"><input type="checkbox" id="whereData_SearchChild_DeviceTypeiPad" name="whereData.SearchChild.DeviceTypeiPad" value="true" <%= filters.deviceTypeiPad ? 'checked' : '' %>> <%= ui["iOS"] %></label>
+                    <label><input type="hidden" name="whereData.SearchChild.DeviceTypeWindows" value="false"><input type="checkbox" id="whereData_SearchChild_DeviceTypeWindows" name="whereData.SearchChild.DeviceTypeWindows" value="true" <%= filters.deviceTypeWindows ? 'checked' : '' %>> <%= ui["Windows"] %></label>
+                    <label><input type="hidden" name="whereData.SearchChild.DeviceTypeiRepoFreeDraw" value="false"><input type="checkbox" id="whereData_SearchChild_DeviceTypeiRepoFreeDraw" name="whereData.SearchChild.DeviceTypeiRepoFreeDraw" value="true" <%= filters.deviceTypeiRepoFreeDraw ? 'checked' : '' %>> <%= ui["i-Repo FreeDraw"] %></label>
                   </div>
                 </td>
               </tr>
               <tr>
-                <th scope="row">Operation user</th>
+                <th scope="row"><%= ui["Operation user"] %></th>
                 <td>
-                  <div style="float:left;"><div style="float:left;">User ID <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;">User name <input type="text" name="whereData.SearchChild.UserName" value="<%= filters.userName %>"></div></div>
+                  <div style="float:left;"><div style="float:left;"><%= ui["User ID"] %> <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;"><%= ui["User name"] %> <input type="text" name="whereData.SearchChild.UserName" value="<%= filters.userName %>"></div></div>
                 </td>
               </tr>
               <tr>
-                <th scope="row">Operation device</th>
+                <th scope="row"><%= ui["Operation device"] %></th>
                 <td>
-                  <div style="float:left;padding:5px;"><div style="float:left;">Device ID <input type="text" name="whereData.SearchChild.TermId" value="<%= filters.termId %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;">Device ID <input type="text" name="whereData.SearchChild.PhysicalId" value="<%= filters.physicalId %>"></div></div>
+                  <div style="float:left;padding:5px;"><div style="float:left;"><%= ui["Device ID"] %> <input type="text" name="whereData.SearchChild.TermId" value="<%= filters.termId %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;"><%= ui["Device ID"] %> <input type="text" name="whereData.SearchChild.PhysicalId" value="<%= filters.physicalId %>"></div></div>
                   <div style="clear:both;"></div>
-                  <div style="float:left;padding:5px;"><div style="float:left;">Device name <input type="text" name="whereData.SearchChild.TermName" value="<%= filters.termName %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;">Device App. version <input type="text" name="whereData.SearchChild.AppVersion" value="<%= filters.appVersion %>"></div></div>
+                  <div style="float:left;padding:5px;"><div style="float:left;"><%= ui["Device name"] %> <input type="text" name="whereData.SearchChild.TermName" value="<%= filters.termName %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;"><%= ui["Device App. version"] %> <input type="text" name="whereData.SearchChild.AppVersion" value="<%= filters.appVersion %>"></div></div>
                   <div style="clear:both;"></div>
-                  <div style="float:left;padding:5px;"><div style="float:left;">Client name <input type="text" name="whereData.SearchChild.ClientName" value="<%= filters.clientName %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;">Client address <input type="text" name="whereData.SearchChild.ClientAddress" value="<%= filters.clientAddress %>"></div></div>
+                  <div style="float:left;padding:5px;"><div style="float:left;"><%= ui["Client name"] %> <input type="text" name="whereData.SearchChild.ClientName" value="<%= filters.clientName %>"></div><div style="float:left;">&nbsp;&nbsp;</div><div style="float:left;"><%= ui["Client address"] %> <input type="text" name="whereData.SearchChild.ClientAddress" value="<%= filters.clientAddress %>"></div></div>
                   <div style="clear:both;"></div>
-                  <div style="float:left;padding:5px;">Browserlication name <input type="text" name="whereData.SearchChild.BrowserName" value="<%= filters.browserName %>" style="width:200px;"></div>
+                  <div style="float:left;padding:5px;"><%= ui["Browserlication name"] %> <input type="text" name="whereData.SearchChild.BrowserName" value="<%= filters.browserName %>" style="width:200px;"></div>
                   <div style="clear:both;"></div>
                 </td>
               </tr>
             <% } else { %>
               <tr>
-                <th scope="row"><label>Operation type <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label></th>
+                <th scope="row"><label><%= ui["Operation type"] %> <input type="checkbox" id="conmasOperationTypeCheck" name="conmasOperationTypeCheck" value="" onclick="fConMasAllCheck('conmasOperationTypeCheck');"></label></th>
                 <td>
-                  <label><input type="hidden" name="whereData.SearchChild.FromOperationTypeInsert" value="false"><input type="checkbox" id="whereData_SearchChild_FromOperationTypeInsert" name="whereData.SearchChild.FromOperationTypeInsert" value="true" <%= filters.operationTypeInsert ? 'checked' : '' %>> Insert</label>
-                  <label><input type="hidden" name="whereData.SearchChild.FormOperationTypeUpdate" value="false"><input type="checkbox" id="whereData_SearchChild_FormOperationTypeUpdate" name="whereData.SearchChild.FormOperationTypeUpdate" value="true" <%= filters.operationTypeUpdate ? 'checked' : '' %>> Update</label>
-                  <label><input type="hidden" name="whereData.SearchChild.FormOperationTypeDelete" value="false"><input type="checkbox" id="whereData_SearchChild_FormOperationTypeDelete" name="whereData.SearchChild.FormOperationTypeDelete" value="true" <%= filters.operationTypeDelete ? 'checked' : '' %>> Delete</label>
+                  <label><input type="hidden" name="whereData.SearchChild.FromOperationTypeInsert" value="false"><input type="checkbox" id="whereData_SearchChild_FromOperationTypeInsert" name="whereData.SearchChild.FromOperationTypeInsert" value="true" <%= filters.operationTypeInsert ? 'checked' : '' %>> <%= ui["Insert"] %></label>
+                  <label><input type="hidden" name="whereData.SearchChild.FormOperationTypeUpdate" value="false"><input type="checkbox" id="whereData_SearchChild_FormOperationTypeUpdate" name="whereData.SearchChild.FormOperationTypeUpdate" value="true" <%= filters.operationTypeUpdate ? 'checked' : '' %>> <%= ui["Update"] %></label>
+                  <label><input type="hidden" name="whereData.SearchChild.FormOperationTypeDelete" value="false"><input type="checkbox" id="whereData_SearchChild_FormOperationTypeDelete" name="whereData.SearchChild.FormOperationTypeDelete" value="true" <%= filters.operationTypeDelete ? 'checked' : '' %>> <%= ui["Delete"] %></label>
                 </td>
               </tr>
-              <tr><th scope="row">Operation user</th><td>User ID <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></td></tr>
-              <tr><th scope="row"><%= p.kind === 'definition' ? 'Form name' : 'Input document name' %></th><td>Form name <input type="text" name="whereData.SearchChild.FormName" value="<%= filters.formName %>" style="width:200px;"></td></tr>
+              <tr><th scope="row"><%= ui["Operation user"] %></th><td><%= ui["User ID"] %> <input type="text" name="whereData.SearchChild.UserId" value="<%= filters.userId %>"></td></tr>
+              <tr><th scope="row"><%= p.kind === 'definition' ? ui["Form name"] : ui["Input document name"] %></th><td><%= ui["Form name"] %> <input type="text" name="whereData.SearchChild.FormName" value="<%= filters.formName %>" style="width:200px;"></td></tr>
             <% } %>
           </table>
           <div style="text-align:right;">
             <input type="submit" value="Search" class="image-ok_btn" onclick="fConMasSetActionWithInitPageIndex('SearchType','0');">
             <input type="submit" value="CSV" class="img_output_csv2" onclick="fConMasSetAction('CsvType');">
           </div>
-          <% if (p.limitOfDownloadCount > 0) { %><div style="text-align:right; padding-top:8px;">The maximum number to download once is <%= Number(p.limitOfDownloadCount).toLocaleString('en-US') %>.</div><% } %>
+          <% if (p.limitOfDownloadCount > 0) { %><div style="text-align:right; padding-top:8px;"><%= ui["The maximum number to download once is"] %> <%= Number(p.limitOfDownloadCount).toLocaleString('en-US') %>.</div><% } %>
         </div>
 
-        <div class="toggle" role="button" tabindex="0" onclick="fConMasToggle('resultLogLibraryBox');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();fConMasToggle('resultLogLibraryBox');}"><h2>▼SearchResult</h2></div>
+        <div class="toggle" role="button" tabindex="0" onclick="fConMasToggle('resultLogLibraryBox');" onkeydown="if(event.key==='Enter'||event.key===' '){event.preventDefault();fConMasToggle('resultLogLibraryBox');}"><h2><%= ui["▼SearchResult"] %></h2></div>
         <div id="resultLogLibraryBox" style="overflow:auto;">
           <div class="PageSection">
-            Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="return fConMasPageSubmitAction('PageType');">
+            <%= ui["Displayed number "] %><select id="PageData_PageSize" name="PageData.PageSize" onchange="return fConMasPageSubmitAction('PageType');">
               <% for (const option of p.pageSizeOptions) { %><option value="<%= option.value %>" <%= p.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
             </select>
             &nbsp;
-            <% if (p.pageIndex > 0) { %><a href="#" onclick="return fConMasPageAction(0,'PageType');" style="padding-right:5px;">First</a><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex - 1 %>,'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page unavailable"><% } %>
+            <% if (p.pageIndex > 0) { %><a href="#" onclick="return fConMasPageAction(0,'PageType');" style="padding-right:5px;"><%= ui["First"] %></a><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex - 1 %>,'PageType');" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["Previous page unavailable"] %>"><% } %>
             &nbsp;<%= p.pageIndex + 1 %>&nbsp;/&nbsp;<%= p.totalPages %>&nbsp;
-            <% if (p.pageIndex + 1 < p.totalPages) { %><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex + 1 %>,'PageType');" class="img_page_next_e" aria-label="Next page"> </a><a href="#" onclick="return fConMasPageAction(<%= p.totalPages - 1 %>,'PageType');" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page unavailable"><% } %>
+            <% if (p.pageIndex + 1 < p.totalPages) { %><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex + 1 %>,'PageType');" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a><a href="#" onclick="return fConMasPageAction(<%= p.totalPages - 1 %>,'PageType');" style="padding-left:5px;"><%= ui["Last"] %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["Next page unavailable"] %>"><% } %>
           </div>
 
           <% const columns = p.kind === 'operation'
-            ? [['log_time','Operation date and time','log_time_display'],['operation_type','Operation type','operation_type'],['operation_content','Operation content','operation_content_display'],['app_type','Application type','app_type'],['device_type','Device type','device_type'],['user_id','User ID','user_id'],['user_name','User name','user_name'],['term_id','Device ID','term_id'],['physical_id','Device ID','physical_id'],['term_name','Device name','term_name'],['app_version','Device App. version','app_version'],['client_host_name','Client name','client_host_name'],['client_ip_address','Client address','client_ip_address'],['browser_name','Browserlication name','browser_name']]
+            ? [['log_time',ui["Operation date and time"],'log_time_display'],['operation_type',ui["Operation type"],'operation_type'],['operation_content',ui["Operation content"],'operation_content_display'],['app_type',ui["Application type"],'app_type'],['device_type',ui["Device type"],'device_type'],['user_id',ui["User ID"],'user_id'],['user_name',ui["User name"],'user_name'],['term_id',ui["Device ID"],'term_id'],['physical_id',ui["Device ID"],'physical_id'],['term_name',ui["Device name"],'term_name'],['app_version',ui["Device App. version"],'app_version'],['client_host_name',ui["Client name"],'client_host_name'],['client_ip_address',ui["Client address"],'client_ip_address'],['browser_name',ui["Browserlication name"],'browser_name']]
             : p.kind === 'definition'
-              ? [['log_time','Operation date and time','log_time_display'],['log_type','Operation type','log_type_display'],['FormId','Form ID','form_id'],['FormName','Form name','form_name'],['user_id','User ID','user_id']]
-              : [['log_time','Operation date and time','log_time_display'],['log_type','Operation type','log_type_display'],['FormId','Document ID','form_id'],['FormName','Form name','form_name'],['user_id','User ID','user_id'],['AutoNumberingValue','Value of auto. numbering','auto_numbering_value'],['AutoNumberingMessage','Auto. numbering message','auto_numbering_message']]; %>
+              ? [['log_time',ui["Operation date and time"],'log_time_display'],['log_type',ui["Operation type"],'log_type_display'],['FormId',ui["Form ID"],'form_id'],['FormName',ui["Form name"],'form_name'],['user_id',ui["User ID"],'user_id']]
+              : [['log_time',ui["Operation date and time"],'log_time_display'],['log_type',ui["Operation type"],'log_type_display'],['FormId',ui["Document ID"],'form_id'],['FormName',ui["Form name"],'form_name'],['user_id',ui["User ID"],'user_id'],['AutoNumberingValue',ui["Value of auto. numbering"],'auto_numbering_value'],['AutoNumberingMessage',ui["Auto. numbering message"],'auto_numbering_message']]; %>
           <table class="GridCommon" border="0" cellspacing="1">
             <thead><tr>
               <% for (const [key,label] of columns) { const selected = p.sortColumn.toLowerCase() === key.toLowerCase(); %>
-                <th scope="col" class="<%= selected ? 'sorting' : '' %>" style="<%= key.toLowerCase() === 'formname' ? 'width:350px;' : '' %>"><span><%= label %></span><a href="#" class="sort<%= selected ? ` ${p.sortDirection.toLowerCase()}` : '' %>" aria-label="Sort by <%= label %>" onclick="return fConMasPageSortAction('<%= key %>','PageType');">sort</a></th>
+                <th scope="col" class="<%= selected ? 'sorting' : '' %>" style="<%= key.toLowerCase() === 'formname' ? 'width:350px;' : '' %>"><span><%= label %></span><a href="#" class="sort<%= selected ? ` ${p.sortDirection.toLowerCase()}` : '' %>" aria-label="<%= ui["Sort by"] %> <%= label %>" onclick="return fConMasPageSortAction('<%= key %>','PageType');"><%= ui["sort"] %></a></th>
               <% } %>
             </tr></thead>
             <tbody>
@@ -139,20 +139,20 @@
           </table>
 
           <div class="PageSection">
-            Displayed number&nbsp;<select id="PageData_PageSize" name="PageData.PageSize" onchange="$('#PageData_PageSize').val($(this).val()); return fConMasPageSubmitAction('PageType');">
+            <%= ui["Displayed number "] %><select id="PageData_PageSize" name="PageData.PageSize" onchange="$('#PageData_PageSize').val($(this).val()); return fConMasPageSubmitAction('PageType');">
               <% for (const option of p.pageSizeOptions) { %><option value="<%= option.value %>" <%= p.pageSize === option.value ? 'selected' : '' %>><%= option.text %></option><% } %>
             </select>
             &nbsp;
-            <% if (p.pageIndex > 0) { %><a href="#" onclick="return fConMasPageAction(0,'PageType');" style="padding-right:5px;">First</a><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex - 1 %>,'PageType');" class="img_page_prev_e" aria-label="Previous page"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page unavailable"><% } %>
+            <% if (p.pageIndex > 0) { %><a href="#" onclick="return fConMasPageAction(0,'PageType');" style="padding-right:5px;"><%= ui["First"] %></a><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex - 1 %>,'PageType');" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["Previous page unavailable"] %>"><% } %>
             &nbsp;<%= p.pageIndex + 1 %>&nbsp;/&nbsp;<%= p.totalPages %>&nbsp;
-            <% if (p.pageIndex + 1 < p.totalPages) { %><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex + 1 %>,'PageType');" class="img_page_next_e" aria-label="Next page"> </a><a href="#" onclick="return fConMasPageAction(<%= p.totalPages - 1 %>,'PageType');" style="padding-left:5px;">Last</a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page unavailable"><% } %>
+            <% if (p.pageIndex + 1 < p.totalPages) { %><a href="#" onclick="return fConMasPageAction(<%= p.pageIndex + 1 %>,'PageType');" class="img_page_next_e" aria-label="<%= ui["Next page"] %>"> </a><a href="#" onclick="return fConMasPageAction(<%= p.totalPages - 1 %>,'PageType');" style="padding-left:5px;"><%= ui["Last"] %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["Next page unavailable"] %>"><% } %>
           </div>
         </div>
       </form>
     <% } %>
   </div>
 </div>
-<div id="domMessage" style="display:none;"><h1>In process</h1></div>
+<div id="domMessage" style="display:none;"><h1><%= ui["In process"] %></h1></div>
 
 <script>
   const pageMode = <%- JSON.stringify(p.mode) %>;

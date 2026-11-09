@@ -1,17 +1,17 @@
-<% const p = systemGroupPage; const group = p.group; const layout = p.layout; const has = (row, field) => row[field] === true || row[field] === 1 || row[field] === '1' || row[field] === 't'; const systemColumns = layout.system.flatMap(section => section.columns); const managerColumns = layout.manager.flatMap(section => section.columns); const selected = new Set(p.selectedIds || []); const action = base + '/System/' + (p.mode === 'create' ? 'CreateGroup' : 'EditGroup'); %>
+<% const ui = managerResources["system"]; %><% const p = systemGroupPage; const group = p.group; const layout = p.layout; const has = (row, field) => row[field] === true || row[field] === 1 || row[field] === '1' || row[field] === 't'; const systemColumns = layout.system.flatMap(section => section.columns); const managerColumns = layout.manager.flatMap(section => section.columns); const selected = new Set(p.selectedIds || []); const action = base + '/System/' + (p.mode === 'create' ? 'CreateGroup' : 'EditGroup'); %>
 <div class="PartialViewMessage"><% if (p.error) { %><ul><li><%= p.error %></li></ul><% } %></div>
-<div id="DetailTop"><span id="infoTitle"><%= p.mode === 'create' ? 'Register new group' : 'Edit group' %></span></div>
+<div id="DetailTop"><span id="infoTitle"><%= p.mode === 'create' ? ui["Register new group"] : ui["Edit group"] %></span></div>
 <form id="group-edit-form" method="post" action="<%= action %>">
   <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>" />
   <% if (p.mode === 'edit') { %><input type="hidden" name="mst_group.group_id" value="<%= group.group_id %>" /><% } %>
   <div id="DetailSection"><div class="info">
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Group Name</th><td><input type="text" name="mst_group.group_name" class="EditValue1" value="<%= group.group_name || '' %>" required /></td></tr>
-      <tr><th scope="row"><%= p.mode === 'create' ? 'Parent group name' : 'Parent group name path' %></th><td><select name="mst_group.upper_group_id">
+      <tr><th scope="row"><%= ui["Group Name"] %></th><td><input type="text" name="mst_group.group_name" class="EditValue1" value="<%= group.group_name || '' %>" required /></td></tr>
+      <tr><th scope="row"><%= p.mode === 'create' ? ui["Parent group name"] : ui["Parent group name path"] %></th><td><select name="mst_group.upper_group_id">
         <option value="-1" <%= Number(group.upper_group_id) === -1 || group.upper_group_id == null ? 'selected' : '' %>></option>
         <% p.parents.forEach(parent => { %><option value="<%= parent.group_id %>" <%= Number(group.upper_group_id) === Number(parent.group_id) ? 'selected' : '' %>><%= parent.group_name_path %></option><% }) %>
       </select></td></tr>
-      <% if (p.features.groupKeyMode) { %><tr><th scope="row">System key </th><td><input type="text" name="mst_group.systemKey" class="EditValue1" value="<%= group.system_key || group.systemKey || '' %>" /></td></tr><% } %>
+      <% if (p.features.groupKeyMode) { %><tr><th scope="row"><%= ui["System key"] %> </th><td><input type="text" name="mst_group.systemKey" class="EditValue1" value="<%= group.system_key || group.systemKey || '' %>" /></td></tr><% } %>
     </table>
 
     <div style="overflow:auto; width:100%;">
@@ -19,19 +19,19 @@
         <thead>
           <tr>
             <th scope="col" rowspan="2" style="width:30px;"></th>
-            <th scope="col" colspan="4" rowspan="2" class="system_role">System</th>
+            <th scope="col" colspan="4" rowspan="2" class="system_role"><%= ui["System"] %></th>
             <th scope="col" colspan="<%= systemColumns.length - 4 %>" class="system_role"></th>
-            <th scope="col" colspan="<%= managerColumns.length %>" class="manager_role">Manager permission</th>
-            <th scope="col" rowspan="3">API</th>
-            <% if (layout.designer.length) { %><th scope="col" colspan="<%= layout.designer.length %>" class="designer_role">Designer permission</th><% } %>
-            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="7">Default authority of form</th><% } %>
-            <% if (layout.freeDraw.length) { %><th scope="col" colspan="2">Default i-Repo FreeDraw authority</th><% } %>
+            <th scope="col" colspan="<%= managerColumns.length %>" class="manager_role"><%= ui["Manager permission"] %></th>
+            <th scope="col" rowspan="3"><%= ui["API"] %></th>
+            <% if (layout.designer.length) { %><th scope="col" colspan="<%= layout.designer.length %>" class="designer_role"><%= ui["Designer permission"] %></th><% } %>
+            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="7"><%= ui["Default authority of form"] %></th><% } %>
+            <% if (layout.freeDraw.length) { %><th scope="col" colspan="2"><%= ui["Default i-Repo FreeDraw authority"] %></th><% } %>
           </tr>
           <tr>
             <% layout.system.slice(1).forEach(section => { %><th scope="col" colspan="<%= section.columns.length %>" class="system_role"><%= section.title %></th><% }) %>
             <% layout.manager.forEach(section => { %><th scope="col" colspan="<%= section.columns.length %>" rowspan="<%= section.rowspan || 1 %>" class="manager_role"><%= section.title %></th><% }) %>
             <% layout.designer.forEach(column => { %><th scope="col" rowspan="2" class="designer_role"><%= column.label %></th><% }) %>
-            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="3">Form</th><th scope="col" colspan="4">Document</th><% } %>
+            <% if (layout.defaultDefinition.length) { %><th scope="col" colspan="3"><%= ui["Form"] %></th><th scope="col" colspan="4"><%= ui["Document"] %></th><% } %>
             <% layout.freeDraw.forEach(column => { %><th scope="col" rowspan="2"><%= column.label %></th><% }) %>
           </tr>
           <tr>
@@ -54,28 +54,28 @@
     </div>
 
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Group Remarks</th><td><input type="text" name="mst_group.group_remarks" class="EditValue1" value="<%= group.group_remarks || '' %>" /></td></tr>
-      <% if (p.features.freeDraw) { %><tr><th scope="row" style="width:250px;">i-Repo FreeDraw setting template</th><td><select name="mst_group.IrfdTemplateId"><% p.templates.forEach(template => { %><option value="<%= template.template_id %>" <%= Number(group.IrfdTemplateId || group.irfd_template_id || 1) === Number(template.template_id) ? 'selected' : '' %>><%= template.template_name %></option><% }) %></select></td></tr><% } %>
+      <tr><th scope="row"><%= ui["Group Remarks"] %></th><td><input type="text" name="mst_group.group_remarks" class="EditValue1" value="<%= group.group_remarks || '' %>" /></td></tr>
+      <% if (p.features.freeDraw) { %><tr><th scope="row" style="width:250px;"><%= ui["i-Repo FreeDraw setting template"] %></th><td><select name="mst_group.IrfdTemplateId"><% p.templates.forEach(template => { %><option value="<%= template.template_id %>" <%= Number(group.IrfdTemplateId || group.irfd_template_id || 1) === Number(template.template_id) ? 'selected' : '' %>><%= template.template_name %></option><% }) %></select></td></tr><% } %>
     </table>
 
-    <div class="toggle" onclick="var box=document.getElementById('groupUser');box.hidden=!box.hidden"><h2>▼Affiliation of user</h2></div>
+    <div class="toggle" onclick="var box=document.getElementById('groupUser');box.hidden=!box.hidden"><h2><%= ui["▼Affiliation of user"] %></h2></div>
     <div id="groupUser">
       <div>
-        User ID&nbsp;<input type="text" id="group-user-id-filter" />
-        &nbsp;&nbsp;User name&nbsp;<input type="text" id="group-user-name-filter" />
+        <%= ui["User ID "] %><input type="text" id="group-user-id-filter" />
+        <%= ui["  User name "] %><input type="text" id="group-user-name-filter" />
         &nbsp;&nbsp;<input type="button" id="group-user-search" value="Search" class="image-search_user" />
       </div>
       <div class="PageSection">
-        Displayed number&nbsp;<select id="group-user-page-size"><% p.userPageSizes.forEach(size => { %><option value="<%= size %>" <%= Number(p.userPageSize) === Number(size) ? 'selected' : '' %>><%= size %></option><% }) %></select>
-        &nbsp;<a href="#" id="group-user-first" hidden>First</a>
-        <a href="#" id="group-user-prev" class="img_page_prev_e" aria-label="Previous page" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d" id="group-user-prev-disabled" />
+        <%= ui["Displayed number "] %><select id="group-user-page-size"><% p.userPageSizes.forEach(size => { %><option value="<%= size %>" <%= Number(p.userPageSize) === Number(size) ? 'selected' : '' %>><%= size %></option><% }) %></select>
+        &nbsp;<a href="#" id="group-user-first" hidden><%= ui["First"] %></a>
+        <a href="#" id="group-user-prev" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>" id="group-user-prev-disabled" />
         &nbsp;<span id="group-user-page-label">1 / 1</span>&nbsp;
-        <a href="#" id="group-user-next" class="img_page_next_e" aria-label="Next page" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d" id="group-user-next-disabled" />
-        <a href="#" id="group-user-last" hidden>Last</a>
+        <a href="#" id="group-user-next" class="img_page_next_e" aria-label="<%= ui["Next page"] %>" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>" id="group-user-next-disabled" />
+        <a href="#" id="group-user-last" hidden><%= ui["Last"] %></a>
       </div>
       <div style="overflow:auto; width:100%;">
         <table cellpadding="0" cellspacing="0" class="table_information verticality" id="group-user-table">
-          <thead><tr><th scope="col"><input type="checkbox" id="group-user-check-all" aria-label="Select all users on page" /></th><th scope="col">User ID</th><th scope="col">User name</th></tr></thead>
+          <thead><tr><th scope="col"><input type="checkbox" id="group-user-check-all" aria-label="<%= ui["Select all users on page"] %>" /></th><th scope="col"><%= ui["User ID"] %></th><th scope="col"><%= ui["User name"] %></th></tr></thead>
           <tbody>
             <% p.users.forEach(user => { const userId = String(user.user_id); %>
               <tr data-user-id="<%= userId.toLowerCase() %>" data-user-name="<%= String(user.user_name).toLowerCase() %>">
@@ -87,17 +87,17 @@
         </table>
       </div>
       <div class="PageSection">
-        Displayed number&nbsp;<select id="group-user-page-size-bottom"><% p.userPageSizes.forEach(size => { %><option value="<%= size %>" <%= Number(p.userPageSize) === Number(size) ? 'selected' : '' %>><%= size %></option><% }) %></select>
-        &nbsp;<a href="#" id="group-user-first-bottom" hidden>First</a>
-        <a href="#" id="group-user-prev-bottom" class="img_page_prev_e" aria-label="Previous page" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d" id="group-user-prev-bottom-disabled" />
+        <%= ui["Displayed number "] %><select id="group-user-page-size-bottom"><% p.userPageSizes.forEach(size => { %><option value="<%= size %>" <%= Number(p.userPageSize) === Number(size) ? 'selected' : '' %>><%= size %></option><% }) %></select>
+        &nbsp;<a href="#" id="group-user-first-bottom" hidden><%= ui["First"] %></a>
+        <a href="#" id="group-user-prev-bottom" class="img_page_prev_e" aria-label="<%= ui["Previous page"] %>" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>" id="group-user-prev-bottom-disabled" />
         &nbsp;<span id="group-user-page-label-bottom">1 / 1</span>&nbsp;
-        <a href="#" id="group-user-next-bottom" class="img_page_next_e" aria-label="Next page" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d" id="group-user-next-bottom-disabled" />
-        <a href="#" id="group-user-last-bottom" hidden>Last</a>
+        <a href="#" id="group-user-next-bottom" class="img_page_next_e" aria-label="<%= ui["Next page"] %>" hidden> </a><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>" id="group-user-next-bottom-disabled" />
+        <a href="#" id="group-user-last-bottom" hidden><%= ui["Last"] %></a>
       </div>
     </div>
     <div class="PageSection">
       <input type="submit" value="Confirm" class="image-ok_btn" />&nbsp;
-      <a href="<%= base %>/System/GroupList" class="image-cancel_label" id="image-cancel_btn">Cancel</a>
+      <a href="<%= base %>/System/GroupList" class="image-cancel_label" id="image-cancel_btn"><%= ui["Cancel"] %></a>
     </div>
   </div></div>
 </form>

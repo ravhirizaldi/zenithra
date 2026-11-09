@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/labels/resources.js';
 import type { Express, Request, RequestHandler, Response } from 'express';
 import type pg from 'pg';
 import { randomBytes } from 'node:crypto';
@@ -60,7 +61,7 @@ export function registerLabelController(
 ): void {
   const paths = [`${base}/Label`, `${base}/Common/LabelManagerListView`, `${base}/Common/LabelSelectListView`];
   app.use(paths, requireAuth, async (req, res, next) => {
-    if (!db) return res.status(503).send('Database is not configured.');
+    if (!db) return res.status(503).send(pageText['Database is not configured.']);
     if (authEnabled) {
       req.session.csrfToken ??= randomBytes(32).toString('hex');
       res.locals.csrfToken = req.session.csrfToken;
@@ -68,7 +69,7 @@ export function registerLabelController(
         !['GET', 'HEAD'].includes(req.method) &&
         labelString(req.body?.__RequestVerificationToken) !== req.session.csrfToken
       )
-        return res.status(403).send('Invalid form verification token.');
+        return res.status(403).send(pageText['Invalid form verification token.']);
     }
     if (!res.locals.labelPermissions?.refer) {
       const reportMode = labelString(req.query.reportMode ?? req.body?.reportMode ?? req.body?.LabelReportMode);
@@ -78,7 +79,7 @@ export function registerLabelController(
         !documentSelector ||
         !(await documentPermissions(db, req.session?.userId ?? '', await documentSettings(db))).refer
       )
-        return res.status(403).send('Role authority is insufficient.');
+        return res.status(403).send(pageText['Role authority is insufficient.']);
     }
     return next();
   });
@@ -106,7 +107,7 @@ export function registerLabelController(
       active: 'Label',
       section: '',
       login: false,
-      title: 'Label Manager',
+      title: pageText['Label Manager'],
       userName: req.session?.userName,
       labelPage,
     });
@@ -195,7 +196,8 @@ export function registerLabelController(
   const getForm = async (req: Request, res: Response, create: boolean) => {
     if (!ajax(req)) return res.send('');
     const state = await data(req, res);
-    if (!state.permissions[create ? 'create' : 'edit']) return res.status(403).send('Role authority is insufficient.');
+    if (!state.permissions[create ? 'create' : 'edit'])
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     const id = create ? 0 : labelInteger(req.query.id);
     if (req.session) req.session.labelRoleDraft = { mode: state.mode, id, roles: {} };
     const record = create
@@ -213,7 +215,7 @@ export function registerLabelController(
       source = state.source;
     const deleting = !create && source.act === 'DELETE_LABEL';
     if (!state.permissions[deleting ? 'delete' : create ? 'create' : 'edit'])
-      return res.status(403).send('Role authority is insufficient.');
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     let record = defaults();
     try {
       record = labelInput(source, state.mode);
@@ -245,7 +247,7 @@ export function registerLabelController(
           copy: create && state.mode === 'Def' && labelChecked(source['mst_label.IsRepCopy']),
         });
       } else if (source.ActionCommonType === 'CancelType') return res.redirect(`${base}/Label?mode=${state.mode}`);
-      else throw new LabelValidationError('', 'Unknown action.');
+      else throw new LabelValidationError('', pageText['Unknown action.']);
       if (req.session) delete req.session.labelRoleDraft;
       if (!create) return res.redirect(`${base}/Label/Edit?mode=${state.mode}&id=-1`);
       return res.render('manager/labels/form', { ...form, result: 'success' });
@@ -278,7 +280,7 @@ export function registerLabelController(
       source = state.source;
     const action = source.LabelAct;
     if (!state.permissions[action === 'LABEL_MANAGEMENT_ADD' ? 'create' : 'delete'])
-      return res.status(403).send('Role authority is insufficient.');
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     try {
       if (action === 'LABEL_MANAGEMENT_ADD') {
         const record = labelInput(source, state.mode);
@@ -319,7 +321,7 @@ export function registerLabelController(
   app.post(`${base}/Label/Edit`, (req, res) => postForm(req, res, false));
   app.post(`${base}/Label/Delete`, async (req, res) => {
     const state = await data(req, res);
-    if (!state.permissions.delete) return res.status(403).send('Role authority is insufficient.');
+    if (!state.permissions.delete) return res.status(403).send(pageText['Role authority is insufficient.']);
     await deleteLabel(db, state.mode, labelInteger(state.source.id));
     return res.redirect(`${base}/Label?mode=${state.mode}`);
   });

@@ -500,6 +500,7 @@ test('Documents uses project-owned EJS scripts and original controls/resources, 
     hidden: false,
   };
   const html = await ejs.renderFile('src/views/manager/page.ejs', {
+    ...source,
     base: '/ConMasManager',
     menus: [['Documents', 'InputReport']],
     active: 'InputReport',
@@ -546,6 +547,7 @@ test('Documents uses project-owned EJS scripts and original controls/resources, 
   assert(html.includes(`data-val-required="${ejs.escapeXML(source.r.MSG_REQUIRED_ICON)}"`));
   assert.match(source.js, /function fConmasChangeLabelMode\(val\)/);
   const custom = await ejs.renderFile('src/views/manager/page.ejs', {
+    ...source,
     base: '/ConMasManager',
     menus: [['Documents', 'InputReport']],
     active: 'InputReport',
@@ -564,8 +566,10 @@ test('Documents uses project-owned EJS scripts and original controls/resources, 
       settings: { ...settings, menu: { FONT_SIZE: '16', WIDTH: '115', REP_REPORT: '<fixture menu>' } },
     },
   });
-  assert.match(custom, /id="GMenu" style="font-size:16px;"/);
-  assert.match(custom, /style="width:115px;">&lt;fixture menu&gt;/);
+  assert.match(custom, /id="GMenu"><ul>/);
+  assert.match(custom, /href="\/ConMasManager\/InputReport">&lt;fixture menu&gt;/);
+  const navigation = custom.slice(custom.indexOf('id="GMenu"'), custom.indexOf('id="Main"'));
+  assert.doesNotMatch(navigation, /style=|font-size:|width:/);
   assert.match(custom, /id="isReportDocumentCopy"[^>]*checked="checked"/);
   const list = await ejs.renderFile('src/views/manager/documents/list.ejs', {
     base: '/ConMasManager',

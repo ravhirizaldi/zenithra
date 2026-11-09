@@ -1,16 +1,16 @@
-<% const userUrl = index => base + '/System/UserList?' + new URLSearchParams({ searchId, searchName, searchGroupId: userFilters.searchGroupId, pageSize: String(userFilters.pageSize), pageIndex: String(index) }); %>
+<% const ui = managerResources["system"]; %><% const userUrl = index => base + '/System/UserList?' + new URLSearchParams({ searchId, searchName, searchGroupId: userFilters.searchGroupId, pageSize: String(userFilters.pageSize), pageIndex: String(index) }); %>
 <div class="PageSection">
-  <% if (!bottom) { %><span style="float:left;padding-left:5px;font-weight:bold"><%= userFilters.groups.find(group => String(group.group_id) === userFilters.searchGroupId)?.group_name_path || 'Member' %></span><% } %>
-  Displayed number
-  <select <%- bottom ? '' : 'name="pageSize" id="pageSize"' %> aria-label="Displayed number" onchange="document.getElementById('pageSize').value=this.value;this.form.submit()">
+  <% if (!bottom) { %><span style="float:left;padding-left:5px;font-weight:bold"><%= userFilters.groups.find(group => String(group.group_id) === userFilters.searchGroupId)?.group_name_path || ui["Member"] %></span><% } %>
+  <%= ui["Displayed number"] %>
+  <select <%- bottom ? '' : 'name="pageSize" id="pageSize"' %> aria-label="<%= ui["Displayed number"] %>" onchange="document.getElementById('pageSize').value=this.value;this.form.submit()">
     <% for (const size of [10, 20, 50, 100]) { %><option value="<%= size %>" <%= userFilters.pageSize === size ? 'selected' : '' %>><%= size %></option><% } %>
   </select>
   &nbsp;
   <% if (userFilters.pageIndex > 0) { %>
-    <a href="<%= userUrl(0) %>" style="padding-right:5px">First</a><a class="img_page_prev_e" href="<%= userUrl(userFilters.pageIndex - 1) %>" aria-label="Previous page"></a>
-  <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="Previous page unavailable"><% } %>
+    <a href="<%= userUrl(0) %>" style="padding-right:5px"><%= ui["First"] %></a><a class="img_page_prev_e" href="<%= userUrl(userFilters.pageIndex - 1) %>" aria-label="<%= ui["Previous page"] %>"></a>
+  <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["Previous page unavailable"] %>"><% } %>
   &nbsp;<%= userFilters.pageIndex + 1 %>&nbsp;/&nbsp;<%= userFilters.pages %>&nbsp;
   <% if (userFilters.pageIndex + 1 < userFilters.pages) { %>
-    <a class="img_page_next_e" href="<%= userUrl(userFilters.pageIndex + 1) %>" aria-label="Next page"></a><a href="<%= userUrl(userFilters.pages - 1) %>" style="padding-left:5px">Last</a>
-  <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="Next page unavailable"><% } %>
+    <a class="img_page_next_e" href="<%= userUrl(userFilters.pageIndex + 1) %>" aria-label="<%= ui["Next page"] %>"></a><a href="<%= userUrl(userFilters.pages - 1) %>" style="padding-left:5px"><%= ui["Last"] %></a>
+  <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["Next page unavailable"] %>"><% } %>
 </div>

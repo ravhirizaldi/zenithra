@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { base } from '../../../config/manager.js';
 import type {
   SystemPermissionAction,
@@ -67,7 +68,7 @@ export function systemMenuFor(
         link(
           'userDirectFunction',
           'UserDirectList',
-          'Direct linkage',
+          pageText['Direct linkage'],
           'UserDirectList',
           [],
           ['DetailsUserDirect', 'EditUserDirect'],
@@ -79,13 +80,13 @@ export function systemMenuFor(
         link(
           'userAccountOperationLogFunction',
           'UserAccountOperationLog',
-          'User Account Log',
+          pageText['User Account Log'],
           'UserAccountOperationLog',
         ),
       );
     }
     items.push(
-      link('userFunction', 'UserList', 'Users', 'UserList', children, [
+      link('userFunction', 'UserList', pageText['Users'], 'UserList', children, [
         'DetailsUser',
         'CreateUser',
         'EditUser',
@@ -98,7 +99,7 @@ export function systemMenuFor(
       link(
         'groupFunction',
         'GroupList',
-        'Groups',
+        pageText['Groups'],
         'GroupList',
         [],
         ['DetailsGroup', 'CreateGroup', 'EditGroup', 'EditDefaultRole', 'EditFdRole'],
@@ -109,7 +110,7 @@ export function systemMenuFor(
         link(
           'irfdFunction',
           'IrfdTemplateList',
-          'i-Repo FreeDraw template',
+          pageText['i-Repo FreeDraw template'],
           'IrfdTemplateList',
           [],
           ['EditIrfdTemplate'],
@@ -117,7 +118,9 @@ export function systemMenuFor(
       );
   }
   if (can('terminal', 'read')) {
-    items.push(link('termFunction', 'TermList', 'Devices', 'TermList', [], ['DetailsTerm', 'CreateTerm', 'EditTerm']));
+    items.push(
+      link('termFunction', 'TermList', pageText['Devices'], 'TermList', [], ['DetailsTerm', 'CreateTerm', 'EditTerm']),
+    );
   }
 
   if (can('system', 'read')) {
@@ -126,17 +129,17 @@ export function systemMenuFor(
         link(
           'mailFunction',
           'MailList',
-          'Notification Settings',
+          pageText['Notification Settings'],
           'MailList',
-          [link('mailtLogFunction', 'MailSendLog', 'Transmission history', 'MailSendLog')],
+          [link('mailtLogFunction', 'MailSendLog', pageText['Transmission history'], 'MailSendLog')],
           ['EditMailBase'],
         ),
       );
       const directChildren = flags.directLinked
-        ? [link('directLogFunction', 'DirectSendLog', 'Transmission history', 'DirectSendLog')]
+        ? [link('directLogFunction', 'DirectSendLog', pageText['Transmission history'], 'DirectSendLog')]
         : [];
       items.push(
-        link('directFunction', 'DirectChat', 'Direct notice setting', 'DirectChat', directChildren, [
+        link('directFunction', 'DirectChat', pageText['Direct notice setting'], 'DirectChat', directChildren, [
           'EditDirectSetting',
           'EditDirectNotification',
           'EditDirectTemplate',
@@ -148,50 +151,53 @@ export function systemMenuFor(
           link(
             'webhookFunction',
             'WebhookList',
-            'Webhook notice setting',
+            pageText['Webhook notice setting'],
             'WebhookList',
-            [link('webhookLogFunction', 'WebhookSendLog', 'Transmission history', 'WebhookSendLog')],
+            [link('webhookLogFunction', 'WebhookSendLog', pageText['Transmission history'], 'WebhookSendLog')],
             ['WebhookChat', 'EditWebhookSetting', 'EditWebhookSettingGeneral', 'EditWebhookNotification'],
           ),
         );
       }
     }
-    items.push(link('comFunction', 'ComList', 'Common Master', 'ComList', [], ['DetailsCom', 'CreateCom', 'EditCom']));
+    items.push(
+      link('comFunction', 'ComList', pageText['Common Master'], 'ComList', [], ['DetailsCom', 'CreateCom', 'EditCom']),
+    );
   }
 
   if (can('data', 'read') && !flags.freeDrawOnly) {
     if (flags.uploadEnabled) {
-      items.push(link('uploadFunction', 'UploadList', 'File Upload', 'UploadList', [], ['CreateUpload']));
+      items.push(link('uploadFunction', 'UploadList', pageText['File Upload'], 'UploadList', [], ['CreateUpload']));
     }
-    items.push(link('taskFunction', 'TaskList', 'Task manager', 'TaskList', [], ['EditTask']));
+    items.push(link('taskFunction', 'TaskList', pageText['Task manager'], 'TaskList', [], ['EditTask']));
   }
   if (can('group', 'read') && !flags.freeDrawOnly) {
-    items.push(link('dataInputFunction', 'DataInput', 'Data import', 'DataInput'));
-    items.push(link('dataOutputFunction', 'DataOutput', 'Data Export', 'DataOutput'));
+    items.push(link('dataInputFunction', 'DataInput', pageText['Data import'], 'DataInput'));
+    items.push(link('dataOutputFunction', 'DataOutput', pageText['Data Export'], 'DataOutput'));
   }
 
   if (can('data', 'read')) {
-    if (!flags.freeDrawOnly) items.push(link('lockManageFunction', 'LockManagement', 'Batch unlock', 'LockManagement'));
+    if (!flags.freeDrawOnly)
+      items.push(link('lockManageFunction', 'LockManagement', pageText['Batch unlock'], 'LockManagement'));
     const loginHistory = link(
       'opeartionLogFunction',
       'OperationLog',
-      'Login history',
+      pageText['Login history'],
       'OperationLog',
       can('data', 'delete')
-        ? [link('deleteOperationLogFunction', 'DeleteOperationLog', 'Log deletion', 'DeleteOperationLog')]
+        ? [link('deleteOperationLogFunction', 'DeleteOperationLog', pageText['Log deletion'], 'DeleteOperationLog')]
         : [],
     );
     const definitionHistory = link(
       'definitionFormOperationLogFunction',
       'DefinitionFormOperationLog',
-      'Form operation history',
+      pageText['Form operation history'],
       'DefinitionFormOperationLog',
       can('data', 'delete')
         ? [
             link(
               'deleteDefinitionFormOperationLogFunction',
               'DeleteDefinitionFormOperationLog',
-              'Log deletion',
+              pageText['Log deletion'],
               'DeleteDefinitionFormOperationLog',
             ),
           ]
@@ -200,21 +206,21 @@ export function systemMenuFor(
     const inputHistory = link(
       'inputReportOperationLogFunction',
       'InputReportOperationLog',
-      'Input document operation history',
+      pageText['Input document operation history'],
       'InputReportOperationLog',
       can('data', 'delete')
         ? [
             link(
               'deleteInputReportOperationLogFunction',
               'DeleteInputReportOperationLog',
-              'Log deletion',
+              pageText['Log deletion'],
               'DeleteInputReportOperationLog',
             ),
           ]
         : [],
     );
     items.push({
-      label: 'Operation log',
+      label: pageText['Operation log'],
       children: flags.freeDrawOnly ? [loginHistory] : [loginHistory, definitionHistory, inputHistory],
     });
     if (can('data', 'delete') && can('customTable', 'edit') && !flags.freeDrawOnly) {
@@ -222,38 +228,46 @@ export function systemMenuFor(
         link(
           'customMasterMaintenanceFunction',
           'CustomMasterMaintenance',
-          'Custom master maintenance',
+          pageText['Custom master maintenance'],
           'CustomMasterMaintenance',
         ),
       );
     }
     if (!flags.freeDrawOnly)
       items.push({
-        label: 'Voice recognition common dictionary',
-        children: [link('voiceCommonGrammarFunction', 'VoiceCommonGrammar', 'Common operation', 'VoiceCommonGrammar')],
+        label: pageText['Voice recognition common dictionary'],
+        children: [
+          link('voiceCommonGrammarFunction', 'VoiceCommonGrammar', pageText['Common operation'], 'VoiceCommonGrammar'),
+        ],
       });
     if (!flags.freeDrawOnly && (flags.backupLogEnabled || flags.backupImageEnabled)) {
       const children: SystemMenuEntry[] = [];
-      if (flags.backupLogEnabled) children.push(link('backupLogFunction', 'BackupLog', 'Log', 'BackupFile?type=0'));
+      if (flags.backupLogEnabled)
+        children.push(link('backupLogFunction', 'BackupLog', pageText['Log'], 'BackupFile?type=0'));
       if (flags.backupImageEnabled)
-        children.push(link('backupImageFunction', 'BackupImage', 'Image', 'BackupFile?type=1'));
-      items.push({ label: 'Backup file', children });
+        children.push(link('backupImageFunction', 'BackupImage', pageText['Image'], 'BackupFile?type=1'));
+      items.push({ label: pageText['Backup file'], children });
     }
     if (flags.autoOutputEnabled && !flags.freeDrawOnly) {
       items.push(
-        link('autoOutputFileFunction', 'AutoOutputFile', 'Automatic output file', 'AutoOutputFile?currentPath='),
+        link(
+          'autoOutputFileFunction',
+          'AutoOutputFile',
+          pageText['Automatic output file'],
+          'AutoOutputFile?currentPath=',
+        ),
       );
     }
   }
 
   if (can('system', 'read')) {
     if (flags.serverLogEnabled && !flags.freeDrawOnly) {
-      items.push(link('serverLogFileFunction', 'ServerLogFile', 'Server log', 'ServerLogFile?rootPath='));
+      items.push(link('serverLogFileFunction', 'ServerLogFile', pageText['Server log'], 'ServerLogFile?rootPath='));
     }
     const licenseChildren = flags.licenseUploadEnabled
-      ? [link('uploadLicenseFunction', 'UploadLicense', 'Update', 'UploadLicense')]
+      ? [link('uploadLicenseFunction', 'UploadLicense', pageText['Update'], 'UploadLicense')]
       : [];
-    items.push(link('licenseFunction', 'DetailsLicense', 'License', 'DetailsLicense', licenseChildren));
+    items.push(link('licenseFunction', 'DetailsLicense', pageText['License'], 'DetailsLicense', licenseChildren));
   }
   return items;
 }

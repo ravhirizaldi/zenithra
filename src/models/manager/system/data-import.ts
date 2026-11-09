@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type pg from 'pg';
 import { XMLParser, XMLValidator } from 'fast-xml-parser';
 import { createRequire } from 'node:module';
@@ -51,11 +52,11 @@ export function parseImportCsv(text: string): string[][] {
       field = '';
       closed = false;
     } else {
-      if (closed) throw new Error('Invalid CSV.');
+      if (closed) throw new Error(pageText['Invalid CSV.']);
       field += ch;
     }
   }
-  if (quoted) throw new Error('Invalid CSV.');
+  if (quoted) throw new Error(pageText['Invalid CSV.']);
   if (field || row.length || closed) {
     row.push(field);
     rows.push(row);
@@ -81,7 +82,7 @@ export function decodeImport(buffer: Buffer, format: string, encoding: string): 
   return iconv.decode(buffer, selected === '932' ? 'shift_jis' : /^\d+$/.test(selected) ? 'cp' + selected : selected);
 }
 export function importXmlRecords(text: string, tag: string): Record<string, unknown>[] {
-  if (/<!DOCTYPE/i.test(text) || XMLValidator.validate(text) !== true) throw new Error('Invalid XML.');
+  if (/<!DOCTYPE/i.test(text) || XMLValidator.validate(text) !== true) throw new Error(pageText['Invalid XML.']);
   const parsed = new XMLParser({
     parseTagValue: false,
     trimValues: false,
@@ -97,12 +98,12 @@ export function importXmlRecords(text: string, tag: string): Record<string, unkn
 }
 export function commonImportRows(text: string, format: string): string[][] {
   if (format === 'csv') return parseImportCsv(text);
-  if (format !== 'xml') throw new Error('Invalid format.');
+  if (format !== 'xml') throw new Error(pageText['Invalid format.']);
   return importXmlRecords(text, 'common').map((record) => commonFields.map((field) => String(record?.[field] ?? '')));
 }
 export function meIdImportRows(text: string, format: string): string[][] {
   if (format === 'csv') return parseImportCsv(text);
-  if (format !== 'xml') throw new Error('Invalid format.');
+  if (format !== 'xml') throw new Error(pageText['Invalid format.']);
   return importXmlRecords(text, 'user').map((record) =>
     ['userId', 'meidUpn', 'meidOid']
       .filter((field) => Object.hasOwn(record, field))

@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { constants, createReadStream } from 'node:fs';
 import { open } from 'node:fs/promises';
 import { join } from 'node:path';
@@ -20,7 +21,7 @@ const referenceFields = (kind: ReferenceKind) => [
 
 export function referenceImportRows(text: string, format: string, kind: ReferenceKind): string[][] {
   if (format === 'csv') return parseImportCsv(text);
-  if (format !== 'xml') throw new Error('Invalid format.');
+  if (format !== 'xml') throw new Error(pageText['Invalid format.']);
   return importXmlRecords(text, kind === 'def' ? 'definitionReference' : 'reportReference').map((row) =>
     referenceFields(kind).map((field) => String(row[field] ?? '')),
   );
@@ -91,7 +92,7 @@ export async function importReferences(
         continue;
       }
       // Legacy validation allows ignore here, then int.Parse throws before the row transaction.
-      if (display === '{ignore}') throw new Error('Invalid reference display number.');
+      if (display === '{ignore}') throw new Error(pageText['Invalid reference display number.']);
       await client.query('BEGIN');
       try {
         await client.query(
@@ -131,11 +132,11 @@ export async function importReferenceFiles(
       "SELECT com_value FROM mst_common WHERE com_key='VIRTUAL_DIRECTORY' AND com_name='REFERENCE_PHYSICAL'",
     )
   ).rows[0]?.com_value;
-  if (!location) throw new Error('Reference directory is unavailable.');
+  if (!location) throw new Error(pageText['Reference directory is unavailable.']);
   for (const file of files) {
     if (file.buffer?.length === 0 || file.size === 0) continue;
     const name = safeUploadFileName(file.originalname);
-    if (!name || (!file.buffer && !file.path)) throw new Error('Reference file is unavailable.');
+    if (!name || (!file.buffer && !file.path)) throw new Error(pageText['Reference file is unavailable.']);
     const handle = await open(
       join(configuredPath(location), name),
       constants.O_WRONLY | constants.O_CREAT | constants.O_TRUNC | constants.O_NOFOLLOW,

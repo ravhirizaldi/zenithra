@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type pg from 'pg';
 import { XMLBuilder, XMLParser, XMLValidator } from 'fast-xml-parser';
 import { importRowResult, parseImportCsv, type ImportResult } from './data-import.js';
@@ -25,7 +26,7 @@ const children = (node: XmlNode, name: string) => contents(node).filter((item) =
 const child = (node: XmlNode, name: string) => children(node, name)[0];
 function must(node: XmlNode, name: string): XmlNode {
   const item = child(node, name);
-  if (!item) throw new Error('Missing XML element.');
+  if (!item) throw new Error(pageText['Missing XML element.']);
   return item;
 }
 function value(node: XmlNode): string {
@@ -41,11 +42,11 @@ const element = (name: string, text: string | XmlNode[] = ''): XmlNode => ({
   [name]: typeof text === 'string' ? (text ? [{ '#text': text }] : []) : text,
 });
 function xmlRoot(text: string): XmlNode {
-  if (/<!DOCTYPE/i.test(text) || XMLValidator.validate(text) !== true) throw new Error('Invalid XML.');
+  if (/<!DOCTYPE/i.test(text) || XMLValidator.validate(text) !== true) throw new Error(pageText['Invalid XML.']);
   const root = (parser.parse(text) as XmlNode[]).find(
     (node) => !tag(node).startsWith('?') && !tag(node).startsWith('#'),
   );
-  if (!root) throw new Error('Missing XML root.');
+  if (!root) throw new Error(pageText['Missing XML root.']);
   return root;
 }
 function integer(text: string): number | undefined {
@@ -94,7 +95,7 @@ function csvDocument(text: string): XmlNode {
     line = 0;
   for (const row of parseImportCsv(text)) {
     line++;
-    if (row.length < 2) throw new Error('Missing CSV type.');
+    if (row.length < 2) throw new Error(pageText['Missing CSV type.']);
     if (!top || field(top, 'defTopId') !== row[0]) {
       top = element('top', [element('defTopId', row[0]), element('sheets', []), element('networks', [])]);
       contents(root).push(top);
@@ -147,7 +148,7 @@ function csvDocument(text: string): XmlNode {
 function sheetFor(top: XmlNode, no: number): XmlNode | undefined {
   return children(must(top, 'sheets'), 'sheet').find((item) => {
     const n = integer(field(item, 'sheetNo'));
-    if (n === undefined) throw new Error('Invalid stored sheet number.');
+    if (n === undefined) throw new Error(pageText['Invalid stored sheet number.']);
     return n === no;
   });
 }
@@ -230,7 +231,7 @@ function updateLinks(input: XmlNode, target: XmlNode, id: number): void {
     const numericCluster = (sheet: XmlNode, no: number) =>
       children(must(sheet, 'clusters'), 'cluster').find((item) => {
         const n = integer(field(item, 'clusterId'));
-        if (n === undefined) throw new Error('Invalid stored cluster ID.');
+        if (n === undefined) throw new Error(pageText['Invalid stored cluster ID.']);
         return n === no;
       });
     const prev = numericCluster(prevSheet, prevClusterId);
@@ -252,7 +253,7 @@ function updateLinks(input: XmlNode, target: XmlNode, id: number): void {
     const stored = children(must(target, 'networks'), 'network').find((item) =>
       names.every((name, index) => {
         const n = integer(field(item, name));
-        if (n === undefined) throw new Error('Invalid stored network.');
+        if (n === undefined) throw new Error(pageText['Invalid stored network.']);
         return n === numbers[index];
       }),
     );

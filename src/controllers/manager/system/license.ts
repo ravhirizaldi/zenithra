@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { XMLParser } from 'fast-xml-parser';
@@ -301,16 +302,16 @@ function parseUploadedLicense(
   xml: string,
   key: string,
 ): { license?: UploadedLicense; fields?: Map<string, string>; error?: string } {
-  if (!key) return { error: 'License compatibility key is not configured.' };
+  if (!key) return { error: pageText['License compatibility key is not configured.'] };
   try {
     const fields = parseLicenseFields(xml, key);
     const license = summarizeLicense(fields);
-    if (!license) return { error: 'The selected file is not a valid license.' };
+    if (!license) return { error: pageText['The selected file is not a valid license.'] };
     const activationError = licenseActivationError(fields, license.needsActivation);
     if (activationError) return { error: activationError };
     return { license, fields };
   } catch {
-    return { error: 'The selected file is not a valid license.' };
+    return { error: pageText['The selected file is not a valid license.'] };
   }
 }
 
@@ -319,7 +320,7 @@ async function saveUploadedLicense(xml: string): Promise<void> {
   await mkdir(directory, { recursive: true, mode: 0o700 });
   const directoryInfo = await lstat(directory);
   if (!directoryInfo.isDirectory() || directoryInfo.isSymbolicLink())
-    throw new Error('The Node license directory is not safe.');
+    throw new Error(pageText['The Node license directory is not safe.']);
   const temporary = `${nodeLicenseFile}.${randomBytes(8).toString('hex')}.tmp`;
   await writeFile(temporary, xml, { encoding: 'utf8', flag: 'wx', mode: 0o600 });
   try {
@@ -332,7 +333,7 @@ async function saveUploadedLicense(xml: string): Promise<void> {
 
 function activateLicense(fields: Map<string, string>, key: string): string {
   const machineGuid = windowsMachineGuid();
-  if (!machineGuid) throw new Error('The Windows MachineGuid could not be read on this host.');
+  if (!machineGuid) throw new Error(pageText['The Windows MachineGuid could not be read on this host.']);
   const entries = [...fields].filter(([name]) => name !== 'Activate' && name !== 'ActivateAllowDate');
   entries.push(['Activate', machineGuid]);
   const encrypted = legacyEncrypt(entries.map(([name, value]) => `${name}=${value}`).join(';'), key);
@@ -350,7 +351,7 @@ function fileFor(req: Request, field: string): UploadedFile | undefined {
 async function currentLicense(db: pg.Pool): Promise<NonNullable<LicensePage['current']>> {
   const fields = readLicenseFields();
   const details = summarizeLicense(fields)?.summary;
-  if (!details) throw new Error('The current license is invalid.');
+  if (!details) throw new Error(pageText['The current license is invalid.']);
   const license = licenseCounts(fields);
   const [users, terminals, reports, definitions, documents, scandit] = await Promise.all([
     db.query<{ count: string; ami_voice: string; free_draw: string; irepo_chat: string }>(
@@ -445,7 +446,7 @@ function renderPage(
     active: 'System',
     section: 'License',
     login: false,
-    title: page.mode === 'upload' ? 'License Update' : 'License',
+    title: page.mode === 'upload' ? pageText['License Update'] : pageText['License'],
     userName: res.locals.userName,
     systemLicensePage: page,
   });
@@ -658,7 +659,7 @@ async function measureStorage(db: pg.Pool, freeDrawOnly: boolean): Promise<Stora
     }>(`SELECT pg_database_size(current_database())::text AS size,
       pg_size_pretty(pg_database_size(current_database())) AS pretty_size`);
     database = partFromSize(result.rows[0]?.size ?? '', result.rows[0]?.pretty_size ?? '');
-    if (!database) throw new Error('Database storage size is unavailable.');
+    if (!database) throw new Error(pageText['Database storage size is unavailable.']);
   }
   if (type === '1' || type === '2') {
     const result = await db.query<{
@@ -668,9 +669,9 @@ async function measureStorage(db: pg.Pool, freeDrawOnly: boolean): Promise<Stora
       FROM pg_stat_all_tables INNER JOIN pg_class ON pg_stat_all_tables.relname = pg_class.relname
       WHERE pg_stat_all_tables.schemaname = 'public'`);
     const size = result.rows[0]?.size ?? '';
-    if (!size) throw new Error('Database storage size is unavailable.');
+    if (!size) throw new Error(pageText['Database storage size is unavailable.']);
     databaseLogic = partFromSize(size, await prettySize(db, size));
-    if (!databaseLogic) throw new Error('Database storage size is unavailable.');
+    if (!databaseLogic) throw new Error(pageText['Database storage size is unavailable.']);
   }
   const settings = clientSettingsDirectory();
   const directoryPath = settings ? await storageDirectory(db, settings, freeDrawOnly) : null;
@@ -685,7 +686,8 @@ async function measureStorage(db: pg.Pool, freeDrawOnly: boolean): Promise<Stora
 
 async function disposeOfGarbage(db: pg.Pool): Promise<void> {
   const location = await settingsAndTempAvailable();
-  if (!location) throw new Error('Temporary-file cleanup requires a configured legacy ClientSettings temp directory.');
+  if (!location)
+    throw new Error(pageText['Temporary-file cleanup requires a configured legacy ClientSettings temp directory.']);
   const [contents, retention] = await Promise.all([temporaryFiles(location.temp), retentionMinutes(db)]);
   const cutoff = Date.now() - retention * 60_000;
   for (const file of contents.files) {
@@ -725,7 +727,7 @@ export function registerSystemLicense(
     try {
       return renderPage(res, render, await pageData(db, req, 'details'));
     } catch {
-      return res.status(503).send('License information is unavailable.');
+      return res.status(503).send(pageText['License information is unavailable.']);
     }
   });
 
@@ -769,10 +771,10 @@ export function registerSystemLicense(
     try {
       const page = await pageData(db, req, 'upload');
       if (!page.uploadEnabled)
-        return renderPage(res, render, { ...page, mode: 'error', error: 'License uploading is disabled.' });
+        return renderPage(res, render, { ...page, mode: 'error', error: pageText['License uploading is disabled.'] });
       return renderPage(res, render, page);
     } catch {
-      return res.status(503).send('License information is unavailable.');
+      return res.status(503).send(pageText['License information is unavailable.']);
     }
   });
 
@@ -782,28 +784,30 @@ export function registerSystemLicense(
     try {
       const page = await pageData(db, req, 'upload');
       if (!page.uploadEnabled)
-        return renderPage(res, render, { ...page, mode: 'error', error: 'License uploading is disabled.' });
+        return renderPage(res, render, { ...page, mode: 'error', error: pageText['License uploading is disabled.'] });
       if (action === 'pdf') {
         const file = fileFor(req, 'pdfLicenseFile');
         if (!file || file.size === 0 || !file.originalname.toLowerCase().endsWith('.zip')) {
-          return renderPage(res, render, { ...page, error: 'No PDF license file was uploaded.' });
+          return renderPage(res, render, { ...page, error: pageText['No PDF license file was uploaded.'] });
         }
         if (process.env.CONMAS_PLATFORM?.toLowerCase() === 'cloud')
           return renderPage(res, render, {
             ...page,
             mode: 'error',
-            error: 'PDF license upload is unavailable on the cloud platform.',
+            error: pageText['PDF license upload is unavailable on the cloud platform.'],
           });
         return res
           .status(503)
           .send(
-            'PDF license upload requires the legacy Apryse PDFNet integration, which is not configured in this Node runtime.',
+            pageText[
+              'PDF license upload requires the legacy Apryse PDFNet integration, which is not configured in this Node runtime.'
+            ],
           );
       }
       if (action === 'upload') {
         const file = fileFor(req, 'uploadLicenseFile');
         if (!file || file.size === 0)
-          return renderPage(res, render, { ...page, error: 'No license file was uploaded.' });
+          return renderPage(res, render, { ...page, error: pageText['No license file was uploaded.'] });
         const xml = decodeXml(file.buffer);
         const key = process.env.CONMAS_LICENSE_KEY ?? '';
         const parsed = parseUploadedLicense(xml, key);
@@ -813,14 +817,14 @@ export function registerSystemLicense(
             error: parsed.error ?? 'The selected file is not a valid license.',
           });
         const state = req.session as SessionWithLicense | undefined;
-        if (!state) return res.status(503).send('License upload requires an active session.');
+        if (!state) return res.status(503).send(pageText['License upload requires an active session.']);
         state.uploadedSystemLicense = xml;
         return renderPage(res, render, { ...page, uploaded: parsed.license.summary, fileHasUploaded: true, error: '' });
       }
       if (action === 'fix') {
         const state = req.session as SessionWithLicense | undefined;
         const xml = state?.uploadedSystemLicense;
-        if (!xml) return renderPage(res, render, { ...page, error: 'No license file was uploaded.' });
+        if (!xml) return renderPage(res, render, { ...page, error: pageText['No license file was uploaded.'] });
         const key = process.env.CONMAS_LICENSE_KEY ?? '';
         const parsed = parseUploadedLicense(xml, key);
         if (!parsed.license || !parsed.fields)
@@ -832,9 +836,9 @@ export function registerSystemLicense(
         delete state.uploadedSystemLicense;
         return res.redirect(`${root}/DetailsLicense`);
       }
-      return renderPage(res, render, { ...page, mode: 'error', error: 'Invalid license action.' });
+      return renderPage(res, render, { ...page, mode: 'error', error: pageText['Invalid license action.'] });
     } catch {
-      return res.status(503).send('License upload could not be completed.');
+      return res.status(503).send(pageText['License upload could not be completed.']);
     }
   });
 }

@@ -5,6 +5,7 @@ import { test } from 'node:test';
 import pg from 'pg';
 import sharp from 'sharp';
 import ejs from 'ejs';
+import { managerResourceLocals } from '../../../../src/config/manager/resources.js';
 import { Script } from 'node:vm';
 import { createApp } from '../../../helpers/app.js';
 import { userDate, validUserId } from '../../../../src/controllers/manager/system/users.js';
@@ -12,6 +13,7 @@ import { passwordRuleErrors } from '../../../../src/shared/user-password-strengt
 
 test('Create User renders the legacy confirmation, blank text dates and group search controls', async () => {
   const html = await ejs.renderFile('src/views/manager/system/user-form.ejs', {
+    ...managerResourceLocals,
     base: '/ConMasManager',
     csrfToken: 'fixture',
     userPage: {

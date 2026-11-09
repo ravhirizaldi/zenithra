@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
 import { hostname } from 'node:os';
@@ -187,7 +188,7 @@ export function registerCommon(
   const read = async (req: Request, res: Response, details: boolean) => {
     const actor = req.session?.userId ?? '';
     if (!(await hasSystemPermission(db, actor, 'system', 'read')))
-      return res.status(403).send('Role authority is insufficient.');
+      return res.status(403).send(pageText['Role authority is insufficient.']);
     try {
       const freeDrawOnly = licenseStatus().freeDrawOnly;
       const source = req.method === 'POST' ? req.body : req.query;
@@ -225,14 +226,14 @@ export function registerCommon(
         },
       });
     } catch {
-      return res.status(503).send('Common Master information is unavailable.');
+      return res.status(503).send(pageText['Common Master information is unavailable.']);
     }
   };
   app.get(`${root}/ComList`, (req, res) => read(req, res, false));
   app.post(`${root}/ComList`, (req, res) => read(req, res, false));
   app.get(`${root}/DetailsCom`, (req, res) => read(req, res, true));
   app.post(`${root}/DetailsCom`, async (req, res) => {
-    if (req.body?.act !== 'delete') return res.status(400).send('Unknown action.');
+    if (req.body?.act !== 'delete') return res.status(400).send(pageText['Unknown action.']);
     if (!(await hasSystemPermission(db, req.session?.userId ?? '', 'system', 'delete'))) return res.sendStatus(403);
     const id = Number(req.body['mst_common.com_id']);
     if (!Number.isSafeInteger(id) || id <= 0) return res.sendStatus(400);

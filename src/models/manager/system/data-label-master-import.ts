@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type pg from 'pg';
 import { importRowResult, importXmlRecords, parseImportCsv, type ImportResult } from './data-import.js';
 
@@ -32,7 +33,7 @@ const path = (upper: string, value: string) => (!value ? '' : upper ? upper + '/
 
 export function labelMasterImportRows(text: string, format: string, kind: LabelKind): string[][] {
   if (format === 'csv') return parseImportCsv(text);
-  if (format !== 'xml') throw new Error('Invalid format.');
+  if (format !== 'xml') throw new Error(pageText['Invalid format.']);
   return importXmlRecords(text, kind === 'def' ? 'definitionLabelMaster' : 'reportLabelMaster').map((row) =>
     fields.map((field) => String(row[field] ?? '')),
   );
@@ -136,7 +137,7 @@ async function prepareLabel(client: pg.PoolClient, row: string[], kind: LabelKin
         error = check(group, 'labelRoleGroup', false, allowIgnore, true);
         if (error) return error;
         // Empty/ignore group items pass CheckInt but fail the legacy int.Parse before writes.
-        if (!group.trim() || group === '{ignore}') throw new Error('Invalid group ID.');
+        if (!group.trim() || group === '{ignore}') throw new Error(pageText['Invalid group ID.']);
         label.groups.push(Number(group));
       }
       const existing = new Set(
@@ -166,7 +167,7 @@ async function rebuildChildPaths(client: pg.PoolClient, kind: LabelKind, beforeP
     let current: number | null = child.mst_label_id;
     while (current !== null) {
       // Roll back cyclic parentage instead of recursing forever as the legacy helper does.
-      if (seen.has(current)) throw new Error('Cyclic label hierarchy.');
+      if (seen.has(current)) throw new Error(pageText['Cyclic label hierarchy.']);
       seen.add(current);
       const item: { mst_label_id: number; label_name: string | null; upper_label_id: number | null } | undefined = (
         await client.query(
@@ -205,7 +206,7 @@ export async function importLabelMasters(
   ) {
     rows = rows.map((row) => [...row]);
     for (const row of rows) {
-      if (row.length <= 7) throw new Error('Missing label role field.');
+      if (row.length <= 7) throw new Error(pageText['Missing label role field.']);
       if (!row[7]) continue;
       const groups = await db.query<{ group_id: number }>(
         'SELECT group_id FROM mst_group WHERE system_key=ANY($1::text[])',

@@ -1,10 +1,11 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type pg from 'pg';
 import { importRowResult, importXmlRecords, parseImportCsv, type ImportResult } from './data-import.js';
 import { insertUserAccountLog } from '../../../shared/operation-log.js';
 
 export function affiliationImportRows(text: string, format: string): string[][] {
   if (format === 'csv') return parseImportCsv(text);
-  if (format !== 'xml') throw new Error('Invalid format.');
+  if (format !== 'xml') throw new Error(pageText['Invalid format.']);
   return importXmlRecords(text, 'groupAffiliation').map((row) =>
     ['action', 'groupId', 'userId'].map((field) => String(row[field] ?? '')),
   );
@@ -39,9 +40,9 @@ export async function importAffiliationRows(
   if (mode.rows[0]?.com_value === '1') {
     // Legacy resolves every system key before applying any rows in the file.
     for (const row of rows) {
-      if (row.length < 2) throw new Error('Invalid group key row.');
+      if (row.length < 2) throw new Error(pageText['Invalid group key row.']);
       const group = await db.query('SELECT group_id FROM mst_group WHERE system_key=$1', [row[1]]);
-      if (!group.rows.length) throw new Error('Group key not found.');
+      if (!group.rows.length) throw new Error(pageText['Group key not found.']);
       row[1] = String(group.rows[0].group_id);
     }
   }
@@ -76,7 +77,7 @@ export async function importAffiliationRows(
       else
         await client.query('DELETE FROM mst_group_affiation WHERE group_id=$1 AND user_id=$2', [Number(group), user]);
       if (logging) {
-        if (!info) throw new Error('User not found.');
+        if (!info) throw new Error(pageText['User not found.']);
         const after = (
           await client.query('SELECT group_id FROM mst_group_affiation WHERE user_id=$1', [user])
         ).rows.map((row) => String(row.group_id));

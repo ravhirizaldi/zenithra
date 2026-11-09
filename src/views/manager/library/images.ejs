@@ -1,45 +1,45 @@
-<% const query = values => new URLSearchParams({ mode, documentId: String(document.document_id), revNo: String(irfd.selectedRevision), ...values }).toString(); %>
-<div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="DocumentInfoBox">Information</button></h2></div>
+<% const ui = managerResources["library"]; %><% const query = values => new URLSearchParams({ mode, documentId: String(document.document_id), revNo: String(irfd.selectedRevision), ...values }).toString(); %>
+<div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="DocumentInfoBox"><%= ui["Information"] %></button></h2></div>
 <div id="DocumentInfoBox">
   <table class="table_information horizontal" cellspacing="0">
-    <tr><th scope="row">ID</th><td><%= document.document_id %></td></tr>
-    <tr><th scope="row">Name</th><td><%= view === 'history' ? irfd.documentName : document.document_name %></td></tr>
+    <tr><th scope="row"><%= ui["ID"] %></th><td><%= document.document_id %></td></tr>
+    <tr><th scope="row"><%= ui["Name"] %></th><td><%= view === 'history' ? irfd.documentName : document.document_name %></td></tr>
     <% if (view === 'history') { %>
-      <tr><th scope="row">PDF file</th><td><a href="<%= root %>/GetIrfdDocument?<%= query({ fileType:'0' }) %>"><%= irfd.pdfName %></a></td></tr>
-      <tr><th scope="row">irfd file</th><td><% if (irfd.irfdName) { %><a href="<%= root %>/GetIrfdDocument?<%= query({ fileType:'1' }) %>"><%= irfd.irfdName %></a><% } %></td></tr>
+      <tr><th scope="row"><%= ui["PDF file"] %></th><td><a href="<%= root %>/GetIrfdDocument?<%= query({ fileType:'0' }) %>"><%= irfd.pdfName %></a></td></tr>
+      <tr><th scope="row"><%= ui["irfd file"] %></th><td><% if (irfd.irfdName) { %><a href="<%= root %>/GetIrfdDocument?<%= query({ fileType:'1' }) %>"><%= irfd.irfdName %></a><% } %></td></tr>
     <% } else { %>
-      <tr><th scope="row">DocumentFile</th><td><a href="<%= root %>/GetDocument?documentId=<%= document.document_id %>"><%= document.document_name_org || '..' %></a></td></tr>
+      <tr><th scope="row"><%= ui["DocumentFile"] %></th><td><a href="<%= root %>/GetDocument?documentId=<%= document.document_id %>"><%= document.document_name_org || '..' %></a></td></tr>
     <% } %>
   </table>
-  <% if (view === 'history') { %><div class="manager-pdf-preview"><embed src="<%= root %>/GetPdf?<%= query({}) %>" type="application/pdf" title="PDF preview" width="100%" height="100%"></div><% } %>
+  <% if (view === 'history') { %><div class="manager-pdf-preview"><embed src="<%= root %>/GetPdf?<%= query({}) %>" type="application/pdf" title="<%= ui["PDF preview"] %>" width="100%" height="100%"></div><% } %>
 </div>
-<div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="ImageList"><%= view === 'history' ? 'Internal image information' : 'ImageInformation' %></button></h2></div>
-<div id="ImageList" class="manager-grid-scroll" tabindex="0" role="region" aria-label="Embedded images">
+<div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="ImageList"><%= view === 'history' ? ui["Internal image information"] : 'ImageInformation' %></button></h2></div>
+<div id="ImageList" class="manager-grid-scroll" tabindex="0" role="region" aria-label="<%= ui["Embedded images"] %>">
   <table class="table_information verticality" cellspacing="0">
-    <tr><th scope="col" style="width:150px;">Sheet no</th><th scope="col">Image</th><th scope="col">location information</th></tr>
+    <tr><th scope="col" style="width:150px;"><%= ui["Sheet no"] %></th><th scope="col"><%= ui["Image"] %></th><th scope="col"><%= ui["location information"] %></th></tr>
     <% for (const image of irfd.images) { const imageQuery = query({ pageNumber:String(image.pageNumber), format:image.format, name:image.name }); %>
       <tr><td class="CenterCol"><%= image.pageNumber %></td><td style="text-align:center;">
-        <a href="<%= root %>/GetIrfdImage?<%= imageQuery %>">Download</a><br><br>
+        <a href="<%= root %>/GetIrfdImage?<%= imageQuery %>"><%= ui["Download"] %></a><br><br>
         <img src="<%= root %>/GetIrfdImage?<%= imageQuery %>&amp;isResize=true" alt="<%= image.name %>" width="200" height="150" loading="lazy">
       </td><td><% if (image.location) { const gps = image.location; %>
-        <div>latitude:<%= gps.latitude %></div><div>longitude:<%= gps.longitude %></div><div>altitude:<%= gps.altitude %></div>
-        <a class="button_custom" href="https://maps.google.com/maps?q=<%= encodeURIComponent(gps.latitude + ',' + gps.longitude) %>" target="_blank" rel="noopener noreferrer">Map</a>
+        <div><%= ui["latitude:"] %><%= gps.latitude %></div><div><%= ui["longitude:"] %><%= gps.longitude %></div><div><%= ui["altitude:"] %><%= gps.altitude %></div>
+        <a class="button_custom" href="https://maps.google.com/maps?q=<%= encodeURIComponent(gps.latitude + ',' + gps.longitude) %>" target="_blank" rel="noopener noreferrer"><%= ui["Map"] %></a>
       <% } %></td></tr>
     <% } %>
   </table>
 </div>
 <% if (view === 'history') { %>
-  <div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="TextList">Text information</button></h2></div>
-  <div id="TextList" class="manager-grid-scroll" tabindex="0" role="region" aria-label="Embedded text">
-    <table class="table_information verticality" cellspacing="0"><tr><th scope="col" style="width:150px;">Sheet no</th><th scope="col">Text content</th></tr>
+  <div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="TextList"><%= ui["Text information"] %></button></h2></div>
+  <div id="TextList" class="manager-grid-scroll" tabindex="0" role="region" aria-label="<%= ui["Embedded text"] %>">
+    <table class="table_information verticality" cellspacing="0"><tr><th scope="col" style="width:150px;"><%= ui["Sheet no"] %></th><th scope="col"><%= ui["Text content"] %></th></tr>
       <% for (const text of irfd.texts) { %><tr><td class="CenterCol"><%= text.pageNumber %></td><td><pre class="manager-remarks"><%= text.text %></pre></td></tr><% } %>
     </table>
   </div>
 <% } %>
 <% if (irfd.useHistory) { %>
-  <div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="historyList">History</button></h2></div>
-  <div id="historyList" class="manager-grid-scroll" tabindex="0" role="region" aria-label="Revision history">
-    <table class="GridCommon" cellspacing="1" id="histroryList"><tr><th scope="col">REV</th><th scope="col">Registration date and time</th><th scope="col">Registrant</th><th scope="col">Last update date and time</th><th scope="col">Last updated by</th></tr>
+  <div class="toggle"><h2><button type="button" class="manager-section-toggle" aria-expanded="true" aria-controls="historyList"><%= ui["History"] %></button></h2></div>
+  <div id="historyList" class="manager-grid-scroll" tabindex="0" role="region" aria-label="<%= ui["Revision history"] %>">
+    <table class="GridCommon" cellspacing="1" id="histroryList"><tr><th scope="col"><%= ui["REV"] %></th><th scope="col"><%= ui["Registration date and time"] %></th><th scope="col"><%= ui["Registrant"] %></th><th scope="col"><%= ui["Last update date and time"] %></th><th scope="col"><%= ui["Last updated by"] %></th></tr>
       <% for (const [index,row] of irfd.history.entries()) { const selected = Number(row.rev_no) === irfd.selectedRevision; %>
         <tr class="<%= selected ? 'new' : index % 2 === 0 ? 'odd' : 'even' %>"><td class="CenterCol"><% if (selected) { %><%= row.rev_no %><% } else { %><a href="<%= root %>/<%= view === 'history' ? 'IrfdHistory' : 'Image' %>?<%= query({ selectedRevNo:String(row.rev_no) }) %>"><%= row.rev_no %></a><% } %></td>
           <td class="CenterCol"><%= dateText(row.sys_regist_time) %></td><td class="CenterCol"><%= row.created_by %></td><td class="CenterCol"><%= dateText(row.sys_update_time) %></td><td class="CenterCol"><%= row.updated_by %></td></tr>

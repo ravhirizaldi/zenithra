@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Request, Response as ExpressResponse } from 'express';
 import type pg from 'pg';
 import { XMLBuilder, XMLParser } from 'fast-xml-parser';
@@ -288,7 +289,7 @@ function displayRows(rows: MailLogRecord[]): MailLogDisplay[] {
   return rows.map((row) => {
     const content = row.content ?? '';
     const notificationType = notificationLabels[row.notification_type.toLowerCase()];
-    if (!notificationType) throw new Error('Unknown mail notification type.');
+    if (!notificationType) throw new Error(pageText['Unknown mail notification type.']);
     return {
       logId: String(row.log_id),
       statusLabel: row.status === '0' ? 'Succeeded to send' : 'Failed to send',
@@ -348,10 +349,10 @@ function xmlText(parent: unknown, key: string): string {
 async function loadMailDocument(db: pg.Pool): Promise<MailDocument> {
   const row = (await db.query<{ xml_data: string }>("SELECT xml_data FROM mst_mail WHERE mail_file_name='Mail.xml'"))
     .rows[0];
-  if (!row?.xml_data) throw new Error('Mail settings record is missing.');
+  if (!row?.xml_data) throw new Error(pageText['Mail settings record is missing.']);
   const parsed = xmlObject(parser.parse(row.xml_data));
   const mail = xmlObject(parsed.mail);
-  if (!Object.hasOwn(mail, 'smtp')) throw new Error('Mail.xml has an invalid structure.');
+  if (!Object.hasOwn(mail, 'smtp')) throw new Error(pageText['Mail.xml has an invalid structure.']);
   return { mail };
 }
 async function saveMailDocument(db: pg.Pool, document: MailDocument): Promise<void> {
@@ -370,7 +371,7 @@ async function accessToken(db: pg.Pool, document: MailDocument): Promise<string>
   const currentAccessToken = xmlText(token, 'accessToken');
   const refreshToken = xmlText(token, 'refreshToken');
   const expiresOn = Date.parse(xmlText(token, 'expiresOn'));
-  if (!Number.isFinite(expiresOn)) throw new Error('Invalid OAuth token expiration date.');
+  if (!Number.isFinite(expiresOn)) throw new Error(pageText['Invalid OAuth token expiration date.']);
   if (Date.now() <= expiresOn - 300000) return currentAccessToken;
 
   const provider = xmlText(oauth, 'provider');
@@ -399,7 +400,8 @@ async function accessToken(db: pg.Pool, document: MailDocument): Promise<string>
   const refreshed = xmlObject(await response.json());
   const newAccessToken = typeof refreshed.access_token === 'string' ? refreshed.access_token : '';
   const expiresIn = Number(refreshed.expires_in);
-  if (!newAccessToken || !Number.isSafeInteger(expiresIn)) throw new Error('OAuth token response is invalid.');
+  if (!newAccessToken || !Number.isSafeInteger(expiresIn))
+    throw new Error(pageText['OAuth token response is invalid.']);
   const expiresAt = new Date(Date.now() + expiresIn * 1000);
   token.accessToken = newAccessToken;
   token.expiresOn = `${expiresAt.getFullYear()}/${String(expiresAt.getMonth() + 1).padStart(2, '0')}/${String(expiresAt.getDate()).padStart(2, '0')} ${String(expiresAt.getHours()).padStart(2, '0')}:${String(expiresAt.getMinutes()).padStart(2, '0')}:${String(expiresAt.getSeconds()).padStart(2, '0')}`;
@@ -440,9 +442,9 @@ async function sendMail(
   }
 
   const provider = xmlText(oauth, 'provider');
-  if (provider !== 'google' && provider !== 'microsoft') throw new Error('Unknown mail OAuth provider.');
+  if (provider !== 'google' && provider !== 'microsoft') throw new Error(pageText['Unknown mail OAuth provider.']);
   const token = await accessToken(db, document);
-  if (!token) throw new Error('Failed to acquire OAuth access token.');
+  if (!token) throw new Error(pageText['Failed to acquire OAuth access token.']);
   const headers = { authorization: `Bearer ${token}`, 'content-type': 'application/json' };
   const subject = record.subject.replace(/[\r\n]/g, ' ');
   let response: globalThis.Response;
@@ -458,7 +460,7 @@ async function sendMail(
     });
     const generatedMessage =
       generated && typeof generated === 'object' && 'message' in generated ? generated.message : null;
-    if (!Buffer.isBuffer(generatedMessage)) throw new Error('Could not prepare the mail message.');
+    if (!Buffer.isBuffer(generatedMessage)) throw new Error(pageText['Could not prepare the mail message.']);
     const raw = generatedMessage.toString('base64').replaceAll('+', '-').replaceAll('/', '_').replace(/=+$/, '');
     const user = xmlText(oauth, 'user');
     response = await fetch(`https://gmail.googleapis.com/gmail/v1/users/${encodeURIComponent(user)}/messages/send`, {
@@ -477,7 +479,7 @@ async function sendMail(
         message: {
           subject,
           importance: mailPriority,
-          body: { contentType: 'Text', content: record.content },
+          body: { contentType: pageText['Text'], content: record.content },
           toRecipients: recipients(record.destination.to),
           ccRecipients: recipients(record.destination.cc),
           bccRecipients: recipients(record.destination.bcc),
@@ -518,7 +520,7 @@ async function insertMailLog(
 ): Promise<void> {
   const sequence = (await db.query<{ id: string }>("SELECT nextval('conmas_mail_send_log_seq')::text AS id")).rows[0]
     ?.id;
-  if (!sequence) throw new Error('Mail send log sequence is unavailable.');
+  if (!sequence) throw new Error(pageText['Mail send log sequence is unavailable.']);
   const now = new Date();
   const logId = `${now.getFullYear()}${String(now.getMonth() + 1).padStart(2, '0')}${String(now.getDate()).padStart(2, '0')}${String(now.getHours()).padStart(2, '0')}${String(now.getMinutes()).padStart(2, '0')}${String(now.getSeconds()).padStart(2, '0')}${sequence.padStart(20, '0')}`;
   await db.query(
@@ -567,7 +569,7 @@ function show(
     active: 'System',
     section: 'MailSendLog',
     login: false,
-    title: 'E-mail transmission history',
+    title: pageText['E-mail transmission history'],
     userName: res.locals.userName,
     mailLogPage: page,
   });
@@ -664,7 +666,7 @@ export function registerMailLogs(
     } catch {
       return showError(res, render, {}, true, '', noAccess);
     }
-    if (!access.canRead) return res.status(403).type('text/plain').send('Role authority is insufficient.');
+    if (!access.canRead) return res.status(403).type('text/plain').send(pageText['Role authority is insufficient.']);
     try {
       return await renderList(db, res, render, {}, true, '', access);
     } catch {
@@ -683,7 +685,7 @@ export function registerMailLogs(
       return showError(res, render, source, false, action, noAccess);
     }
     if (!access.canRead || (action === 'DeleteType' && !access.canDelete) || (resendLogId && !access.canResend))
-      return res.status(403).type('text/plain').send('Role authority is insufficient.');
+      return res.status(403).type('text/plain').send(pageText['Role authority is insufficient.']);
 
     try {
       if (action === 'CsvType') {
@@ -747,7 +749,7 @@ export function registerMailLogs(
             Object.hasOwn(document.mail, 'oauth') &&
             !['google', 'microsoft'].includes(xmlText(document.mail.oauth, 'provider'))
           )
-            throw new Error('Unknown mail OAuth provider.');
+            throw new Error(pageText['Unknown mail OAuth provider.']);
           try {
             await sendMail(db, document, record);
             await insertMailLog(db, { ...record, errorMessage: null, userId: req.session?.userId ?? '' });

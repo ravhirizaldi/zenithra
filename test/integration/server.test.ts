@@ -3,6 +3,7 @@ import { after, before, test } from 'node:test';
 import type { Server } from 'node:http';
 import { Script, createContext } from 'node:vm';
 import ejs from 'ejs';
+import { managerResourceLocals } from '../../src/config/manager/resources.js';
 import { createApp, systemMenuFor } from '../../src/server.js';
 import type { SystemPermissionMap, SystemPermissionScope } from '../../src/middleware/manager/system/permissions.js';
 
@@ -101,7 +102,7 @@ test('renders the reused Manager shell and System menu', async () => {
   const response = await fetch(`${origin}/ConMasManager/System`);
   const html = await response.text();
   assert.equal(response.status, 200);
-  assert.match(html, /ConMas Manager/);
+  assert.match(html, /Zenithra Hub/);
   assert.match(html, /System Manager/);
   assert.match(html, /Content\/ConMas\/styles\.css/);
   assert.match(html, /href="\/ConMasManager\/System"/);
@@ -116,6 +117,7 @@ test('legacy browser-language helper lets the user date fields initialize their 
   )?.[1];
   assert(helper);
   const form = await ejs.renderFile('src/views/manager/system/user-form.ejs', {
+    ...managerResourceLocals,
     base: '/ConMasManager',
     csrfToken: 'fixture',
     userPage: { mode: 'CreateUser', record: {}, groups: [] },
@@ -157,7 +159,7 @@ test('legacy browser-language helper lets the user date fields initialize their 
   }
 });
 
-test('serves copied original assets', async () => {
+test('serves original assets and generated Zenithra PNG branding', async () => {
   const response = await fetch(`${origin}/ConMasManager/Content/ConMas/styles.css`);
   assert.equal(response.status, 200);
   assert.match(await response.text(), /HeaderNormal/);
@@ -168,6 +170,15 @@ test('serves copied original assets', async () => {
   assert.equal(tree.status, 200);
   const script = await fetch(`${origin}/ConMasManager/Scripts/jquery.treeview.js`);
   assert.equal(script.status, 200);
+  for (const name of ['zenithra-hub-logo.png', 'zenithra-header.png']) {
+    const asset = await fetch(`${origin}/ConMasManager/branding/${name}`);
+    assert.equal(asset.status, 200);
+    assert.match(asset.headers.get('content-type') ?? '', /image\/png/);
+    assert.deepEqual(
+      Buffer.from(await asset.arrayBuffer()).subarray(0, 8),
+      Buffer.from([137, 80, 78, 71, 13, 10, 26, 10]),
+    );
+  }
   assert.match(await script.text(), /treeview/);
 });
 

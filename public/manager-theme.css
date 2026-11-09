@@ -1,0 +1,111 @@
+#Header.HeaderNormal {
+  background: #74464e url("branding/zenithra-header.png") center / cover no-repeat;
+  height: auto;
+  min-height: 100px;
+}
+
+#Header a#Logo.LogoNormal {
+  background-image: url("branding/zenithra-hub-logo.png");
+  background-size: 280px auto;
+  background-position: 14px center;
+  filter: brightness(0) invert(1);
+}
+
+#Header #LoginStatus,
+#Header #LoginStatus a {
+  color: #ffffff;
+}
+
+#GMenu {
+  background-color: #74464e;
+  background-image: url("branding/zenithra-header.png");
+  background-position: center;
+  background-size: cover;
+  border-bottom-color: #542e36;
+}
+
+#Header #GMenu {
+  height: auto;
+  overflow: visible;
+}
+
+#Header #GMenu ul {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+}
+
+#Header #GMenu li {
+  display: flex;
+  flex: 1 1 auto;
+  float: none;
+  min-width: 0;
+}
+
+#Header #GMenu li a {
+  display: flex;
+  flex: 1 1 auto;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  width: auto;
+  min-width: 0;
+  height: auto;
+  min-height: 38px;
+  padding: 8px 12px;
+  font: 600 14px/1.2 "Segoe UI", Arial, sans-serif;
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+#GMenu li a {
+  background: #ffffff url("branding/zenithra-header.png") center / cover no-repeat;
+  background-blend-mode: multiply;
+  color: #ffffff;
+  border-right-color: #986d75;
+}
+
+#GMenu li a:not([aria-disabled="true"]):hover {
+  background-color: #e0c3c8;
+  color: #ffffff;
+}
+
+#GMenu li.current,
+#GMenu li.current a {
+  background-color: #bf929c;
+  color: #ffffff;
+}
+
+#GMenu li.current a {
+  text-decoration: underline;
+  text-underline-offset: 4px;
+}
+
+#GMenu li a[aria-disabled="true"],
+#GMenu li a[aria-disabled="true"]:hover {
+  background-color: #ffffff;
+  color: #e5cdd1;
+  cursor: default;
+}
+
+#GMenu li a:focus-visible {
+  outline: 2px solid #ffffff;
+  outline-offset: -4px;
+}
+
+#image-login_btn {
+  background: #ffffff url("branding/zenithra-header.png") center / cover no-repeat;
+  background-blend-mode: multiply;
+  color: #ffffff;
+  border-radius: 4px;
+  cursor: pointer;
+}
+
+#image-login_btn:hover {
+  background-color: #e0c3c8;
+}
+
+#image-login_btn:focus-visible {
+  outline: 2px solid #633840;
+  outline-offset: 3px;
+}

@@ -1,59 +1,59 @@
-<% const page = devicePage; const record = page.record; const root = base + '/System'; const details = page.mode === 'details'; const creating = page.mode === 'create'; const editing = page.mode === 'edit'; %>
+<% const ui = managerResources["system"]; %><% const page = devicePage; const record = page.record; const root = base + '/System'; const details = page.mode === 'details'; const creating = page.mode === 'create'; const editing = page.mode === 'edit'; %>
 <% if (page.error) { %><p class="login-error" role="alert"><%= page.error %></p><% } %>
 
 <% if (details) { %>
   <div id="DetailTop">
-    <span id="infoTitle">Device reference</span>
+    <span id="infoTitle"><%= ui["Device reference"] %></span>
     <span id="functionBar">
       <% if (!record.deleted) { %>
-        <a class="img_edit" href="<%= root %>/EditTerm?id=<%= encodeURIComponent(record.term_id) %>" title="Edit" aria-label="Edit device"> </a>
+        <a class="img_edit" href="<%= root %>/EditTerm?id=<%= encodeURIComponent(record.term_id) %>" title="<%= ui["Edit"] %>" aria-label="<%= ui["Edit device"] %>"> </a>
         <form id="delete-device-form" method="post" action="<%= root %>/DetailsTerm" style="display:inline;">
           <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
           <input type="hidden" name="mst_terminal.term_id" value="<%= record.term_id %>">
           <input type="hidden" name="act" value="delete">
-          <a href="#" class="img_delete" title="Delete" aria-label="Delete device" onclick="if(!confirm('Delete the device. Are you sure you want to delete it?'))return false;document.getElementById('delete-device-form').requestSubmit();return false;"> </a>
+          <a href="#" class="img_delete" title="<%= ui["Delete"] %>" aria-label="<%= ui["Delete device"] %>" onclick="if(!confirm(<%= managerScriptText(ui["Delete the device. Are you sure you want to delete it?"], "'") %>))return false;document.getElementById('delete-device-form').requestSubmit();return false;"> </a>
         </form>
       <% } %>
     </span>
   </div>
   <div id="DetailSection"><div class="info">
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Device ID</th><td><%= record.term_id %></td></tr>
-      <tr><th scope="row">Type of device</th><td><%= record.term_type_name %></td></tr>
-      <tr><th scope="row">Physical ID</th><td><%= record.physical_id %></td></tr>
-      <tr><th scope="row">Device name</th><td><%= record.term_name %></td></tr>
-      <tr><th scope="row">Device remarks</th><td><%= record.term_remarks %></td></tr>
+      <tr><th scope="row"><%= ui["Device ID"] %></th><td><%= record.term_id %></td></tr>
+      <tr><th scope="row"><%= ui["Type of device"] %></th><td><%= record.term_type_name %></td></tr>
+      <tr><th scope="row"><%= ui["Physical ID"] %></th><td><%= record.physical_id %></td></tr>
+      <tr><th scope="row"><%= ui["Device name"] %></th><td><%= record.term_name %></td></tr>
+      <tr><th scope="row"><%= ui["Device remarks"] %></th><td><%= record.term_remarks %></td></tr>
     </table>
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Applicant ID</th><td><%= record.applicant %></td></tr>
-      <tr><th scope="row">Applicant name</th><td><%= record.applicant_name %></td></tr>
-      <tr><th scope="row">Application date</th><td><%= record.applicant_date_display %></td></tr>
-      <tr><th scope="row">Comment for apply</th><td><%= record.applicant_comment %></td></tr>
+      <tr><th scope="row"><%= ui["Applicant ID"] %></th><td><%= record.applicant %></td></tr>
+      <tr><th scope="row"><%= ui["Applicant name"] %></th><td><%= record.applicant_name %></td></tr>
+      <tr><th scope="row"><%= ui["Application date"] %></th><td><%= record.applicant_date_display %></td></tr>
+      <tr><th scope="row"><%= ui["Comment for apply"] %></th><td><%= record.applicant_comment %></td></tr>
     </table>
     <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-      <tr><th scope="row">Approver ID</th><td><%= record.approver %></td></tr>
-      <tr><th scope="row">Name of approver</th><td><%= record.approver_name %></td></tr>
-      <tr><th scope="row">Date of approval</th><td><%= record.approver_date_display %></td></tr>
+      <tr><th scope="row"><%= ui["Approver ID"] %></th><td><%= record.approver %></td></tr>
+      <tr><th scope="row"><%= ui["Name of approver"] %></th><td><%= record.approver_name %></td></tr>
+      <tr><th scope="row"><%= ui["Date of approval"] %></th><td><%= record.approver_date_display %></td></tr>
     </table>
     <% if (!page.isFreeDrawOnly && record.term_type !== 'Designer') { %>
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-        <tr><th scope="row">Use Biometrics</th><td><%= Number(record.use_biometrics) === 1 ? 'Yes' : 'No' %></td></tr>
+        <tr><th scope="row"><%= ui["Use Biometrics"] %></th><td><%= Number(record.use_biometrics) === 1 ? ui["Yes"] : ui["No"] %></td></tr>
       </table>
     <% } %>
     <% if (page.scanditEnable && record.term_type !== 'i-Repo FreeDraw' && record.term_type !== 'Designer') { %>
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-        <tr><th scope="row">Use Scandit</th><td><%= record.UseScandit ? 'Yes' : 'No' %></td></tr>
+        <tr><th scope="row"><%= ui["Use Scandit"] %></th><td><%= record.UseScandit ? ui["Yes"] : ui["No"] %></td></tr>
       </table>
     <% } %>
     <% if (page.isMobileIron) { %>
-      <div class="toggle"><h2>▼MobileIron</h2></div>
+      <div class="toggle"><h2><%= ui["▼MobileIron"] %></h2></div>
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-        <tr><th scope="row">User ID</th><td><%= record.mobile_iron_user_id %></td></tr>
+        <tr><th scope="row"><%= ui["User ID"] %></th><td><%= record.mobile_iron_user_id %></td></tr>
       </table>
     <% } %>
   </div></div>
 <% } else { %>
-  <div id="DetailTop"><span id="infoTitle"><%= creating ? 'Device registration' : 'Edit device information' %></span></div>
+  <div id="DetailTop"><span id="infoTitle"><%= creating ? ui["Device registration"] : ui["Edit device information"] %></span></div>
   <form method="post" action="<%= root %>/<%= creating ? 'CreateTerm' : 'EditTerm' %>">
     <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
     <% if (editing) { %>
@@ -71,7 +71,7 @@
     <div id="DetailSection"><div class="info">
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
         <tr>
-          <th scope="row"><label for="mst-terminal-type">Type of device</label></th>
+          <th scope="row"><label for="mst-terminal-type"><%= ui["Type of device"] %></label></th>
           <td>
             <% if (creating) { %>
               <select id="mst-terminal-type" name="mst_terminal.term_type" required>
@@ -81,27 +81,27 @@
           </td>
         </tr>
         <tr>
-          <th scope="row"><label for="mst-terminal-physical-id">Physical ID</label></th>
+          <th scope="row"><label for="mst-terminal-physical-id"><%= ui["Physical ID"] %></label></th>
           <td>
             <% if (creating) { %><input id="mst-terminal-physical-id" name="mst_terminal.physical_id" value="<%= record.physical_id %>" required><% } else { %><%= record.physical_id %><% } %>
           </td>
         </tr>
         <tr>
-          <th scope="row"><label for="mst-terminal-name">Device name</label></th>
+          <th scope="row"><label for="mst-terminal-name"><%= ui["Device name"] %></label></th>
           <td><input id="mst-terminal-name" class="EditValue1" name="mst_terminal.term_name" value="<%= record.term_name %>" required></td>
         </tr>
         <tr>
-          <th scope="row"><label for="mst-terminal-remarks">Device remarks</label></th>
+          <th scope="row"><label for="mst-terminal-remarks"><%= ui["Device remarks"] %></label></th>
           <td><input id="mst-terminal-remarks" class="EditValue1" name="mst_terminal.term_remarks" value="<%= record.term_remarks %>"></td>
         </tr>
         <% if (creating) { %>
-          <tr><th scope="row"><label for="mst-terminal-deleted">Delete</label></th><td><input type="hidden" name="mst_terminal.deleted" value="false"><input id="mst-terminal-deleted" type="checkbox" name="mst_terminal.deleted" value="true" <%= record.deleted ? 'checked' : '' %>></td></tr>
+          <tr><th scope="row"><label for="mst-terminal-deleted"><%= ui["Delete"] %></label></th><td><input type="hidden" name="mst_terminal.deleted" value="false"><input id="mst-terminal-deleted" type="checkbox" name="mst_terminal.deleted" value="true" <%= record.deleted ? 'checked' : '' %>></td></tr>
         <% } %>
       </table>
 
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
         <tr>
-          <th scope="row"><label for="mst-terminal-applicant">Applicant ID</label></th>
+          <th scope="row"><label for="mst-terminal-applicant"><%= ui["Applicant ID"] %></label></th>
           <td>
             <% if (creating) { %>
               <input id="mst-terminal-applicant" class="EditValue1" name="mst_terminal.applicant" value="<%= record.applicant %>" required>
@@ -110,47 +110,47 @@
           </td>
         </tr>
         <tr>
-          <th scope="row"><label for="mst-terminal-applicant-name">Applicant name</label></th>
+          <th scope="row"><label for="mst-terminal-applicant-name"><%= ui["Applicant name"] %></label></th>
           <td><% if (creating) { %><input id="mst-terminal-applicant-name" class="readonly" name="mst_terminal.applicant_name" value="<%= record.applicant_name %>" readonly required><% } else { %><%= record.applicant_name %><% } %></td>
         </tr>
         <tr>
-          <th scope="row"><label for="mst-terminal-applicant-date">Application date</label></th>
+          <th scope="row"><label for="mst-terminal-applicant-date"><%= ui["Application date"] %></label></th>
           <td class="datetime"><% if (creating) { %><input id="mst-terminal-applicant-date" name="mst_terminal.applicant_date" value="<%= record.applicant_date_input %>" required><% } else { %><%= record.applicant_date_display %><% } %></td>
         </tr>
         <tr>
-          <th scope="row"><label for="mst-terminal-applicant-comment">Comment for apply</label></th>
+          <th scope="row"><label for="mst-terminal-applicant-comment"><%= ui["Comment for apply"] %></label></th>
           <td><% if (creating) { %><input id="mst-terminal-applicant-comment" name="mst_terminal.applicant_comment" value="<%= record.applicant_comment %>"><% } else { %><%= record.applicant_comment %><% } %></td>
         </tr>
       </table>
 
       <table cellpadding="0" cellspacing="0" class="table_information horizontal">
         <% if (editing && record.approver) { %>
-          <tr><th scope="row">Approver ID</th><td><%= record.approver %></td></tr>
-          <tr><th scope="row">Name of approver</th><td><%= record.approver_name %></td></tr>
-          <tr><th scope="row">Date of approval</th><td><%= record.approver_date_display %></td></tr>
+          <tr><th scope="row"><%= ui["Approver ID"] %></th><td><%= record.approver %></td></tr>
+          <tr><th scope="row"><%= ui["Name of approver"] %></th><td><%= record.approver_name %></td></tr>
+          <tr><th scope="row"><%= ui["Date of approval"] %></th><td><%= record.approver_date_display %></td></tr>
         <% } else { %>
-          <tr><th scope="row"><label for="device-approve">Approve</label></th><td><input id="device-approve" type="checkbox" name="approver" value="true" <%= creating && record.approver ? 'checked' : '' %>></td></tr>
+          <tr><th scope="row"><label for="device-approve"><%= ui["Approve"] %></label></th><td><input id="device-approve" type="checkbox" name="approver" value="true" <%= creating && record.approver ? 'checked' : '' %>></td></tr>
         <% } %>
       </table>
 
       <% if (editing && page.scanditEnable && record.term_type !== 'i-Repo FreeDraw' && record.term_type !== 'Designer') { %>
         <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-          <tr><th scope="row"><label for="mst-terminal-scandit">Use Scandit</label></th><td><input type="hidden" name="mst_terminal.UseScandit" value="false"><input id="mst-terminal-scandit" type="checkbox" name="mst_terminal.UseScandit" value="true" <%= record.UseScandit ? 'checked' : '' %> <%= editing ? '' : 'disabled' %>></td></tr>
+          <tr><th scope="row"><label for="mst-terminal-scandit"><%= ui["Use Scandit"] %></label></th><td><input type="hidden" name="mst_terminal.UseScandit" value="false"><input id="mst-terminal-scandit" type="checkbox" name="mst_terminal.UseScandit" value="true" <%= record.UseScandit ? 'checked' : '' %> <%= editing ? '' : 'disabled' %>></td></tr>
         </table>
       <% } %>
 
       <% if (editing && !page.isFreeDrawOnly && record.term_type !== 'Designer') { %>
         <table cellpadding="0" cellspacing="0" class="table_information horizontal">
-          <tr><th scope="row">Use Biometrics</th><td><%= Number(record.use_biometrics) === 1 ? 'Yes' : 'No' %></td></tr>
+          <tr><th scope="row"><%= ui["Use Biometrics"] %></th><td><%= Number(record.use_biometrics) === 1 ? ui["Yes"] : ui["No"] %></td></tr>
         </table>
       <% } %>
 
       <p>
         <input type="submit" class="image-ok_btn" value="Fix">
         <% if (creating) { %>
-          <a href="<%= root %>/TermList" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+          <a href="<%= root %>/TermList" id="image-cancel_btn" class="image-cancel_label"><%= ui["Cancel"] %></a>
         <% } else { %>
-          <a href="<%= root %>/DetailsTerm?id=<%= encodeURIComponent(record.term_id) %>" id="image-cancel_btn" class="image-cancel_label">Cancel</a>
+          <a href="<%= root %>/DetailsTerm?id=<%= encodeURIComponent(record.term_id) %>" id="image-cancel_btn" class="image-cancel_label"><%= ui["Cancel"] %></a>
         <% } %>
       </p>
     </div></div>
@@ -160,23 +160,23 @@
 <% if (creating) { %>
   <div id="SearchUserDialog" style="display:none;">
     <div class="DialogMargin">
-      <div class="DialogTitle">Select user:</div>
+      <div class="DialogTitle"><%= ui["Select user:"] %></div>
       <div style="margin-left:60px;font-size:12px;">
-        <label for="search-user-id">ID</label><input id="search-user-id">
-        <label for="search-user-name">Name</label><input id="search-user-name">
+        <label for="search-user-id"><%= ui["ID"] %></label><input id="search-user-id">
+        <label for="search-user-name"><%= ui["Name"] %></label><input id="search-user-name">
         <input type="button" id="search-user-submit" value="Search">
       </div>
       <div id="PageSection" style="font-size:12px;">
-        Displayed number&nbsp;
+        <%= ui["Displayed number "] %>
         <select id="search-user-page-size">
           <% for (const size of [10, 20, 50, 100]) { %><option value="<%= size %>" <%= size === Number(page.searchPageSize) ? 'selected' : '' %>><%= size %></option><% } %>
         </select>
-        <input type="button" id="search-user-prev" aria-label="Previous page" value="←">
+        <input type="button" id="search-user-prev" aria-label="<%= ui["Previous page"] %>" value="←">
         <span id="search-user-page">1/1</span>
-        <input type="button" id="search-user-next" aria-label="Next page" value="→">
+        <input type="button" id="search-user-next" aria-label="<%= ui["Next page"] %>" value="→">
       </div>
       <table cellpadding="0" cellspacing="0" class="table_information verticality">
-        <thead><tr><th scope="col" class="checkCol"></th><th scope="col">ID</th><th scope="col">Name</th></tr></thead>
+        <thead><tr><th scope="col" class="checkCol"></th><th scope="col"><%= ui["ID"] %></th><th scope="col"><%= ui["Name"] %></th></tr></thead>
         <tbody id="search-user-rows"></tbody>
       </table>
       <p><input type="button" id="SearchUserDialogSelect" value="Select"> <input type="button" id="SearchUserDialogClose" value="Close"></p>

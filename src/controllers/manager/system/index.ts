@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, RequestHandler } from 'express';
 import type pg from 'pg';
 import { base, menus } from '../../../config/manager.js';
@@ -54,39 +55,40 @@ export function registerSystemController(
           : act === 'temp'
             ? target?.temp
             : (target?.edit ?? target?.temp ?? target?.create);
-    if (!route) return res.status(404).type('text/plain').send('Unknown System detail action.');
+    if (!route) return res.status(404).type('text/plain').send(pageText['Unknown System detail action.']);
     const query = new URLSearchParams();
     if (typeof req.query.id === 'string') query.set('id', req.query.id);
     return res.redirect(`${base}/System/${route}${query.size ? `?${query}` : ''}`);
   });
   app.get(`${base}/System/UserList`, requireAuth, async (req, res) => {
-    if (!database) return page(res, { active: 'System', section: 'UserList', login: false, title: 'Users' });
+    if (!database) return page(res, { active: 'System', section: 'UserList', login: false, title: pageText['Users'] });
     const data = await listUsers(database, req.query);
     return page(res, {
       active: 'System',
       section: 'UserList',
       login: false,
-      title: 'Users',
+      title: pageText['Users'],
       userName: req.session?.userName,
       ...data,
     });
   });
   if (!database) {
     app.get(`${base}/System/GroupList`, requireAuth, (_req, res) =>
-      page(res, { active: 'System', section: 'GroupList', login: false, title: 'Groups' }),
+      page(res, { active: 'System', section: 'GroupList', login: false, title: pageText['Groups'] }),
     );
     app.get(`${base}/System/TermList`, requireAuth, (_req, res) =>
-      page(res, { active: 'System', section: 'TermList', login: false, title: 'Devices' }),
+      page(res, { active: 'System', section: 'TermList', login: false, title: pageText['Devices'] }),
     );
   }
   app.get(`${base}/System/ComList`, requireAuth, async (req, res) => {
-    if (!database) return page(res, { active: 'System', section: 'ComList', login: false, title: 'Common Master' });
+    if (!database)
+      return page(res, { active: 'System', section: 'ComList', login: false, title: pageText['Common Master'] });
     const systemTable = await listCommonSettings(database, req.query);
     return page(res, {
       active: 'System',
       section: 'ComList',
       login: false,
-      title: 'Common Master',
+      title: pageText['Common Master'],
       userName: req.session?.userName,
       systemTable,
     });
@@ -114,12 +116,12 @@ export function registerIndexController(
           const target = systemIndexTargets[normalizeSystemMode(mode)];
           return target
             ? res.redirect(`${base}/System/${target}`)
-            : res.status(404).type('text/plain').send('Unknown System menu mode.');
+            : res.status(404).type('text/plain').send(pageText['Unknown System menu mode.']);
         }
         const firstLink = firstSystemMenuHref((res.locals.systemMenu as SystemMenuEntry[] | undefined) ?? []);
         if (firstLink) return res.redirect(firstLink);
         return authEnabled
-          ? res.status(403).type('text/plain').send('No System menu is available.')
+          ? res.status(403).type('text/plain').send(pageText['No System menu is available.'])
           : res.redirect(`${base}/System/UserList`);
       }
       return page(res, {

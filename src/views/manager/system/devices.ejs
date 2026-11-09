@@ -1,4 +1,4 @@
-<% const deviceList = devicePage; const filters = deviceList.filters; const root = base + '/System'; %>
+<% const ui = managerResources["system"]; %><% const deviceList = devicePage; const filters = deviceList.filters; const root = base + '/System'; %>
 <% if (deviceList.mode !== 'list') { %>
   <%- include('device-form', { base, devicePage: deviceList, csrfToken }) %>
 <% } else { %>
@@ -12,77 +12,77 @@
   <div id="DetailTop">
     <span id="infoTitle"><%= deviceList.heading %></span>
     <span id="functionBar">
-      <select name="term_type" aria-label="Device type" onchange="setTermAction('SearchAction');this.form.submit();">
-        <option value="-1" <%= filters.term_type === '-1' ? 'selected' : '' %>>- Device type -</option>
+      <select name="term_type" aria-label="<%= ui["Device type"] %>" onchange="setTermAction('SearchAction');this.form.submit();">
+        <option value="-1" <%= filters.term_type === '-1' ? 'selected' : '' %>><%= ui["- Device type -"] %></option>
         <% for (const type of deviceList.termTypes) { if (type.value === 'Manager') continue; %>
           <option value="<%= type.value %>" <%= filters.term_type === type.value ? 'selected' : '' %>><%= type.label %></option>
         <% } %>
       </select>
-      <select name="approver" aria-label="Approval status" onchange="setTermAction('SearchAction');this.form.submit();">
-        <option value="-1" <%= filters.approver === '-1' ? 'selected' : '' %>>- Approval status -</option>
-        <option value="0" <%= filters.approver === '0' ? 'selected' : '' %>>Unapproved</option>
-        <option value="1" <%= filters.approver === '1' ? 'selected' : '' %>>Approved</option>
+      <select name="approver" aria-label="<%= ui["Approval status"] %>" onchange="setTermAction('SearchAction');this.form.submit();">
+        <option value="-1" <%= filters.approver === '-1' ? 'selected' : '' %>><%= ui["- Approval status -"] %></option>
+        <option value="0" <%= filters.approver === '0' ? 'selected' : '' %>><%= ui["Unapproved"] %></option>
+        <option value="1" <%= filters.approver === '1' ? 'selected' : '' %>><%= ui["Approved"] %></option>
       </select>
       <input type="hidden" name="deleted" value="false">
-      <label><input type="checkbox" name="deleted" value="true" <%= filters.deleted ? 'checked' : '' %> onchange="setTermAction('SearchAction');this.form.submit();"><span><%= filters.deleted ? 'Display deleted devices' : 'Hide deleted devices' %></span></label>
+      <label><input type="checkbox" name="deleted" value="true" <%= filters.deleted ? 'checked' : '' %> onchange="setTermAction('SearchAction');this.form.submit();"><span><%= filters.deleted ? ui["Display deleted devices"] : ui["Hide deleted devices"] %></span></label>
     </span>
   </div>
 
   <div id="DetailSection">
     <div class="info">
-      <div class="toggle" onclick="fConMasToggle('SearchTerminalBox');"><h2 style="margin:5px;">▼Search/Filter</h2></div>
+      <div class="toggle" onclick="fConMasToggle('SearchTerminalBox');"><h2 style="margin:5px;"><%= ui["▼Search/Filter"] %></h2></div>
       <div id="SearchTerminalBox">
         <table style="font-size:14px;">
           <tbody>
             <tr>
-              <td><label for="SearchTermId">Device ID</label></td>
+              <td><label for="SearchTermId"><%= ui["Device ID"] %></label></td>
               <td><input id="SearchTermId" name="SearchTermId" value="<%= filters.SearchTermId %>"></td>
               <td>&nbsp;</td>
-              <td><label for="SearchPhysicalId">Physical ID</label></td>
+              <td><label for="SearchPhysicalId"><%= ui["Physical ID"] %></label></td>
               <td><input id="SearchPhysicalId" name="SearchPhysicalId" value="<%= filters.SearchPhysicalId %>"></td>
               <td>&nbsp;</td><td></td><td></td>
             </tr>
             <tr>
-              <td><label for="SearchTermName">Device name</label></td>
+              <td><label for="SearchTermName"><%= ui["Device name"] %></label></td>
               <td><input id="SearchTermName" name="SearchTermName" value="<%= filters.SearchTermName %>"></td>
               <td>&nbsp;</td>
-              <td><label for="SearchTermRemarks">Device remarks</label></td>
+              <td><label for="SearchTermRemarks"><%= ui["Device remarks"] %></label></td>
               <td><input id="SearchTermRemarks" name="SearchTermRemarks" value="<%= filters.SearchTermRemarks %>"></td>
               <td>&nbsp;</td><td></td><td></td>
             </tr>
             <tr>
-              <td><label for="SearchAppricantName">Applicant name</label></td>
+              <td><label for="SearchAppricantName"><%= ui["Applicant name"] %></label></td>
               <td><input id="SearchAppricantName" name="SearchAppricantName" value="<%= filters.SearchAppricantName %>"></td>
               <td>&nbsp;</td>
-              <td>Application date</td>
-              <td class="datetime"><input aria-label="Application date from" name="SearchAppricantDateFrom" value="<%= filters.SearchAppricantDateFrom %>">～<input aria-label="Application date to" name="SearchAppricantDateTo" value="<%= filters.SearchAppricantDateTo %>"></td>
+              <td><%= ui["Application date"] %></td>
+              <td class="datetime"><input aria-label="<%= ui["Application date from"] %>" name="SearchAppricantDateFrom" value="<%= filters.SearchAppricantDateFrom %>">～<input aria-label="<%= ui["Application date to"] %>" name="SearchAppricantDateTo" value="<%= filters.SearchAppricantDateTo %>"></td>
               <td>&nbsp;</td>
-              <td><label for="SearchAppricantComment">Comment for apply</label></td>
+              <td><label for="SearchAppricantComment"><%= ui["Comment for apply"] %></label></td>
               <td><input id="SearchAppricantComment" name="SearchAppricantComment" value="<%= filters.SearchAppricantComment %>"></td>
             </tr>
             <tr>
-              <td><label for="SearchApproverName">Name of approver</label></td>
+              <td><label for="SearchApproverName"><%= ui["Name of approver"] %></label></td>
               <td><input id="SearchApproverName" name="SearchApproverName" value="<%= filters.SearchApproverName %>"></td>
               <td>&nbsp;</td>
-              <td>Date of approval</td>
-              <td class="datetime"><input aria-label="Date of approval from" name="SearchApproverDateFrom" value="<%= filters.SearchApproverDateFrom %>">～<input aria-label="Date of approval to" name="SearchApproverDateTo" value="<%= filters.SearchApproverDateTo %>"></td>
+              <td><%= ui["Date of approval"] %></td>
+              <td class="datetime"><input aria-label="<%= ui["Date of approval from"] %>" name="SearchApproverDateFrom" value="<%= filters.SearchApproverDateFrom %>">～<input aria-label="<%= ui["Date of approval to"] %>" name="SearchApproverDateTo" value="<%= filters.SearchApproverDateTo %>"></td>
               <td>&nbsp;</td><td></td><td></td>
             </tr>
             <% if (!deviceList.freeDrawOnly) { %>
-              <tr><td><label for="SearchUseBiometrics">Use Biometrics</label></td><td>
+              <tr><td><label for="SearchUseBiometrics"><%= ui["Use Biometrics"] %></label></td><td>
                 <select id="SearchUseBiometrics" name="SearchUseBiometrics">
                   <option value="" <%= filters.SearchUseBiometrics === '' ? 'selected' : '' %>></option>
-                  <option value="1" <%= filters.SearchUseBiometrics === '1' ? 'selected' : '' %>>Yes</option>
-                  <option value="0" <%= filters.SearchUseBiometrics === '0' ? 'selected' : '' %>>No</option>
+                  <option value="1" <%= filters.SearchUseBiometrics === '1' ? 'selected' : '' %>><%= ui["Yes"] %></option>
+                  <option value="0" <%= filters.SearchUseBiometrics === '0' ? 'selected' : '' %>><%= ui["No"] %></option>
                 </select>
               </td><td>&nbsp;</td><td></td><td></td><td>&nbsp;</td><td></td><td></td></tr>
             <% } %>
             <% if (deviceList.scanditEnable) { %>
-              <tr><td><label for="SearchUseScandit">Use Scandit</label></td><td>
+              <tr><td><label for="SearchUseScandit"><%= ui["Use Scandit"] %></label></td><td>
                 <select id="SearchUseScandit" name="SearchUseScandit">
                   <option value="" <%= filters.SearchUseScandit === '' ? 'selected' : '' %>></option>
-                  <option value="1" <%= filters.SearchUseScandit === '1' ? 'selected' : '' %>>Yes</option>
-                  <option value="0" <%= filters.SearchUseScandit === '0' ? 'selected' : '' %>>No</option>
+                  <option value="1" <%= filters.SearchUseScandit === '1' ? 'selected' : '' %>><%= ui["Yes"] %></option>
+                  <option value="0" <%= filters.SearchUseScandit === '0' ? 'selected' : '' %>><%= ui["No"] %></option>
                 </select>
               </td><td>&nbsp;</td><td></td><td></td><td>&nbsp;</td><td></td><td></td></tr>
             <% } %>
@@ -95,45 +95,45 @@
 
       <div class="PageSection">
         <% if (deviceList.approveVisible) { %><input type="button" class="conmas_link_button_custom" value="Approve" style="float:left;margin-bottom:3px;" onclick="submitTermAction('ApproveAction');"><% } %>
-        <div class="img_delete showConfirmDeleteDialog" title="Delete selected devices" role="button" tabindex="0" aria-label="Delete selected devices"></div>
-        &nbsp;Displayed number&nbsp;
-        <select aria-label="Displayed number" onchange="setTermPageSize(this.value);">
+        <div class="img_delete showConfirmDeleteDialog" title="<%= ui["Delete selected devices"] %>" role="button" tabindex="0" aria-label="<%= ui["Delete selected devices"] %>"></div>
+        <%= ui[" Displayed number "] %>
+        <select aria-label="<%= ui["Displayed number"] %>" onchange="setTermPageSize(this.value);">
           <% for (const size of deviceList.pageSizes) { %><option value="<%= size %>" <%= Number(deviceList.pageSize) === size ? 'selected' : '' %>><%= size %></option><% } %>
         </select>
         &nbsp;
         <% if (deviceList.pageIndex > 0) { %>
-          <a href="#" onclick="return termPage(0);" style="padding-right:5px;">First</a>
+          <a href="#" onclick="return termPage(0);" style="padding-right:5px;"><%= ui["First"] %></a>
           <a href="#" onclick="return termPage(<%= deviceList.pageIndex - 1 %>);" class="img_page_prev_e"> </a>
-        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>"><% } %>
         &nbsp;<%= deviceList.pageIndex + 1 %>&nbsp;/&nbsp;<%= deviceList.totalPages %>&nbsp;
         <% if (deviceList.pageIndex + 1 < deviceList.totalPages) { %>
           <a href="#" onclick="return termPage(<%= deviceList.pageIndex + 1 %>);" class="img_page_next_e"> </a>
-          <a href="#" onclick="return termPage(<%= deviceList.totalPages - 1 %>);" style="padding-left:5px;">Last</a>
-        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+          <a href="#" onclick="return termPage(<%= deviceList.totalPages - 1 %>);" style="padding-left:5px;"><%= ui["Last"] %></a>
+        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>"><% } %>
       </div>
 
       <table cellpadding="0" cellspacing="0" class="table_information verticality">
         <thead><tr>
-          <th scope="col" class="checkCol"><input type="checkbox" id="headChk" aria-label="Select all devices"></th>
-          <% if (filters.deleted) { %><th scope="col" style="width:10px;">Delete</th><% } %>
-          <th scope="col" style="width:10px;">Device ID</th>
-          <th scope="col">Physical ID</th>
-          <th scope="col">Type of device</th>
-          <th scope="col">Device name</th>
-          <th scope="col">Device remarks</th>
-          <th scope="col">Applicant name</th>
-          <th scope="col">Application date</th>
-          <th scope="col">Comment for apply</th>
-          <th scope="col">Name of approver</th>
-          <th scope="col">Date of approval</th>
-          <% if (!deviceList.freeDrawOnly) { %><th scope="col">Use Biometrics</th><% } %>
-          <% if (deviceList.scanditEnable) { %><th scope="col">Use Scandit</th><% } %>
-          <% if (deviceList.edgeOcrEnable) { %><th scope="col">Use EdgeOCR</th><% } %>
+          <th scope="col" class="checkCol"><input type="checkbox" id="headChk" aria-label="<%= ui["Select all devices"] %>"></th>
+          <% if (filters.deleted) { %><th scope="col" style="width:10px;"><%= ui["Delete"] %></th><% } %>
+          <th scope="col" style="width:10px;"><%= ui["Device ID"] %></th>
+          <th scope="col"><%= ui["Physical ID"] %></th>
+          <th scope="col"><%= ui["Type of device"] %></th>
+          <th scope="col"><%= ui["Device name"] %></th>
+          <th scope="col"><%= ui["Device remarks"] %></th>
+          <th scope="col"><%= ui["Applicant name"] %></th>
+          <th scope="col"><%= ui["Application date"] %></th>
+          <th scope="col"><%= ui["Comment for apply"] %></th>
+          <th scope="col"><%= ui["Name of approver"] %></th>
+          <th scope="col"><%= ui["Date of approval"] %></th>
+          <% if (!deviceList.freeDrawOnly) { %><th scope="col"><%= ui["Use Biometrics"] %></th><% } %>
+          <% if (deviceList.scanditEnable) { %><th scope="col"><%= ui["Use Scandit"] %></th><% } %>
+          <% if (deviceList.edgeOcrEnable) { %><th scope="col"><%= ui["Use EdgeOCR"] %></th><% } %>
         </tr></thead>
         <tbody>
           <% for (const row of deviceList.rows) { %>
             <tr>
-              <td class="center"><% if (!row.deleted) { %><input type="checkbox" name="selectedTermIds" value="<%= row.term_id %>" aria-label="Select device <%= row.term_id %>"><% } %></td>
+              <td class="center"><% if (!row.deleted) { %><input type="checkbox" name="selectedTermIds" value="<%= row.term_id %>" aria-label="<%= ui["Select device"] %> <%= row.term_id %>"><% } %></td>
               <% if (filters.deleted) { %><td class="center"><%= row.deleted ? '○' : '' %></td><% } %>
               <td style="text-align:right;"><%= row.term_id %></td>
               <td><a href="<%= root %>/Details?mode=term&amp;act=edit&amp;id=<%= encodeURIComponent(row.term_id) %>"><%= row.physical_id %></a></td>
@@ -145,9 +145,9 @@
               <td><%= row.applicant_comment %></td>
               <td><%= row.approver_name %></td>
               <td class="center"><%= row.approver_date_display %></td>
-              <% if (!deviceList.freeDrawOnly) { %><td class="center"><%= Number(row.use_biometrics) === 1 ? 'Yes' : 'No' %></td><% } %>
-              <% if (deviceList.scanditEnable) { %><td class="center"><%= row.use_scandit ? 'Yes' : 'No' %></td><% } %>
-              <% if (deviceList.edgeOcrEnable) { %><td class="center"><%= row.use_edgeocr ? 'Yes' : 'No' %></td><% } %>
+              <% if (!deviceList.freeDrawOnly) { %><td class="center"><%= Number(row.use_biometrics) === 1 ? ui["Yes"] : ui["No"] %></td><% } %>
+              <% if (deviceList.scanditEnable) { %><td class="center"><%= row.use_scandit ? ui["Yes"] : ui["No"] %></td><% } %>
+              <% if (deviceList.edgeOcrEnable) { %><td class="center"><%= row.use_edgeocr ? ui["Yes"] : ui["No"] %></td><% } %>
             </tr>
           <% } %>
         </tbody>
@@ -155,31 +155,31 @@
 
       <div class="PageSection">
         <% if (deviceList.approveVisible) { %><input type="button" class="conmas_link_button_custom" value="Approve" style="float:left;" onclick="submitTermAction('ApproveAction');"><% } %>
-        <div class="img_delete showConfirmDeleteDialog" title="Delete selected devices" role="button" tabindex="0" aria-label="Delete selected devices"></div>
-        &nbsp;Displayed number&nbsp;
-        <select aria-label="Displayed number" onchange="setTermPageSize(this.value);">
+        <div class="img_delete showConfirmDeleteDialog" title="<%= ui["Delete selected devices"] %>" role="button" tabindex="0" aria-label="<%= ui["Delete selected devices"] %>"></div>
+        <%= ui[" Displayed number "] %>
+        <select aria-label="<%= ui["Displayed number"] %>" onchange="setTermPageSize(this.value);">
           <% for (const size of deviceList.pageSizes) { %><option value="<%= size %>" <%= Number(deviceList.pageSize) === size ? 'selected' : '' %>><%= size %></option><% } %>
         </select>
         &nbsp;
         <% if (deviceList.pageIndex > 0) { %>
-          <a href="#" onclick="return termPage(0);" style="padding-right:5px;">First</a>
+          <a href="#" onclick="return termPage(0);" style="padding-right:5px;"><%= ui["First"] %></a>
           <a href="#" onclick="return termPage(<%= deviceList.pageIndex - 1 %>);" class="img_page_prev_e"> </a>
-        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>
+        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>"><% } %>
         &nbsp;<%= deviceList.pageIndex + 1 %>&nbsp;/&nbsp;<%= deviceList.totalPages %>&nbsp;
         <% if (deviceList.pageIndex + 1 < deviceList.totalPages) { %>
           <a href="#" onclick="return termPage(<%= deviceList.pageIndex + 1 %>);" class="img_page_next_e"> </a>
-          <a href="#" onclick="return termPage(<%= deviceList.totalPages - 1 %>);" style="padding-left:5px;">Last</a>
-        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+          <a href="#" onclick="return termPage(<%= deviceList.totalPages - 1 %>);" style="padding-left:5px;"><%= ui["Last"] %></a>
+        <% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>"><% } %>
       </div>
     </div>
   </div>
 </form>
 
 <dialog id="confirmDeleteDialog" style="width:400px;border:5px solid #b0c4de;background:#e6e6fa;">
-  <p style="text-align:center;">Delete checked Device.</p>
+  <p style="text-align:center;"><%= ui["Delete checked Device."] %></p>
   <div style="text-align:center;">
     <input type="checkbox" id="confirmDelete">
-    <label for="confirmDelete">Confirm deletion</label>
+    <label for="confirmDelete"><%= ui["Confirm deletion"] %></label>
   </div>
   <p style="text-align:center;">
     <input type="button" id="okButtonConfirmDeleteDialog" class="button_custom" value="OK" disabled>
@@ -219,10 +219,10 @@
     window.submitTermAction = function (action) {
       var ids = selected();
       if (!ids.length) {
-        alert('Please select Device.');
+        alert(<%- managerScriptText(ui["Please select Device."], "'") %>);
         return false;
       }
-      if (action === 'ApproveAction' && !confirm('Register the selected device.')) return false;
+      if (action === 'ApproveAction' && !confirm(<%- managerScriptText(ui["Register the selected device."], "'") %>)) return false;
       document.getElementById('TermCheckIdList').value = ids.join(',');
       window.setTermAction(action);
       form.submit();
@@ -237,7 +237,7 @@
     form.querySelectorAll('.showConfirmDeleteDialog').forEach(function (button) {
       button.addEventListener('click', function () {
         if (!selected().length) {
-          alert('Please select Device.');
+          alert(<%- managerScriptText(ui["Please select Device."], "'") %>);
           return;
         }
         confirmation.checked = false;

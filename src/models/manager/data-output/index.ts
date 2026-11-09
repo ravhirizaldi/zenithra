@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/data-output/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { readFile } from 'node:fs/promises';
@@ -40,47 +41,48 @@ const unsafeFileName = new RegExp(`[\\\\/:*?"<>|${String.fromCharCode(0)}-${Stri
 const array = <T>(value: T | T[] | undefined | null): T[] =>
   value == null || value === '' ? [] : Array.isArray(value) ? value : [value];
 export const outputFieldLabels: Record<string, string> = {
-  Top_rep_top_id: 'Document ID',
-  Top_rep_top_name: 'Form name',
-  Top_def_top_id: 'Form ID',
-  Top_def_top_name: 'Form name',
-  Top_rep_top_org: 'Original document ID',
-  Top_rep_top_org_name: 'Original document name',
-  Top_rev_no: 'Revision No.',
-  Top_report_type: 'Document type',
-  Top_report_type_name: 'Name of document type',
-  Top_rep_sheet_count: 'Number of sheets',
-  Top_auto_gen: 'Automatic document creation',
-  Top_auto_gen_name: 'Automatic document creation',
-  Top_public_status: 'Disclosure status',
-  Top_public_status_name: 'Disclosure status',
-  Top_edit_refer_status: 'Status',
-  Top_edit_refer_status_name: 'Status',
-  Top_auto_select_gen: 'Auto. data acquisition for the items of choices',
-  Top_auto_select_gen_name: 'Auto. data acquisition for the items of choices',
-  Top_mobile_save: 'Save on iPad',
-  Top_mobile_save_name: 'Save on iPad',
-  Top_remarks_edit: 'Mobile editable for Remarks',
-  Top_remarks_edit_name: 'Name for mobile editable for Remarks',
+  Top_rep_top_id: pageText['Document ID'],
+  Top_rep_top_name: pageText['Form name'],
+  Top_def_top_id: pageText['Form ID'],
+  Top_def_top_name: pageText['Form name'],
+  Top_rep_top_org: pageText['Original document ID'],
+  Top_rep_top_org_name: pageText['Original document name'],
+  Top_rev_no: pageText['Revision No.'],
+  Top_report_type: pageText['Document type'],
+  Top_report_type_name: pageText['Name of document type'],
+  Top_rep_sheet_count: pageText['Number of sheets'],
+  Top_auto_gen: pageText['Automatic document creation'],
+  Top_auto_gen_name: pageText['Automatic document creation'],
+  Top_public_status: pageText['Disclosure status'],
+  Top_public_status_name: pageText['Disclosure status'],
+  Top_edit_refer_status: pageText['Status'],
+  Top_edit_refer_status_name: pageText['Status'],
+  Top_auto_select_gen: pageText['Auto. data acquisition for the items of choices'],
+  Top_auto_select_gen_name: pageText['Auto. data acquisition for the items of choices'],
+  Top_mobile_save: pageText['Save on iPad'],
+  Top_mobile_save_name: pageText['Save on iPad'],
+  Top_remarks_edit: pageText['Mobile editable for Remarks'],
+  Top_remarks_edit_name: pageText['Name for mobile editable for Remarks'],
 };
-for (let i = 1; i <= 10; i++) outputFieldLabels['Top_top_remarks_name' + i] = 'Remarks name ' + i;
-for (let i = 1; i <= 10; i++) outputFieldLabels['Top_top_remarks' + i] = 'Remarks information ' + i;
+for (let i = 1; i <= 10; i++) outputFieldLabels['Top_top_remarks_name' + i] = pageText['Remarks name '] + i;
+for (let i = 1; i <= 10; i++) outputFieldLabels['Top_top_remarks' + i] = pageText['Remarks information '] + i;
 Object.assign(outputFieldLabels, {
-  Top_deleted: 'Delete flag',
-  Top_sys_regist_term: 'Device registration',
-  Top_sys_regist_user: 'Registrant',
-  Top_sys_regist_user_name: 'Registrant name',
-  Top_sys_regist_time: 'Registration date and time',
-  Top_sys_update_term: 'Last update device',
-  Top_sys_update_user: 'Last updated by',
-  Top_sys_update_user_name: 'Last update person',
-  Top_sys_update_time: 'Last update date and time',
-  Sheet_rep_sheet_name: 'Name of Sheet',
-  Sheet_rep_sheet_no: 'Sheet No.',
+  Top_deleted: pageText['Delete flag'],
+  Top_sys_regist_term: pageText['Device registration'],
+  Top_sys_regist_user: pageText['Registrant'],
+  Top_sys_regist_user_name: pageText['Registrant name'],
+  Top_sys_regist_time: pageText['Registration date and time'],
+  Top_sys_update_term: pageText['Last update device'],
+  Top_sys_update_user: pageText['Last updated by'],
+  Top_sys_update_user_name: pageText['Last update person'],
+  Top_sys_update_time: pageText['Last update date and time'],
+  Sheet_rep_sheet_name: pageText['Name of Sheet'],
+  Sheet_rep_sheet_no: pageText['Sheet No.'],
 });
-for (let i = 1; i <= 10; i++) outputFieldLabels['Sheet_sheet_remarks_name' + i] = 'Name of Sheet remarks ' + i;
-for (let i = 1; i <= 10; i++) outputFieldLabels['Sheet_sheet_remarks' + i] = 'Sheet remarks ' + i;
-outputFieldLabels.Sheet_layer_input_value = 'Layer input text';
+for (let i = 1; i <= 10; i++)
+  outputFieldLabels['Sheet_sheet_remarks_name' + i] = pageText['Name of Sheet remarks '] + i;
+for (let i = 1; i <= 10; i++) outputFieldLabels['Sheet_sheet_remarks' + i] = pageText['Sheet remarks '] + i;
+outputFieldLabels.Sheet_layer_input_value = pageText['Layer input text'];
 const topFields = Object.keys(outputFieldLabels).filter((key) => key.startsWith('Top_'));
 const sheetFields = Object.keys(outputFieldLabels).filter((key) => key.startsWith('Sheet_'));
 export { topFields as outputTopFields, sheetFields as outputSheetFields };
@@ -88,16 +90,16 @@ export function outputSelection(selected: number[], delta: unknown): number[] {
   const next = new Set(selected);
   for (const item of labelString(delta).split(',').filter(Boolean)) {
     const match = /^(\d+):(true|false)$/i.exec(item);
-    if (!match) throw new LibraryError('', 'Invalid selection state.');
+    if (!match) throw new LibraryError('', pageText['Invalid selection state.']);
     const id = labelInteger(match[1]);
-    if (id <= 0) throw new LibraryError('', 'Invalid selection state.');
+    if (id <= 0) throw new LibraryError('', pageText['Invalid selection state.']);
     if (match[2].toLowerCase() === 'true') next.add(id);
     else next.delete(id);
   }
   return [...next];
 }
 export async function outputAuthorize(db: Database, kind: OutputKind, ids: number[], user: string) {
-  if (!ids.length) throw new LibraryError('', 'Select at least one item.');
+  if (!ids.length) throw new LibraryError('', pageText['Select at least one item.']);
   const found = (
     await db.query(
       `SELECT t.${kind}_top_id FROM ${kind}_top t WHERE t.${kind}_top_id=ANY($2::int[]) AND COALESCE(t.deleted,0)=0
@@ -106,7 +108,7 @@ export async function outputAuthorize(db: Database, kind: OutputKind, ids: numbe
     )
   ).rows;
   if (found.length !== new Set(ids).size)
-    throw new LibraryError('', 'Role authority is insufficient or a selected item no longer exists.');
+    throw new LibraryError('', pageText['Role authority is insufficient or a selected item no longer exists.']);
 }
 export async function outputList(
   db: Database,
@@ -183,10 +185,10 @@ export async function outputList(
 }
 function parseLayout(xml: string): Node {
   if (/<!DOCTYPE|<!ENTITY/i.test(xml) || XMLValidator.validate(xml) !== true)
-    throw new LibraryError('', 'Invalid output layout XML.');
+    throw new LibraryError('', pageText['Invalid output layout XML.']);
   const document = parser.parse(xml),
     root = document.conmas ?? document.conams;
-  if (!root?.top || typeof root.top !== 'object') throw new LibraryError('', 'Invalid output layout.');
+  if (!root?.top || typeof root.top !== 'object') throw new LibraryError('', pageText['Invalid output layout.']);
   return document;
 }
 const layoutTop = (document: Node): LayoutTop => (document.conmas ?? document.conams)!.top;
@@ -230,7 +232,7 @@ export async function outputLayouts(
       if (!sheet) {
         const raw = rawSheets.find((item) => Number(item.sheetOrg) === row.org);
         if (saved && rawSheets.some((item) => !item.sheetOrg && item.sheetId))
-          throw new LibraryPendingError('', 'Older sheetId output-layout conversion is not implemented yet.');
+          throw new LibraryPendingError('', pageText['Older sheetId output-layout conversion is not implemented yet.']);
         sheet = { org: row.org, fields: raw ? array<string>(raw.fields?.field) : [], clusters: [] };
         design.push(sheet);
       }
@@ -259,11 +261,11 @@ export function outputLayoutInput(layout: OutputLayout, input: Record<string, un
   const fieldValues = (key: string) =>
     Array.isArray(input[key]) ? input[key].map(labelString) : labelString(input[key]).split(',').filter(Boolean);
   const fields = fieldValues('TopFields');
-  if (fields.some((field) => !topFields.includes(field))) throw new LibraryError('', 'Invalid output field.');
+  if (fields.some((field) => !topFields.includes(field))) throw new LibraryError('', pageText['Invalid output field.']);
   const sheets = layout.sheets.map((sheet) => {
     const selectedFields = fieldValues('SheetFields_' + sheet.org);
     if (selectedFields.some((field) => !sheetFields.includes(field)))
-      throw new LibraryError('', 'Invalid sheet output field.');
+      throw new LibraryError('', pageText['Invalid sheet output field.']);
     return {
       ...sheet,
       fields: selectedFields,
@@ -312,7 +314,7 @@ export async function saveOutputLayout(
   try {
     await connection.query('BEGIN');
     if (!(await managerLibraryPermissions(connection, user)).output)
-      throw new LibraryError('', 'Role authority is insufficient.');
+      throw new LibraryError('', pageText['Role authority is insufficient.']);
     await outputAuthorize(connection, 'rep', reports, user);
     if (
       !(
@@ -322,7 +324,7 @@ export async function saveOutputLayout(
         )
       ).rowCount
     )
-      throw new LibraryError('', 'Invalid output layout family.');
+      throw new LibraryError('', pageText['Invalid output layout family.']);
     const column = auto ? 'auto_output_layout' : 'manager_output_layout';
     await connection.query(
       `INSERT INTO data_output_layout (def_top_org,${column},sys_regist_user,sys_regist_term,sys_regist_time,sys_update_user,sys_update_term,sys_update_time)
@@ -358,7 +360,7 @@ export async function outputLimits(db: Database, count: number) {
         )
       ).rows[0]?.com_value;
   if (/^\d+$/.test(String(limit)) && Number(limit) > 0 && count > Number(limit))
-    throw new LibraryError('', 'The CSV output limit has been exceeded.');
+    throw new LibraryError('', pageText['The CSV output limit has been exceeded.']);
   const selection = Number(
     (
       await db.query(
@@ -367,7 +369,7 @@ export async function outputLimits(db: Database, count: number) {
     ).rows[0]?.com_value,
   );
   if (selection > 0 && count > selection)
-    throw new LibraryError('', 'The data output selection limit has been exceeded.');
+    throw new LibraryError('', pageText['The data output selection limit has been exceeded.']);
 }
 export async function outputCsvFiles(
   db: Database,
@@ -376,14 +378,15 @@ export async function outputCsvFiles(
   user: string,
   locale: string,
 ) {
-  if (!reports.length || !layouts.length) throw new LibraryError('', 'Select documents and output fields first.');
+  if (!reports.length || !layouts.length)
+    throw new LibraryError('', pageText['Select documents and output fields first.']);
   await outputAuthorize(db, 'rep', reports, user);
   await outputLimits(db, reports.length);
   const entries: { name: string; data: Buffer; date: Date }[] = [],
     previews: { name: string; rows: unknown[][] }[] = [],
     exported = new Set<number>();
   if (new Set(layouts.map((layout) => layout.org)).size !== layouts.length)
-    throw new LibraryError('', 'Duplicate output layout family.');
+    throw new LibraryError('', pageText['Duplicate output layout family.']);
   for (const layout of layouts) {
     const top = layoutTop(parseLayout(layout.xml));
     if (
@@ -395,7 +398,9 @@ export async function outputCsvFiles(
     )
       throw new LibraryPendingError(
         '',
-        'PDF/Excel/image bundles and cluster-detail output are not implemented yet. No partial archive was returned.',
+        pageText[
+          'PDF/Excel/image bundles and cluster-detail output are not implemented yet. No partial archive was returned.'
+        ],
       );
     const tops = (
       await db.query(
@@ -414,14 +419,14 @@ export async function outputCsvFiles(
         ...sheet.clusters.filter((cluster) => cluster.selected).map((cluster) => cluster.name),
       );
     }
-    if (!headers.length) throw new LibraryError('', 'Select output fields.');
+    if (!headers.length) throw new LibraryError('', pageText['Select output fields.']);
     const rows: unknown[][] = [headers];
     for (const topRow of tops) {
       exported.add(topRow.rep_top_id);
       const row = layout.fields.map((field) => {
         const key = field.slice(4);
         if (!topFields.includes(field))
-          throw new LibraryPendingError('', 'This metadata output field is not implemented yet.');
+          throw new LibraryPendingError('', pageText['This metadata output field is not implemented yet.']);
         if (key === 'sys_regist_time') return topRow.regist_time_text;
         if (key === 'sys_update_time') return topRow.update_time_text;
         if (key === 'sys_regist_user_name') return topRow.current_regist_name;
@@ -455,11 +460,11 @@ export async function outputCsvFiles(
         if (matches.length > 1)
           throw new LibraryPendingError(
             '',
-            'Copied-sheet output expansion is not implemented yet. No partial archive was returned.',
+            pageText['Copied-sheet output expansion is not implemented yet. No partial archive was returned.'],
           );
         const sheet = matches[0];
         for (const field of design.fields) {
-          if (!sheetFields.includes(field)) throw new LibraryError('', 'Invalid sheet field.');
+          if (!sheetFields.includes(field)) throw new LibraryError('', pageText['Invalid sheet field.']);
           if (field === 'Sheet_layer_input_value')
             row.push(
               sheet
@@ -494,7 +499,9 @@ export async function outputCsvFiles(
           )
             throw new LibraryPendingError(
               '',
-              'Computed/date/numbering cluster output is not implemented yet. No partial archive was returned.',
+              pageText[
+                'Computed/date/numbering cluster output is not implemented yet. No partial archive was returned.'
+              ],
             );
           const image = ['FixedText', 'FreeText', 'Image', 'DrawingImage', 'FreeDraw', 'AudioRecording'].includes(
             cluster.cluster_type,
@@ -523,12 +530,12 @@ export async function outputCsvFiles(
       ).rows[0]?.com_value ?? '65001',
     );
     if (!['932', '65001'].includes(encoding))
-      throw new LibraryPendingError('', 'This CSV character encoding is not implemented yet.');
+      throw new LibraryPendingError('', pageText['This CSV character encoding is not implemented yet.']);
     const name = `report_${tops.at(-1)!.def_top_id}_${String(layout.name).replace(unsafeFileName, '_')}.csv`;
     entries.push({ name, data: encodeExport(csv(rows), 'csv', encoding), date: new Date() });
     previews.push({ name, rows: rows.slice(0, 4) });
   }
   if (!entries.length || reports.some((id) => !exported.has(id)))
-    throw new LibraryError('', 'The output layouts do not cover every selected document.');
+    throw new LibraryError('', pageText['The output layouts do not cover every selected document.']);
   return { data: zipBuffer(entries), previews };
 }

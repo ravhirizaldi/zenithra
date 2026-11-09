@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/catalog/resources.js';
 import type { Express, RequestHandler } from 'express';
 import type pg from 'pg';
 import { base } from '../../../config/manager.js';
@@ -18,11 +19,12 @@ export function registerCatalogController(
       return page(res, { active, section: '', login: false, title, catalog, userName: req.session?.userName });
     });
     app.get(`${base}/${route}/Details`, requireAuth, async (req, res) => {
-      if (!database) return res.status(503).type('text/plain').send('Database is not configured.');
+      if (!database) return res.status(503).type('text/plain').send(pageText['Database is not configured.']);
       const id = Number(req.query[idKey]);
-      if (!Number.isSafeInteger(id) || id <= 0) return res.status(400).type('text/plain').send('Invalid record ID.');
+      if (!Number.isSafeInteger(id) || id <= 0)
+        return res.status(400).type('text/plain').send(pageText['Invalid record ID.']);
       const detail = await catalogDetail(database, kind, id);
-      if (!detail) return res.status(404).type('text/plain').send('Record not found.');
+      if (!detail) return res.status(404).type('text/plain').send(pageText['Record not found.']);
       return page(res, {
         active,
         section: '',

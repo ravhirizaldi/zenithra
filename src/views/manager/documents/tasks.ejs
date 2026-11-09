@@ -1,4 +1,4 @@
-<script type="text/javascript">
+<% const ui = managerResources["documents"]; %><script type="text/javascript">
   $(function () {
     $('#MessageWrap .PartialViewMessage').empty();
     if ($('.PartialViewMessage li').length === 1 && $('.PartialViewMessage li').css('display') === 'none') $('.PartialViewMessage').css('display','none');
@@ -16,9 +16,9 @@
   <div style="text-align:right; padding-right:3px; padding-top:0px;padding-bottom:3px;"><%= r.task_name %> <input class="text-box single-line" id="searchName" name="searchName" value="<%= searchName %>" type="text"> <%= r.task_remark %> <input class="text-box single-line" id="searchRemark" name="searchRemark" value="<%= searchRemark %>" type="text"> <input type="submit" value="<%= r.Search %>" class="image-search_user"></div>
   <% const paging = bottom => { %><div class="PageSection">
     <%= r.DisplayCount %>&nbsp;<select id="pageSize" name="pageSize" onchange="return <%= bottom ? 'pageSizeFilterTask(this)' : 'filterTask()' %>;"><% for (const size of pageSizes) { %><option value="<%= size %>"<% if (size === pageSize) { %> selected="selected"<% } %>><%= size %></option><% } %></select>&nbsp;
-    <% if (pageIndex > 0) { %><a href="<%= base %>/Common/TaskList" onclick="return pageTask(0);" style="padding-right:5px;"><%= r.FirstPage %></a><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pageIndex-1 %>);" class="img_page_prev_e"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="prev_d"><% } %>&nbsp;
+    <% if (pageIndex > 0) { %><a href="<%= base %>/Common/TaskList" onclick="return pageTask(0);" style="padding-right:5px;"><%= r.FirstPage %></a><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pageIndex-1 %>);" class="img_page_prev_e"> </a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_prev_d.png" alt="<%= ui["prev_d"] %>"><% } %>&nbsp;
     <%= pageIndex+1 %>&nbsp;/&nbsp;<%= pages %> (<%= total %>)&nbsp;
-    <% if (pageIndex+1 < pages) { %><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pageIndex+1 %>);" class="img_page_next_e"> </a><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pages-1 %>);" style="padding-left:5px;"><%= r.LastPage %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="next_d"><% } %>
+    <% if (pageIndex+1 < pages) { %><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pageIndex+1 %>);" class="img_page_next_e"> </a><a href="<%= base %>/Common/TaskList" onclick="return pageTask(<%= pages-1 %>);" style="padding-left:5px;"><%= r.LastPage %></a><% } else { %><img src="<%= base %>/Content/ConMas/images/grid/page_next_d.png" alt="<%= ui["next_d"] %>"><% } %>
   </div><% }; %>
   <div id="GridSection" style="height:324px;"><div class="info">
     <% paging(false); %><input type="hidden" id="pageIndex" name="pageIndex" value="0" class="Task">

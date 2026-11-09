@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { labelInteger, labelString, LabelValidationError } from '../labels/index.js';
@@ -29,9 +30,9 @@ async function updateCurrent(client: pg.PoolClient, org: number) {
 
 export async function documentDelete(db: pg.Pool, input: unknown, action: string, mode: string, user: string) {
   if (!['DELETE_REPORT', 'DELETE_RETURN_REPORT', 'DELETE_PHYSICAL'].includes(action))
-    throw new LabelValidationError('Act', 'Invalid document deletion action.');
+    throw new LabelValidationError('Act', pageText['Invalid document deletion action.']);
   if (!['', 'REV', 'ALL'].includes(mode) || (action !== 'DELETE_REPORT' && mode))
-    throw new LabelValidationError('ActMode', 'Invalid document deletion mode.');
+    throw new LabelValidationError('ActMode', pageText['Invalid document deletion mode.']);
   const ids = [
     ...new Set(
       labelString(input)
@@ -39,7 +40,7 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
         .map((id) => labelInteger(id)),
     ),
   ];
-  if (ids.some((id) => id <= 0)) throw new LabelValidationError('ChkRepTopID', 'Select valid reports.');
+  if (ids.some((id) => id <= 0)) throw new LabelValidationError('ChkRepTopID', pageText['Select valid reports.']);
   const physical = action === 'DELETE_PHYSICAL',
     restore = action === 'DELETE_RETURN_REPORT',
     all = mode === 'ALL';
@@ -60,9 +61,9 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
       )
     ).rows;
     if (selected.length !== ids.length || selected.some((row) => !row.readable || !row.deletable))
-      throw new LabelValidationError('ChkRepTopID', 'A selected report is unavailable or cannot be deleted.');
+      throw new LabelValidationError('ChkRepTopID', pageText['A selected report is unavailable or cannot be deleted.']);
     if (selected.some((row) => Number(row.deleted) !== (restore || physical ? 1 : 0)))
-      throw new LabelValidationError('ChkRepTopID', 'A selected report is no longer in the requested list.');
+      throw new LabelValidationError('ChkRepTopID', pageText['A selected report is no longer in the requested list.']);
     // Delete skips another user's selected lock; restore does not run the source lock check.
     const eligible = action === 'DELETE_REPORT' ? selected.filter((row) => !row.locked) : selected;
     const reports = all
@@ -75,7 +76,10 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
         ).rows
       : eligible;
     if (physical && reports.some((row) => row.locked))
-      throw new LabelValidationError('ChkRepTopID', 'A selected report revision is locked or cannot be deleted.');
+      throw new LabelValidationError(
+        'ChkRepTopID',
+        pageText['A selected report revision is locked or cannot be deleted.'],
+      );
     const autoMode = (
       await client.query(
         "SELECT com_value FROM mst_common WHERE com_key='LABEL_SETTING' AND com_name='LABEL_AUTO_DELETE_MODE' ORDER BY com_index LIMIT 1",

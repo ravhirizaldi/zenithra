@@ -1,4 +1,4 @@
-<% const id = report.rep_top_id;
+<% const ui = managerResources["documents"]; %><% const id = report.rep_top_id;
 const href = (action, values = {}, controller = 'InputReport') => `${base}/${controller}/${action}?${new URLSearchParams({ repTopId: String(id), ...values })}`;
 const sheetTitle = sheet => sheet.fdSheetNo ? `${sheet.fdSheetNo}:i-Repo FreeDraw` : `${sheet.rep_sheet_no}:${sheet.rep_sheet_name || v.nonSheetName}`;
 const sheetLinks = (action, suffix) => { for (const sheet of sheets) { if (sheet.fdSheetNo) continue; %>
@@ -47,7 +47,7 @@ const sheetLinks = (action, suffix) => { for (const sheet of sheets) { if (sheet
       </ul></li><% } %>
     </ul></div>
   </div>
-  <div id="MainWrap"><div id="content"><p class="PartialViewMessage" role="status">Loading report information.</p></div></div>
+  <div id="MainWrap"><div id="content"><p class="PartialViewMessage" role="status"><%= ui["Loading report information."] %></p></div></div>
   <div style="clear:both;"></div>
   <div id="domMessage" style="display:none;"><h1><%= r.LockMessage %></h1></div>
   <div id="popUpDialogForm"><div id="contentTaskSearch"></div></div>

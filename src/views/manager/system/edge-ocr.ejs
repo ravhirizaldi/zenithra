@@ -1,4 +1,4 @@
-<% const p=edgeOcrPage; const l=p.labels; const route=base+'/System'; const columns=[['term_id',l.term_id],['physical_id',l.physical_id],['term_name',l.term_name],['term_remarks',l.term_remarks],['applicant_name',l.applicant_name],['applicant_comment',l.applicant_comment],['use_edgeocr',l.EdgeOCRUse]]; %>
+<% const ui = managerResources["system"]; %><% const p=edgeOcrPage; const l=p.labels; const route=base+'/System'; const columns=[['term_id',l.term_id],['physical_id',l.physical_id],['term_name',l.term_name],['term_remarks',l.term_remarks],['applicant_name',l.applicant_name],['applicant_comment',l.applicant_comment],['use_edgeocr',l.EdgeOCRUse]]; %>
 <% if(p.mode==='denied'){ %><div><%= l.RoleError %></div><% }else{ %>
 <div class="PartialViewMessage"><% if(p.errors?.length){ %><ul><% for(const error of p.errors){ %><li><%= error %></li><% } %></ul><% } %></div>
 <% if(p.mode==='confirm'){ %>

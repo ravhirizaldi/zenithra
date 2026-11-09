@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
@@ -79,7 +80,7 @@ pendingMeIdAuthCleanup.unref();
 
 export function parseMeIdSetting(xml: string): MeIdSettings {
   if (!xml.trim()) return emptyMeIdSettings();
-  if (XMLValidator.validate(xml) !== true) throw new Error('MeID settings XML is invalid.');
+  if (XMLValidator.validate(xml) !== true) throw new Error(pageText['MeID settings XML is invalid.']);
   const rootNode = object(settingParser.parse(xml).conmas);
   const app = object(rootNode.app);
   const manager = object(rootNode.manager);
@@ -157,7 +158,7 @@ export function meIdAuthorizeUrl(input: {
   state: string;
   nonce: string;
 }): string {
-  if (!input.clientId || !input.tenantId) throw new Error('Client ID or Tenant ID is not set.');
+  if (!input.clientId || !input.tenantId) throw new Error(pageText['Client ID or Tenant ID is not set.']);
   const authorize = new URL(
     `https://login.microsoftonline.com/${encodeURIComponent(input.tenantId)}/oauth2/v2.0/authorize`,
   );
@@ -176,7 +177,7 @@ export function meIdAuthorizeUrl(input: {
 
 async function jsonResponse(fetcher: typeof fetch, uri: string): Promise<Record<string, unknown>> {
   const response = await fetcher(uri, { signal: AbortSignal.timeout(15000) });
-  if (!response.ok) throw new Error('Microsoft identity metadata request failed.');
+  if (!response.ok) throw new Error(pageText['Microsoft identity metadata request failed.']);
   return object(await response.json());
 }
 
@@ -188,27 +189,28 @@ export async function verifyMeIdIdToken(
   fetcher: typeof fetch = fetch,
 ): Promise<MeIdIdentity> {
   const parts = idToken.split('.');
-  if (parts.length !== 3) throw new Error('Microsoft identity token is invalid.');
+  if (parts.length !== 3) throw new Error(pageText['Microsoft identity token is invalid.']);
   let header: Record<string, unknown>;
   let claims: Record<string, unknown>;
   try {
     header = object(JSON.parse(Buffer.from(parts[0], 'base64url').toString('utf8')));
     claims = object(JSON.parse(Buffer.from(parts[1], 'base64url').toString('utf8')));
   } catch {
-    throw new Error('Microsoft identity token is invalid.');
+    throw new Error(pageText['Microsoft identity token is invalid.']);
   }
-  if (header.alg !== 'RS256' || typeof header.kid !== 'string') throw new Error('Microsoft identity token is invalid.');
+  if (header.alg !== 'RS256' || typeof header.kid !== 'string')
+    throw new Error(pageText['Microsoft identity token is invalid.']);
 
   const discoveryUri = `https://login.microsoftonline.com/${encodeURIComponent(tenantId)}/.well-known/openid-configuration`;
   const discovery = await jsonResponse(fetcher, discoveryUri);
-  if (typeof discovery.jwks_uri !== 'string') throw new Error('Microsoft signing keys are unavailable.');
+  if (typeof discovery.jwks_uri !== 'string') throw new Error(pageText['Microsoft signing keys are unavailable.']);
   const jwksUri = new URL(discovery.jwks_uri);
   if (jwksUri.origin !== 'https://login.microsoftonline.com')
-    throw new Error('Microsoft signing keys are unavailable.');
+    throw new Error(pageText['Microsoft signing keys are unavailable.']);
   const keySet = await jsonResponse(fetcher, jwksUri.toString());
   const keys = Array.isArray(keySet.keys) ? keySet.keys.map(object) : [];
   const jwk = keys.find((key) => key.kid === header.kid && key.kty === 'RSA' && (!key.use || key.use === 'sig'));
-  if (!jwk) throw new Error('Microsoft signing key was not found.');
+  if (!jwk) throw new Error(pageText['Microsoft signing key was not found.']);
   let signatureValid: boolean;
   try {
     const modulus = jwk.n;
@@ -221,9 +223,9 @@ export async function verifyMeIdIdToken(
       Buffer.from(parts[2], 'base64url'),
     );
   } catch {
-    throw new Error('Microsoft identity token is invalid.');
+    throw new Error(pageText['Microsoft identity token is invalid.']);
   }
-  if (!signatureValid) throw new Error('Microsoft identity token is invalid.');
+  if (!signatureValid) throw new Error(pageText['Microsoft identity token is invalid.']);
 
   const expectedIssuer = `https://login.microsoftonline.com/${tenantId}/v2.0`;
   const audience = claims.aud;
@@ -239,17 +241,17 @@ export async function verifyMeIdIdToken(
     now > expiresAt + 300 ||
     invalidNotBefore
   ) {
-    throw new Error('Microsoft identity token claims are invalid.');
+    throw new Error(pageText['Microsoft identity token claims are invalid.']);
   }
   if (claims.nonce === undefined || String(claims.nonce) !== nonce)
-    throw new Error('Microsoft identity token nonce does not match.');
+    throw new Error(pageText['Microsoft identity token nonce does not match.']);
   if (
     claims.preferred_username === undefined ||
     claims.preferred_username === null ||
     claims.oid === undefined ||
     claims.oid === null
   ) {
-    throw new Error('Microsoft identity token is missing user claims.');
+    throw new Error(pageText['Microsoft identity token is missing user claims.']);
   }
   return { preferredUsername: String(claims.preferred_username), oid: String(claims.oid) };
 }
@@ -378,7 +380,7 @@ export function beginMeIdAuthorization(
   const host = req.get('host');
   const userId = typeof req.session?.userId === 'string' ? req.session.userId : '';
   if (!req.session || !req.sessionID || !userId || !host)
-    throw new Error('Microsoft identity authorization requires an active session and host.');
+    throw new Error(pageText['Microsoft identity authorization requires an active session and host.']);
   const state = randomBytes(32).toString('hex');
   const nonce = randomBytes(32).toString('hex');
   const url = meIdAuthorizeUrl({
@@ -436,7 +438,7 @@ export async function handleMeIdAccountCallback(
         data.settings.ManagerClientId !== pending.clientId ||
         data.settings.ManagerTenantId !== pending.tenantId
       ) {
-        throw new Error('Microsoft identity settings changed during authorization.');
+        throw new Error(pageText['Microsoft identity settings changed during authorization.']);
       }
       pending.identity = await verifyMeIdIdToken(idToken, pending.clientId, pending.tenantId, pending.nonce, fetcher);
     } catch {
@@ -467,7 +469,7 @@ export function registerMeId(app: Express, db: pg.Pool, render: Render): void {
       active: 'System',
       section: 'DetailsMeIdSetting',
       login: false,
-      title: 'Microsoft Entra ID Linkage Setting',
+      title: pageText['Microsoft Entra ID Linkage Setting'],
       userName: res.locals.userName,
       meIdPage: {
         mode,

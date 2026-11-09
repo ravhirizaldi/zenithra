@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/labels/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { randomUUID } from 'node:crypto';
@@ -7,43 +8,43 @@ export const labelModes = {
     table: 'mst_label_def',
     role: 'def_label_role',
     sequence: 'mst_label_def_mst_label_id_seq',
-    title: 'For Form',
+    title: pageText['For Form'],
   },
   Rep: {
     table: 'mst_label_rep',
     role: 'rep_label_role',
     sequence: 'mst_label_def_mst_label_id_seq',
-    title: 'For Document',
+    title: pageText['For Document'],
   },
   ComLIb: {
     table: 'mst_label_common_document',
     role: 'common_document_label_role',
     sequence: 'mst_label_common_document_mst_label_id_seq',
-    title: 'Common document',
+    title: pageText['Common document'],
   },
   RepLIb: {
     table: 'mst_label_report_document',
     role: 'report_document_label_role',
     sequence: 'mst_label_report_document_mst_label_id_seq',
-    title: 'Documents by form',
+    title: pageText['Documents by form'],
   },
   ComMas: {
     table: 'mst_label_common_custom_table',
     role: 'common_custom_table_label_role',
     sequence: 'mst_label_common_custom_table_mst_label_id_seq',
-    title: 'Custom master',
+    title: pageText['Custom master'],
   },
   RepMas: {
     table: 'mst_label_report_custom_table',
     role: 'report_custom_table_label_role',
     sequence: 'mst_label_report_custom_table_mst_label_id_seq',
-    title: 'Master by document',
+    title: pageText['Master by document'],
   },
   ImageLib: {
     table: 'mst_label_image_document',
     role: 'image_document_label_role',
     sequence: 'mst_label_def_mst_label_id_seq',
-    title: 'Image file for FreeDraw',
+    title: pageText['Image file for FreeDraw'],
   },
 } as const;
 export type LabelMode = keyof typeof labelModes;
@@ -94,7 +95,7 @@ export function labelInteger(value: unknown, fallback?: number): number {
   const text = labelString(value).trim();
   if (!text && fallback !== undefined) return fallback;
   if (!/^[+-]?\d+$/.test(text) || Number(text) < -2147483648 || Number(text) > 2147483647)
-    throw new LabelValidationError('', 'Please enter an integer value.');
+    throw new LabelValidationError('', pageText['Please enter an integer value.']);
   return Number(text);
 }
 export function labelMode(value: unknown): LabelMode {
@@ -112,7 +113,7 @@ export function labelMode(value: unknown): LabelMode {
   };
   if (Object.hasOwn(numeric, text)) return numeric[text];
   if (Object.hasOwn(labelModes, text)) return text as LabelMode;
-  throw new LabelValidationError('mode', 'Invalid label mode.');
+  throw new LabelValidationError('mode', pageText['Invalid label mode.']);
 }
 
 export async function labelPermissions(db: pg.Pool, user: string): Promise<LabelPermissions> {
@@ -261,14 +262,15 @@ export function autoLabelLocale(value: string, reverse = false): string {
   return value;
 }
 export function validateLabel(record: LabelRecord, mode: LabelMode): void {
-  if (!record.label_name.trim()) throw new LabelValidationError('mst_label.label_name', 'Please enter Label name.');
+  if (!record.label_name.trim())
+    throw new LabelValidationError('mst_label.label_name', pageText['Please enter Label name.']);
   if (record.diplay_number < 0)
-    throw new LabelValidationError('mst_label.diplay_number', 'Display sequence is invalid.');
+    throw new LabelValidationError('mst_label.diplay_number', pageText['Display sequence is invalid.']);
   if (mode === 'Rep') {
     for (const match of (record.auto_label_name ?? '').matchAll(/\{cluster(?:DisplayValue|Value)[^{}]*\}/g)) {
       const parts = match[0].slice(1, -1).split('_');
       if (parts.length !== 3)
-        throw new LabelValidationError('mst_label.auto_label_name', 'Naming rule of label name is invalid.');
+        throw new LabelValidationError('mst_label.auto_label_name', pageText['Naming rule of label name is invalid.']);
       for (const value of parts.slice(1)) labelInteger(value);
     }
     if (record.auto_creation) {
@@ -331,9 +333,9 @@ export async function saveLabel(
       await client.query<LabelRecord>(`SELECT * FROM ${spec.table} ORDER BY diplay_number FOR UPDATE`)
     ).rows.map(labelRecord);
     const old = rows.find((row) => row.mst_label_id === record.mst_label_id);
-    if (options.edit && !old) throw new LabelValidationError('', 'Label was not found.');
+    if (options.edit && !old) throw new LabelValidationError('', pageText['Label was not found.']);
     if (options.edit && old?.binder_rep_id != null && old.label_name !== record.label_name)
-      throw new LabelValidationError('mst_label.label_name', 'Failed to update Label name.');
+      throw new LabelValidationError('mst_label.label_name', pageText['Failed to update Label name.']);
     if (options.quick !== undefined) {
       record.auto_creation = 0;
       record.diplay_number = 0;
@@ -360,13 +362,16 @@ export async function saveLabel(
     }
     const parent = rows.find((row) => row.mst_label_id === record.upper_label_id);
     if (record.upper_label_id !== null && !parent)
-      throw new LabelValidationError('mst_label.upper_label_id', 'Parent label was not found.');
+      throw new LabelValidationError('mst_label.upper_label_id', pageText['Parent label was not found.']);
     if (
       options.edit &&
       (parent?.mst_label_id === record.mst_label_id ||
         parent?.label_id_path.split('/').includes(String(record.mst_label_id)))
     ) {
-      throw new LabelValidationError('mst_label.upper_label_id', 'Child label cannot be set as Parent label.');
+      throw new LabelValidationError(
+        'mst_label.upper_label_id',
+        pageText['Child label cannot be set as Parent label.'],
+      );
     }
     if (!options.edit)
       record.mst_label_id = Number(

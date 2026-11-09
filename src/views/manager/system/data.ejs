@@ -1,4 +1,4 @@
-<% const page = systemDataPage; const route = base + '/System'; %>
+<% const ui = managerResources["system"]; %><% const page = systemDataPage; const route = base + '/System'; %>
 <% if (page.mode === 'input') { %>
 <div class="PartialViewMessage"><% if (page.error) { %><ul><li><%= page.error %></li></ul><% } %></div>
 <div id="DetailTop"><span id="infoTitle"><%= page.labels.dataInput %></span></div>
@@ -19,8 +19,8 @@
 <% } %>
 <table cellpadding="5">
 <tr><td><%= page.labels.TargetToOutput %></td><td><select name="DataOutputType" id="DataOutputType"><% page.outputTypes.forEach((name,index) => { %><option value="<%= index %>" <%= page.command === index ? 'selected' : '' %>><%= page.labels[name] %></option><% }); %></select></td></tr>
-<tr><td><%= page.labels.FileFormat %></td><td><select name="type" id="type"><option value="csv">CSV</option><option value="xml">XML</option></select></td></tr>
-<tr id="trEncoding"><td><%= page.labels.ConMasResource_Encoding %></td><td><select name="encoding" id="encoding"><option value="932">shift_jis</option><option value="65001">utf-8</option></select></td></tr>
+<tr><td><%= page.labels.FileFormat %></td><td><select name="type" id="type"><option value="csv"><%= ui["CSV"] %></option><option value="xml"><%= ui["XML"] %></option></select></td></tr>
+<tr id="trEncoding"><td><%= page.labels.ConMasResource_Encoding %></td><td><select name="encoding" id="encoding"><option value="932"><%= ui["shift_jis"] %></option><option value="65001"><%= ui["utf-8"] %></option></select></td></tr>
 <input type="hidden" name="deleted" value="0">
 </table>
 <% if (!page.fragment) { %>

@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { readFile } from 'node:fs/promises';
@@ -20,7 +21,7 @@ export type DocumentRoleRow = DocumentRole & { group_id: number; group_name_path
 
 export function documentDetailId(value: unknown) {
   const id = labelInteger(value);
-  if (id <= 0) throw new LabelValidationError('', 'Select a valid report.');
+  if (id <= 0) throw new LabelValidationError('', pageText['Select a valid report.']);
   return id;
 }
 
@@ -107,9 +108,9 @@ export async function documentDetailLabels(db: Database, id: number, user: strin
 export async function documentLabelSearch(db: Database, id: number, user: string, input: Record<string, unknown>) {
   const name = labelString(input['LabelSerach.LabelName']);
   const checkedType = labelString(input['LabelSerach.LabelCheckedType']) || '0';
-  if (!['0', '1', '2'].includes(checkedType)) throw new LabelValidationError('', 'Invalid label filter.');
+  if (!['0', '1', '2'].includes(checkedType)) throw new LabelValidationError('', pageText['Invalid label filter.']);
   if ((labelString(input['LabelSerach.LabelSearchType']) || '0') !== '0')
-    throw new LabelValidationError('', 'This label search mode is not available for Documents.');
+    throw new LabelValidationError('', pageText['This label search mode is not available for Documents.']);
   const settings = await labelSettings(db as pg.Pool);
   const attached = new Set(
     (await db.query<{ mst_label_id: number }>('SELECT mst_label_id FROM rep_label WHERE rep_top_id=$1', [id])).rows.map(
@@ -169,7 +170,7 @@ async function requireEdit(client: Database, id: number, user: string) {
       [id, user],
     )
   ).rows[0];
-  if (!row) throw new LabelValidationError('access', 'Role authority is insufficient.');
+  if (!row) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
 }
 
 export async function documentSaveLabelChanges(
@@ -189,7 +190,7 @@ export async function documentSaveLabelChanges(
         .map((row) => row.mst_label_id),
     );
     if (ids.some((label) => !allowed.has(label)))
-      throw new LabelValidationError('', 'A selected label is unavailable or belongs to a binder.');
+      throw new LabelValidationError('', pageText['A selected label is unavailable or belongs to a binder.']);
     // The whole draft commits together; a late failure must not leave a partly applied label selection.
     for (const label of ids) {
       await client.query('DELETE FROM rep_label WHERE rep_top_id=$1 AND mst_label_id=$2', [id, label]);
@@ -223,7 +224,7 @@ export async function documentSaveRoleChanges(
     await requireEdit(client, id, user);
     const roles = await documentDetailRoles(client, id);
     if (Object.keys(changes).some((group) => !roles.some((row) => String(row.group_id) === group)))
-      throw new LabelValidationError('', 'A selected group is unavailable.');
+      throw new LabelValidationError('', pageText['A selected group is unavailable.']);
     await client.query('DELETE FROM rep_role WHERE rep_top_id=$1', [id]);
     for (const row of roles) {
       const role = changes[row.group_id] ?? row;
@@ -252,12 +253,13 @@ export async function documentSaveRoleChanges(
 
 export async function documentAdministratorId() {
   const settings = clientSettingsDirectory();
-  if (!settings) throw new Error('Client settings directory is unavailable.');
+  if (!settings) throw new Error(pageText['Client settings directory is unavailable.']);
   const admin: unknown = new XMLParser({ parseTagValue: false, trimValues: false }).parse(
     await readFile(join(settings, 'Admin.xml'), 'utf8'),
   );
   const adminId = (admin as { ConMas?: { userId?: unknown } })?.ConMas?.userId;
-  if (typeof adminId !== 'string' || !adminId) throw new Error('Administrator audit identity is unavailable.');
+  if (typeof adminId !== 'string' || !adminId)
+    throw new Error(pageText['Administrator audit identity is unavailable.']);
   return adminId;
 }
 

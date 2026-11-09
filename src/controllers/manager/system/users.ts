@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import type { Express, Response } from 'express';
 import type pg from 'pg';
 import sharp from 'sharp';
@@ -72,7 +73,12 @@ export function registerUsers(
       active: 'System',
       section: 'UserList',
       login: false,
-      title: mode === 'CreateUser' ? 'Create User' : mode === 'EditUser' ? 'Edit User' : 'User details',
+      title:
+        mode === 'CreateUser'
+          ? pageText['Create User']
+          : mode === 'EditUser'
+            ? pageText['Edit User']
+            : pageText['User details'],
       userName: res.locals.userName,
       userPage: { mode, record, error, groups: groups ?? (await groupRows(String(record.user_id ?? ''))) },
     });
@@ -88,7 +94,8 @@ export function registerUsers(
     const count = Number(
       (await db.query("SELECT count(*) AS count FROM mst_user WHERE user_id<>'conmasadmin'")).rows[0].count,
     );
-    if (count >= licenseCounts().User) return res.status(409).send('The licensed user count has been reached.');
+    if (count >= licenseCounts().User)
+      return res.status(409).send(pageText['The licensed user count has been reached.']);
     return show(res, 'CreateUser', {
       user_id: '',
       user_name: '',
@@ -105,13 +112,13 @@ export function registerUsers(
       const id = typeof req.query.id === 'string' ? req.query.id : '';
       if (id === 'conmasadmin') return res.redirect(`${root}/EditAdmin`);
       const record = await load(id);
-      if (!record) return res.status(404).send('User not found.');
+      if (!record) return res.status(404).send(pageText['User not found.']);
       return show(res, action, record);
     });
   app.post(`${root}/DetailsUser`, async (req, res) => {
     const id = input(req.body, 'mst_user.user_id');
     if (id === 'conmasadmin') return res.sendStatus(403);
-    if (!(await load(id))) return res.status(404).send('User not found.');
+    if (!(await load(id))) return res.status(404).send(pageText['User not found.']);
     if (req.body.act === 'delete') {
       const before = await userAuditSnapshot(db, id);
       try {
@@ -143,7 +150,7 @@ export function registerUsers(
       record.meid_oid = input(req.body, 'mst_user.MeIdOid');
       if (record.user_id === 'conmasadmin') return res.sendStatus(403);
       const old = create ? null : await load(record.user_id);
-      if (!create && !old) return res.status(404).send('User not found.');
+      if (!create && !old) return res.status(404).send(pageText['User not found.']);
       const groups = await groupRows(record.user_id);
       const memberships: {
         group_id: number;
@@ -225,7 +232,7 @@ export function registerUsers(
       }
       if (error) return show(res.status(400), action, { ...old, ...record }, error, groups);
       const key = process.env.CONMAS_LEGACY_KEY;
-      if (!key) return res.status(503).send('Password encryption key is not configured.');
+      if (!key) return res.status(503).send(pageText['Password encryption key is not configured.']);
       const client = await db.connect();
       try {
         await client.query('BEGIN');

@@ -1,4 +1,4 @@
-<% const name = 'rep_clusters[' + index + '].', id = 'rep_clusters_' + index + '__';
+<% const ui = managerResources["documents"]; %><% const name = 'rep_clusters[' + index + '].', id = 'rep_clusters_' + index + '__';
    const attributes = 'onChange="onChangeEditText(this,' + index + ');"';
    if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
 <% } else if (row.cluster_role !== '1' || ['Approve','Create','Inspect','Image','DrawingImage','FixedText','FreeText','FreeDraw','AudioRecording'].includes(row.cluster_type)) { %>
@@ -8,8 +8,8 @@
   <input type="checkbox" id="<%= id %>input_check_value" name="<%= name %>input_check_value" value="true"<% if (row.input_check_value) { %> checked<% } %> onChange="onChangeEditCheck(this,<%= index %>);" aria-label="<%= row.cluster_name %>"><input type="hidden" name="<%= name %>input_check_value" value="false">
 <% } else if (['Date','CalendarDate'].includes(row.cluster_type)) { %>
   <% if (!row.useTime) { %><div class="datetime"><input id="<%= id %>input_value" name="<%= name %>input_value" value="<%= row.input_value || '' %>" <%- attributes %> aria-label="<%= row.cluster_name %>"></div>
-  <% } else { %><div class="datetime" style="display: inline-block;"><input id="<%= id %>input_value_date" name="<%= name %>input_value_date" value="<%= row.input_value_date %>" <%- attributes %> aria-label="<%= row.cluster_name %> (date)"></div>
-    <div style="display: inline-block;"><input id="<%= id %>input_value_time" name="<%= name %>input_value_time" value="<%= row.input_value_time %>" <%- attributes %> aria-label="<%= row.cluster_name %> (time)"></div>
+  <% } else { %><div class="datetime" style="display: inline-block;"><input id="<%= id %>input_value_date" name="<%= name %>input_value_date" value="<%= row.input_value_date %>" <%- attributes %> aria-label="<%= row.cluster_name %> <%= ui["(date)"] %>"></div>
+    <div style="display: inline-block;"><input id="<%= id %>input_value_time" name="<%= name %>input_value_time" value="<%= row.input_value_time %>" <%- attributes %> aria-label="<%= row.cluster_name %> <%= ui["(time)"] %>"></div>
     <script type="text/javascript"><%- include('scripts/cluster-input', {kind: 'date-time', index}) %></script>
   <% } %>
 <% } else if (row.cluster_type === 'Time') { %>

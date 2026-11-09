@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import sharp from 'sharp';
 import { documentAdministratorId, documentDetail } from './details.js';
@@ -28,7 +29,7 @@ export function documentHistorySort(column: unknown, direction: unknown) {
   const sortColumn = labelString(column) || 'sys_update_time',
     sortDirection = labelString(direction) || 'ASC';
   if (!documentHistoryHeaders.some(([name]) => name === sortColumn) || !['ASC', 'DESC'].includes(sortDirection))
-    throw new LabelValidationError('', 'Invalid history sort.');
+    throw new LabelValidationError('', pageText['Invalid history sort.']);
   const selected =
     sortColumn === 'GPS'
       ? `h.gps_lat ${sortDirection},h.gps_lon`
@@ -50,7 +51,7 @@ export async function documentReportHistory(
   all = false,
 ) {
   if (!(await documentDetail(db, id, user)))
-    throw new LabelValidationError('access', 'Role authority is insufficient.');
+    throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
   const sort = documentHistorySort(input['PageData.SortColumn'], input['PageData.SortDirection']);
   const common = (
     await db.query(
@@ -60,7 +61,7 @@ export async function documentReportHistory(
   const defaultSize = labelInteger(common.find((row) => row.com_key === 'DEFAULT_PAGE_SIZE')?.com_value, 20);
   const size = labelInteger(input['PageData.PageSize'], defaultSize),
     requested = labelInteger(input['PageData.PageIndex'], 0);
-  if (size <= 0 || requested < 0) throw new LabelValidationError('', 'Invalid page size or index.');
+  if (size <= 0 || requested < 0) throw new LabelValidationError('', pageText['Invalid page size or index.']);
   const pageSizes = common
     .filter((row) => row.com_key === 'PAGE_SIZE')
     .map((row) => labelInteger(row.com_value))
@@ -111,7 +112,7 @@ export async function documentHistoryCsv(
       )
     ).rows[0]?.com_value || '65001';
   if (!['65001', '932'].includes(encoding))
-    throw new LabelValidationError('pending', 'This history CSV encoding has not been migrated.');
+    throw new LabelValidationError('pending', pageText['This history CSV encoding has not been migrated.']);
   const date = new Date(),
     entries: Array<{ name: string; data: Buffer; date: Date }> = [],
     lines: unknown[][] = [documentHistoryHeaders.map(([, label]) => r[label])];
@@ -130,10 +131,10 @@ export async function documentHistoryCsv(
           user,
         );
         if (!binary || !Buffer.isBuffer(binary.data))
-          throw new LabelValidationError('access', 'History media is unavailable.');
+          throw new LabelValidationError('access', pageText['History media is unavailable.']);
         const extension = image ? (await sharp(binary.data).metadata()).format : row.recording_file_extension || 'm4a';
         if (!extension || !/^[A-Za-z0-9]+$/.test(String(extension)))
-          throw new LabelValidationError('pending', 'History media format has not been migrated.');
+          throw new LabelValidationError('pending', pageText['History media format has not been migrated.']);
         inputValue = `${historyFileName(row.history_id)}_${row.cluster_id}_${historyFileName(row.cluster_name)}.${extension}`;
         entries.push({ name: inputValue, data: binary.data, date });
       }

@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { labelChecked, labelInteger, labelString, LabelValidationError } from '../labels/index.js';
 import { irfdAttachments, irfdImageLocation, irfdImagePreview } from '../../../shared/irfd.js';
@@ -71,7 +72,7 @@ export async function documentMedia(
   if (action === 'GetFdPdf' || action === 'GetIrfdImage') {
     const format = labelString(input.format);
     if (action === 'GetIrfdImage' && !['jpeg', 'png'].includes(format))
-      throw new LabelValidationError('format', 'Invalid image format.');
+      throw new LabelValidationError('format', pageText['Invalid image format.']);
     row = (
       await db.query(
         `SELECT f.${action === 'GetFdPdf' ? 'pdf_file' : 'irfd_file'} AS data FROM rep_fd_sheet f
@@ -104,7 +105,7 @@ export async function documentMedia(
     ).rows[0];
   } else if (action === 'GetLayerDraw') {
     const type = labelString(input.type);
-    if (!['layer', 'cluster'].includes(type)) throw new LabelValidationError('type', 'Invalid drawing type.');
+    if (!['layer', 'cluster'].includes(type)) throw new LabelValidationError('type', pageText['Invalid drawing type.']);
     row = (
       await db.query(
         `SELECT d.image_file AS data FROM rep_${type}_draw d JOIN rep_sheet s USING(rep_sheet_id)
@@ -126,7 +127,7 @@ export async function documentMedia(
     const history = action === 'GetHistoryImage',
       imageType = labelString(input.imageType);
     if (history && !['0', '1', '2'].includes(imageType))
-      throw new LabelValidationError('imageType', 'Invalid history image type.');
+      throw new LabelValidationError('imageType', pageText['Invalid history image type.']);
     signature = history ? imageType === '1' : labelChecked(input.signFlg);
     audio = history ? imageType === '2' : action === 'GetRecordingValue';
     const column = audio ? 'recording_file' : signature ? 'approval_sign' : 'image_file';

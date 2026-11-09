@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import type { Express, Request, Response } from 'express';
 import type pg from 'pg';
@@ -63,7 +64,7 @@ const logConfigs: Record<LogKind, LogConfig> = {
   operation: {
     route: 'OperationLog',
     deleteRoute: 'DeleteOperationLog',
-    title: 'Login history',
+    title: pageText['Login history'],
     table: 'conmas_operation_log',
     timeColumn: 'log.log_time',
     tieBreaker: 'log.log_id',
@@ -87,7 +88,7 @@ const logConfigs: Record<LogKind, LogConfig> = {
   definition: {
     route: 'DefinitionFormOperationLog',
     deleteRoute: 'DeleteDefinitionFormOperationLog',
-    title: 'Form operation history',
+    title: pageText['Form operation history'],
     table: 'log_def_top',
     timeColumn: 'log.sys_update_time',
     tieBreaker: 'log.def_top_id',
@@ -102,7 +103,7 @@ const logConfigs: Record<LogKind, LogConfig> = {
   inputReport: {
     route: 'InputReportOperationLog',
     deleteRoute: 'DeleteInputReportOperationLog',
-    title: 'Input document operation history',
+    title: pageText['Input document operation history'],
     table: 'log_rep_top',
     timeColumn: 'log.sys_update_time',
     tieBreaker: 'log.rep_top_id',
@@ -613,9 +614,9 @@ function gateUnavailableFreeDrawOnlyLogs(kind: LogKind, res: Response) {
   if (kind === 'operation') return null;
   try {
     if (!licenseStatus().freeDrawOnly) return null;
-    return res.status(403).type('text/plain').send('Role authority is insufficient.');
+    return res.status(403).type('text/plain').send(pageText['Role authority is insufficient.']);
   } catch {
-    return res.status(503).type('text/plain').send('License information is unavailable.');
+    return res.status(503).type('text/plain').send(pageText['License information is unavailable.']);
   }
 }
 

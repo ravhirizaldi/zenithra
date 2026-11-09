@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/documents/resources.js';
 import type pg from 'pg';
 import { identifyClientApprover } from '../../client-catalog.js';
 import { labelInteger, labelString, LabelValidationError } from '../labels/index.js';
@@ -6,7 +7,7 @@ export async function documentIdentificationRequired(db: Pick<pg.Pool, 'query'>,
   const ids = labelString(input)
     .split(',')
     .map((id) => labelInteger(id));
-  if (ids.some((id) => id <= 0)) throw new LabelValidationError('repTopIds', 'Select valid reports.');
+  if (ids.some((id) => id <= 0)) throw new LabelValidationError('repTopIds', pageText['Select valid reports.']);
   const rows = (
     await db.query(
       `SELECT a.use_identification FROM rep_top a WHERE a.rep_top_id=ANY($1::int[]) AND a.deleted=0
@@ -16,7 +17,7 @@ export async function documentIdentificationRequired(db: Pick<pg.Pool, 'query'>,
     )
   ).rows;
   if (rows.length !== new Set(ids).size)
-    throw new LabelValidationError('repTopIds', 'A selected report is unavailable.');
+    throw new LabelValidationError('repTopIds', pageText['A selected report is unavailable.']);
   const mode = (
     await db.query(
       "SELECT com_value FROM mst_common WHERE com_key='IDENTIFICATION_SETTING' AND com_name='ENABLE_IDENTIFICATION' ORDER BY com_index LIMIT 1",

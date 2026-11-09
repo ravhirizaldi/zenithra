@@ -1,4 +1,4 @@
-<% const checkbox = (name, label, dependent = false) => { const field = output.fields.find(field => field.name === name); %>
+<% const ui = managerResources["documents"]; %><% const checkbox = (name, label, dependent = false) => { const field = output.fields.find(field => field.name === name); %>
   <label><input type="checkbox" id="rep_top_<%= output.name %>_<%= name %>" name="rep_top.<%= output.name %>.<%= name %>" value="true" <%= field.checked ? 'checked' : '' %> <%= edit ? '' : 'disabled' %> <% if (edit && dependent) { %>onclick="outputFileSelect(this, false);"<% } %>><% if (edit) { %><input type="hidden" name="rep_top.<%= output.name %>.<%= name %>" value="false"><% } %><%= r[label] || label %></label>
 <% }; %>
 <% checkbox('Csv','CsvVertical',true); %>

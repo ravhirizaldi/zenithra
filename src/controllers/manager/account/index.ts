@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/account/resources.js';
 import type { Express } from 'express';
 import type pg from 'pg';
 import { base } from '../../../config/manager.js';
@@ -17,11 +18,11 @@ export function registerAccountController(
     if (typeof req.query.timeout === 'string' && req.query.timeout)
       return res.redirect(`${base}/Account/LogOff?timeout=true`);
     if (!authEnabled || req.session.userId) return res.redirect(`${base}/`);
-    return page(res, { active: '', section: '', login: true, title: 'Log In' });
+    return page(res, { active: '', section: '', login: true, title: pageText['Log In'] });
   });
   app.post(`${base}/Account/LogOn`, async (req, res) => {
     if (!authEnabled || !database)
-      return res.status(501).type('text/plain').send('Authentication is disabled for the local catalog.');
+      return res.status(501).type('text/plain').send(pageText['Authentication is disabled for the local catalog.']);
     if (await handleMeIdAccountCallback(database, req, res)) return;
     const userId = typeof req.body.UserName === 'string' ? req.body.UserName.trim() : '';
     const password = typeof req.body.Password === 'string' ? req.body.Password : '';
@@ -30,19 +31,26 @@ export function registerAccountController(
         active: '',
         section: '',
         login: true,
-        title: 'Log In',
-        loginError: 'Enter a valid user name and password.',
+        title: pageText['Log In'],
+        loginError: pageText['Enter a valid user name and password.'],
       });
     }
     const legacyKey = process.env.CONMAS_LEGACY_KEY;
-    if (!legacyKey) return res.status(503).type('text/plain').send('Password encryption key is not configured.');
+    if (!legacyKey)
+      return res.status(503).type('text/plain').send(pageText['Password encryption key is not configured.']);
     const result = await authenticate(database, userId, password, legacyKey);
     if (!result.user) {
       if (result.logContent) {
         const context = managerLogContext(req, userId, '');
         if (await logManagerOperation(database, context, result.logContent)) req.session.operationLogContext = context;
       }
-      return page(res.status(401), { active: '', section: '', login: true, title: 'Log In', loginError: result.error });
+      return page(res.status(401), {
+        active: '',
+        section: '',
+        login: true,
+        title: pageText['Log In'],
+        loginError: result.error,
+      });
     }
     await new Promise<void>((resolve, reject) =>
       req.session.regenerate((error) => (error ? reject(error) : resolve())),
@@ -60,7 +68,13 @@ export function registerAccountController(
   );
   app.get(`${base}/Account/LogOff`, async (req, res) => {
     if (!authEnabled)
-      return page(res, { active: '', section: '', login: true, title: 'Local preview closed', loggedOut: true });
+      return page(res, {
+        active: '',
+        section: '',
+        login: true,
+        title: pageText['Local preview closed'],
+        loggedOut: true,
+      });
     req.session.logoutContent = 'Logout';
     await new Promise<void>((resolve, reject) => req.session.save((error) => (error ? reject(error) : resolve())));
     await new Promise<void>((resolve, reject) => req.session.destroy((error) => (error ? reject(error) : resolve())));

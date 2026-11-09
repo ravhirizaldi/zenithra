@@ -1,3 +1,4 @@
+import { text as pageText } from '../../../config/manager/system/resources.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import { randomBytes } from 'node:crypto';
 import { createRequire } from 'node:module';
@@ -266,7 +267,7 @@ async function authRedirectUrl(db: pg.Pool): Promise<string> {
 
 async function getClientId(db: pg.Pool): Promise<string> {
   const baseUrl = await authRedirectUrl(db);
-  if (!baseUrl) throw new Error('GetClientId failed.');
+  if (!baseUrl) throw new Error(pageText['GetClientId failed.']);
   const response = await fetch(`${baseUrl}/GetClientId`, {
     method: 'POST',
     headers: {
@@ -275,7 +276,7 @@ async function getClientId(db: pg.Pool): Promise<string> {
     },
     signal: AbortSignal.timeout(30000),
   });
-  if (!response.ok) throw new Error('GetClientId failed.');
+  if (!response.ok) throw new Error(pageText['GetClientId failed.']);
   const body = (await response.json()) as Record<string, unknown>;
   return typeof body.clientId === 'string' ? body.clientId : '';
 }
@@ -285,7 +286,7 @@ async function apiJson(url: string, accessToken: string, locale: string): Promis
     headers: { authorization: `Bearer ${accessToken}`, 'X-Locale': locale.slice(0, 2) || 'en' },
     signal: AbortSignal.timeout(30000),
   });
-  if (!response.ok) throw new Error('IWpro API request failed.');
+  if (!response.ok) throw new Error(pageText['IWpro API request failed.']);
   return (await response.json()) as Record<string, unknown>;
 }
 
@@ -302,7 +303,7 @@ async function loginUserName(accessToken: string, locale: string): Promise<strin
 
 function expiresAt(seconds: number): string {
   const date = new Date(Date.now() + seconds * 1000);
-  if (!Number.isFinite(date.getTime())) throw new Error('Invalid token expiration.');
+  if (!Number.isFinite(date.getTime())) throw new Error(pageText['Invalid token expiration.']);
   return `${date.getFullYear()}/${String(date.getMonth() + 1).padStart(2, '0')}/${String(date.getDate()).padStart(2, '0')} ${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}:${String(date.getSeconds()).padStart(2, '0')}`;
 }
 
@@ -619,7 +620,7 @@ async function rerunLog(db: pg.Pool, target: string): Promise<void> {
   const pool = poolDirectory();
   if (!pool)
     throw new Error(
-      'Client settings path is not configured. Set CONMAS_CLIENT_SETTINGS before rerunning IWpro uploads.',
+      pageText['Client settings path is not configured. Set CONMAS_CLIENT_SETTINGS before rerunning IWpro uploads.'],
     );
   const row = (
     await db.query<{ rep_top_id: number; interface_xml: string | null }>(
@@ -629,7 +630,7 @@ async function rerunLog(db: pg.Pool, target: string): Promise<void> {
   ).rows[0];
   if (!row) return;
   if (typeof row.interface_xml !== 'string' || !row.interface_xml)
-    throw new Error('Upload log does not contain its rerun interface file.');
+    throw new Error(pageText['Upload log does not contain its rerun interface file.']);
   const document = parser.parse(row.interface_xml) as Record<string, unknown>;
   const rootName = Object.keys(document)[0];
   const content = rootName ? document[rootName] : null;
@@ -643,7 +644,7 @@ async function suspendLog(target: string): Promise<void> {
   const pool = poolDirectory();
   if (!pool)
     throw new Error(
-      'Client settings path is not configured. Set CONMAS_CLIENT_SETTINGS before suspending IWpro uploads.',
+      pageText['Client settings path is not configured. Set CONMAS_CLIENT_SETTINGS before suspending IWpro uploads.'],
     );
   if (!/^\d{1,10}$/.test(target)) return;
   const file = path.join(pool, `${target}.xml`);
@@ -661,7 +662,7 @@ export function registerIwpro(app: Express, db: pg.Pool, renderPage: PageRendere
         authenticated: false,
         user: '',
         canEdit: false,
-        error: 'Server error has been occurred.',
+        error: pageText['Server error has been occurred.'],
       });
     }
   });
@@ -738,7 +739,7 @@ export function registerIwpro(app: Express, db: pg.Pool, renderPage: PageRendere
         downloadLimit: 0,
         canEdit: false,
         canDelete: false,
-        error: 'Server error has been occurred.',
+        error: pageText['Server error has been occurred.'],
       });
     }
   });
@@ -764,7 +765,7 @@ export function registerIwpro(app: Express, db: pg.Pool, renderPage: PageRendere
         if (ids.length) await db.query('DELETE FROM log_iwpro_upload WHERE log_id = ANY($1::text[])', [ids]);
       } else if (action === 'RERUN') {
         const target = value(req.body, 'TargetId');
-        if (target.length > 64) return res.status(400).send('Invalid upload log ID.');
+        if (target.length > 64) return res.status(400).send(pageText['Invalid upload log ID.']);
         try {
           await rerunLog(db, target);
         } catch (cause) {
@@ -797,7 +798,7 @@ export function registerIwpro(app: Express, db: pg.Pool, renderPage: PageRendere
         downloadLimit: 0,
         canEdit: false,
         canDelete: false,
-        error: 'Server error has been occurred.',
+        error: pageText['Server error has been occurred.'],
       });
     }
   });

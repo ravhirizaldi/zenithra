@@ -1,0 +1,112 @@
+
+    $(function () {
+        $("#MessageWrap .PartialViewMessage").empty();
+        if ($(".PartialViewMessage li").length == 1 &&
+            $(".PartialViewMessage li").css("display") == "none") {
+            $(".PartialViewMessage").css("display", "none");
+
+        } else {
+            $(".PartialViewMessage").appendTo("#MessageWrap");
+            // エラーがあれば、トップへスクロール
+            if ($("#MessageWrap")[0].innerText != "") {
+                window.scroll(0, 0);
+            }
+        }
+
+        fConMasPdfSheetSelect();
+
+        outputSettingSelect(true);
+        editOutputSettingSelect(true);
+    });
+
+    function fConMasPdfSheetSelect() {
+        if ($("#rep_top_PdfAutoOutputSheetSelect")[0].checked) {
+            $("#rep_top_PdfAutoOutputSheetSelectNo").prop("disabled", true);
+        }
+        else {
+            $("#rep_top_PdfAutoOutputSheetSelectNo").prop("disabled", false);
+        }
+    };
+
+    function setDisabled(element, disabled) {
+        if (disabled)
+            $(element).prop("disabled", true);
+        else
+            $(element).prop("disabled", false);
+    }
+
+    function setDefaultValue(element, defaultValue) {
+        var value = $(element).val();
+        if (!value)
+            $(element).val(defaultValue);
+    }
+
+    function pdfFontSizeDeductionAmount(element) {
+        if (!/^[1-9][0-9]{0,5}\.{0,1}[0-9]{0,5}$/.test(element.value))
+            element.value = element.value
+                .replace(/[^0-9\.]+/i, '')
+                .replace(/^0+/, '0')
+                .replace(/^\.+/g, '')
+                .replace(/\./, '#')
+                .replace(/\./g, '')
+                .replace(/#/, '.');
+    }
+
+    function outputSettingSelect(init) {
+        $("#outputFilesSetting").children('label').children("input[type='checkbox']").each(function () {
+            if ($("input[name='rep_top.output_setting']:checked").val() != "2" && !init) {
+                $(this).prop("checked", false);
+            }
+            outputFileSelect($(this), init);
+        });
+
+        if ($("input[name='rep_top.output_setting']:checked").val() == "2") {
+            $("#outputFilesSetting").show();
+        } else {
+            $("#outputFilesSetting").hide();
+        }
+    }
+
+    function editOutputSettingSelect(init) {
+        $("#editOutputFilesSetting").children('label').children("input[type='checkbox']").each(function () {
+            if ($("input[name='rep_top.edit_output_setting']:checked").val() != "2" && !init) {
+                $(this).prop("checked", false);
+            }
+            outputFileSelect($(this), init);
+        });
+
+        if ($("input[name='rep_top.edit_output_setting']:checked").val() == "2") {
+            $("#editOutputFilesSetting").show();
+
+        } else {
+            $("#editOutputFilesSetting").hide();
+        }
+    }
+
+    function outputFileSelect(obj, init) {
+        $(obj).parent().next().children('label').each(function () {
+            if (!$(obj).prop("disabled") && $(obj).prop("checked")) {
+                $(this).children("input[type='checkbox']").prop("disabled", false);
+            } else {
+                $(this).children("input[type='checkbox']").prop("disabled", true);
+                if (!init) {
+                    $(this).children("input[type='checkbox']").prop("checked", false);
+                }
+            }
+            outputFileSelect($(this).children("input[type='checkbox']"), init);
+        });
+    }
+
+    function editOutputFileChecked() {
+        // disabledのチェック状態をhidden値と同期させる(設定不具合等でdisabledでcheckedになるものがあった場合にtrueを送信するため)
+        $("#outputFilesSetting").find("input[type='checkbox']:disabled").each(function () {
+            if ($(this).prop("checked")) {
+                $(this).next(":hidden").val(true);
+            }
+        });
+        $("#editOutputFilesSetting").find("input[type='checkbox']:disabled").each(function () {
+            if ($(this).prop("checked")) {
+                $(this).next(":hidden").val(true);
+            }
+        });
+    }

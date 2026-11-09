@@ -1,0 +1,266 @@
+
+    //Ajaxキャッシュしない
+    $.ajaxSetup({
+        cache: false
+    });
+
+    //カレンダー表示
+    $(function () {
+        // カレンダーへ自動遷移
+        if ('<%= closed %>' == '2') {
+            // 強制登録時の対応
+            if (confirm('<%= r.ScheduledForAnotherDay %>')) {
+                checkSelectReportData('Submit');
+                $("#taskRegistForm").trigger('submit');
+            }
+        }
+        else {
+            if ('<%= closed %>' == '1') {
+                if ($("#RequestKbn").val() == '4') {
+                    $('#contentTask').hide();
+                    $("#TaskResistInfo_SetttingTaskRegistUser").val('')
+                    linkSchduleCalendar($("#TaskResistInfo_SetttingTaskRegistUser").val())
+                }
+                else {
+                    $('#contentTask').hide();
+                    $("#CalendarViewLinkButton")[0].click();
+                }
+            }
+        }
+
+        $('#SchData_start_date').datepicker($.datepicker.regional[browserLanguage()]);
+        $('#SchData_end_date').datepicker($.datepicker.regional[browserLanguage()]);
+
+        $('#SchData_FromTime').timepicker({ 'timeFormat': 'H:i' });
+        $('#SchData_ToTime').timepicker({ 'timeFormat': 'H:i' });
+        $('#contentTask').scrollTop(0, 0);
+
+    });
+
+    // タスククリア
+    function taskClear() {
+        $('#SchData_task_id').val(0);
+        $('#SchData_task_name').val("");
+        $('#SchData_task_remark').val("");
+        $('#SchData_task_name').prop('readonly', false);
+        $('#SchData_task_remark').prop('readonly', false);
+    };
+
+    // 作業者（グループ追加）
+    function addGroup() {
+        var selected = $('#GroupList option:selected');
+        var groupList = $('#SelectGroups');
+        var userList = $('#SelectUsers');
+
+        if (groupList != selected) {
+            groupList.empty();
+            groupList.append(selected.clone());
+        }
+
+        userList.children().each(function (num, elm) {
+            if ($('#UserList option[value="' + jqid(elm.value) + '"]').length == 0) {
+                $('#UserList').append(elm);
+            }
+        });
+        userList.empty();
+
+        groupList.children().each(function (num, elm) {
+            elm.selected = true;
+        });
+        groupList.show();
+        userList.hide();
+
+    };
+
+    // 作業者（グループ削除）
+    function delGroup() {
+        var selected = $('#SelectGroups option:selected');
+        var groupList = $('#GroupList');
+        selected.remove();
+        $('#SelectUsers').children().each(function (num, elm) {
+            elm.selected = true;
+        });
+    };
+
+    // 作業者（ユーザー追加）
+    function addUser() {
+        var selected = $('#UserList option:selected');
+        var groupList = $('#SelectGroups');
+        var userList = $('#SelectUsers');
+
+        groupList.empty();
+
+        selected.each(function (num, elm) {
+            userList.append($(elm).clone());
+        });
+
+        selected.remove();
+
+        groupList.hide();
+        userList.children().each(function (num, elm) {
+            elm.selected = true;
+        });
+        userList.show();
+    };
+
+    // 作業者（ユーザー削除）
+    function delUser() {
+        var selected = $('#SelectUsers option:selected');
+        var userList = $('#UserList');
+        selected.each(function (num, elm) {
+            if (userList.find('option[value="' + jqid(elm.value) + '"]').length == 0) {
+                userList.append($(elm).clone());
+            }
+        });
+        selected.remove();
+        $('#SelectUsers').children().each(function (num, elm) {
+            elm.selected = true;
+        });
+
+        fSortGroupList('UserList');
+    };
+
+    function jqid (id) {
+        return (!id) ? null : '#' + id.replace(/(:|\.|\[|\]|,|=|@)/g, '\\$1');
+    }
+
+    function fSortGroupList(listname) {
+        var $r = $('#' + listname + ' option');
+        $r.sort(function (a, b) {
+            return (a.value < b.value) ? -1 : (a.value > b.value) ? 1 : 0;
+        });
+        $($r).remove();
+        $('#' + listname).append($($r));
+    }
+
+    function checkSelectReportData(submitActionType) {
+        if ($("#RequestKbn").val() == "0" || $("#RequestKbn").val() == "4") {
+            //-----------------------------
+            //選択帳票取得
+            //-----------------------------
+            if ($("#detailsTopId").length > 0) {
+                // 基本情報
+                var report_type = $('#SchData_report_type:checked');
+                if (report_type != null && report_type.val() == "true") {
+                    $("#SelectDefTask").val($("#detailsTopId").val());
+                } else {
+                    $("#SelectRepTask").val($("#detailsTopId").val());
+                }
+            }
+            else {
+                if ("InputReport" == "Schedule") {
+                    var report_type = $("#SchData_report_type:checked").val();
+                    if (report_type == "false") {
+                        // 帳票
+                        $("#SelectRepTask").val($(".searchRepAndDef #SchData_rep_top_id").val());
+                        var id = $("#SelectRepTask").val();
+                        if (id == "" || id == 0) {
+                            alert('<%= r.SelectDataMessage.replace('{0}', r.Report) %>');
+                            return false;
+                        }
+                    } else {
+                        // 帳票定義
+                        $("#SelectDefTask").val($(".searchRepAndDef #SchData_def_top_id").val());
+                        var id = $("#SelectDefTask").val();
+                        if (id == "" || id == 0) {
+                            alert('<%= r.SelectDataMessage.replace('{0}', r.DefinitionForm) %>');
+                            return false;
+                        }
+                    }
+                } else if ("InputReport" == "DefReport") {
+                   // 一覧
+                    var id = $("#SelectDefTask");
+                    id.val("");
+                    $("input[name=Cbx]:checked").map(function () {
+                        id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+                    });
+
+                    if (id.val() == "") {
+                        alert('<%= r.SelectDataMessage.replace('{0}', r.DefinitionForm) %>');
+                        return false;
+                    }
+                } else {
+                    // 一覧
+                    var id = $("#SelectRepTask");
+                    id.val("");
+                    $("input[name=Cbx]:checked").map(function () {
+                        id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+                    });
+
+                    if (id.val() == "") {
+                        alert('<%= r.SelectDataMessage.replace('{0}', r.Report) %>');
+                        return false;
+                    }
+                }
+            }
+
+
+        }
+        else {
+            $("#SelectRepTask").val("");
+            $("#SelectDefTask").val("");
+        }
+
+        $("#SchAction").val(submitActionType);
+        return true;
+    }
+
+    function deleteCheckFunc(submitActionType) {
+        if (confirm('<%= r.TASK_DELETE_CONFIRM_MSG %>')) {
+            $("#SchAction").val(submitActionType);
+            return true;
+        }
+        return false;
+    };
+
+    // submit
+    function submitActionFunc(submitActionType) {
+        $("#SchAction").val(submitActionType);
+        return true;
+    };
+
+    // submit ※未使用
+    function submitActionComboFunc(submitActionType) {
+        $("#SchAction").val(submitActionType);
+        $("#taskRegistForm").trigger('submit');
+        return true;
+    };
+
+    function submitActionComboCalFunc(submitActionType) {
+        $("#SchAction").val(submitActionType);
+        $("#taskRegistForm").trigger('submit');
+        return true;
+    };
+
+    function toTimeEvent(fromTime) {
+
+        var target_time = $("#SchData_ToTime");
+        if (target_time.val() == "") {
+            var time = fromTime.substr(0, 2) + fromTime.substr(3, 2);
+            var nextTime = Number(time) + 100;
+            nextTime = ('0000' + nextTime).slice(-4);
+            nextTime = nextTime.substr(0, 2) + ":" + nextTime.substr(2, 3);
+
+            $("#SchData_ToTime").val(nextTime);
+
+            // 時刻を設定して、終了日付が入っていなかったら設定
+            var target_date = $("#SchData_start_date");
+            var copy_date = target_date.val();
+            if (target_date.val() != "") {
+                $("#SchData_end_date").val(copy_date);
+            }
+        }
+
+        return true;
+    };
+
+    function toDateEvent(fromDate) {
+
+        var target_date = $("#SchData_end_date");
+        if (target_date.val() == "") {
+            $("#SchData_end_date").val(fromDate);
+        }
+
+        return true;
+    };
+

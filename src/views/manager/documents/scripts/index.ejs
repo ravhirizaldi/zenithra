@@ -1,0 +1,661 @@
+
+    //Ajaxキャッシュしない
+    $.ajaxSetup({
+        cache: false
+    });
+
+    $(function () {
+        // 常に画面アンロック
+        $(document).ajaxStop($.unblockUI);
+
+        // 承認ボタンを非表示に
+        $('#approveButton').hide();
+        $('#ApproveDialog').hide();
+
+        //ゴミ箱戻しボタンを非表示
+        $('#riviveBox').hide();
+        $('#physicalDeleteButton').hide();
+
+        //レイアウト
+        $("#Footer").css("bottom", "0px");
+        $("#Wrap").height($("#Footer").offset().top - $("#Wrap").offset().top - 30);
+        $("#SideWrap").height($("#Wrap").height() - 50);
+        $("#LabelSection").height($("#SideWrap").height() - (30 + $("#conmasLabelSearchBox").height()));
+        if ($("#Filters").width() >= 1280) {
+            $("#FiltersUl").css("left", "auto");
+        } else {
+            $("#FiltersUl").css("left", "580px");
+        }
+        $("#Filters").height($("#FiltersUl").height() + 15);
+        $("#GridSection").height($("#Wrap").height() - $("#Filters").height());
+
+        // popUp計算
+        $("#contentTask").width(document.documentElement.clientWidth * 0.6);
+        $("#contentTask").height(document.documentElement.clientHeight * 0.8);
+
+        $(window).on('resize', function () {
+            $("#Wrap").height($("#Footer").offset().top - $("#Wrap").offset().top - 30);
+            $("#SideWrap").height($("#Wrap").height() - 50);
+            $("#LabelSection").height($("#SideWrap").height() - (30 + $("#conmasLabelSearchBox").height()));
+            if ($("#Filters").width() >= 1280) {
+                $("#FiltersUl").css("left", "auto");
+            } else {
+                $("#FiltersUl").css("left", "580px");
+            }
+            $("#Filters").height($("#FiltersUl").height() + 15);
+            $("#GridSection").height($("#Wrap").height() - $("#Filters").height());
+
+            $("#MainWrap").css("margin-left", $("#SideWrap").width());
+
+            // popUp計算
+            $("#contentTask").width(document.documentElement.clientWidth * 0.6);
+            $("#contentTask").height(document.documentElement.clientHeight * 0.8);
+        });
+
+        $('#approveButton').css("left", 270 + 5 + $('#approveDivBox').width());
+        $('#physicalDeleteButton').css("left", 270 + 5 + $('#approveDivBox').width());
+
+        $("#formLabelView").trigger('submit');
+
+        // 詳細画面からの遷移以外は保存値を削除
+        if ($('#Act').val() != "BACK_INDEX") {
+            localStorage.removeItem("selectedDefTopId");
+            localStorage.removeItem("selectedRepTopId");
+            localStorage.removeItem("defListScrollTop");
+            localStorage.removeItem("repListScrollTop");
+        }
+
+        //ラベル適用一覧絞込み
+        $("#LinkLabelDialog").find("input[type=submit]:first").on('click', function () {
+            $("#LinkLabelDialog li").each(function () {
+                if (!new String($(this).html()).match($("#SearchLabelName").val())) {
+                    $(this).hide();
+                } else {
+                    $(this).show();
+                };
+            });
+            return false;
+        });
+
+        // モーダルウィンドウ表示
+        $('a[rel*=leanModal]').leanModal({ top: 200, closeButton: ".modal_close" });
+        if ($("#IsLabelError").val() == "1") {
+            $("#go")[0].click();
+        }
+
+        // 定義一覧読み込み
+        $('#contentTask').on('click', 'input#searchTask', function () {
+            searchTask();
+        });
+
+        // 読み込み時に一度だけ実行。
+        $("#searchTaskButton").trigger('click');
+
+        // 帳票/定義 検索切り替え
+        $('#contentTask').on('click', 'input#SchData_report_type', function () {
+            if ($(this).val() == "false") {
+                $('.searchRepAndDef .def').hide();
+                $('.searchRepAndDef .rep').show();
+            } else {
+                $('.searchRepAndDef .def').show();
+                $('.searchRepAndDef .rep').hide();
+            }
+        });
+    });
+
+    //ラベル一覧から選択
+    function label(id) {
+        $("#LabelID").val(id);
+
+        if ($("#LabelID").val() == "Trash") {
+            //ゴミ箱戻しボタンを表示
+            $('#trashBox').hide();
+            $('#riviveBox').show();
+            $('#physicalDeleteButton').show();
+        } else {
+            //ゴミ箱ボタンを表示
+            $('#trashBox').show();
+            $('#riviveBox').hide();
+            $('#physicalDeleteButton').hide();
+        }
+
+        // 削除ダイアログを非表示に
+        $("#DeleteDialog").hide();
+
+        $("#formReportIndex").trigger('submit');
+        return false;
+    };
+
+    //一覧のページ遷移
+    function page(pageIndex) {
+        $("#PageIndex").val(pageIndex);
+        $("#Act").val("PAGE");
+        $("#formReportIndex").trigger('submit');
+        return false;
+    };
+
+    //一覧のソート
+    function sort(column) {
+        if ($("#SortColumn").val() == column) {
+            if ($("#SortDirection").val() == "ASC") {
+                $("#SortDirection").val("DESC");
+            } else {
+                $("#SortDirection").val("ASC");
+            }
+        } else {
+            $("#SortColumn").val(column);
+            $("#SortDirection").val("ASC");
+        }
+
+        $("#formReportIndex").trigger('submit');
+        return false;
+    };
+
+    //一覧でチェックした帳票の削除
+    function removeAt(mode, actMode) {
+        var id = $("#ChkRepTopID");
+        id.val("");
+        $("input[name=Cbx]:checked").map(function () {
+            id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+        });
+
+        // ↓-----------------ゴミ箱からの復活 OR 物理削除------------------↓
+        // ゴミ箱表示時は、別処理（復活処理を行う）
+        if ($("#LabelID").val() == "Trash" && mode == "1") {
+            // 未チェック
+            if (id.val() == "") {
+                alert('<%= v.InputReportIndex_selectPhysicalDeleteReportMessage %>');
+                return false;
+            }
+            // 削除権限判定
+            for (var i = 0; i < $("input[type='checkbox'][name=Cbx]").length; i++) {
+                if ($("input[type='checkbox'][name=Cbx]")[i].checked) {
+                    if ($("input[name=deleteRoleFlg]")[i].value != "1") {
+                        alert('<%= v.existDeleteNoRoleMessage %>');
+                        return false;
+                    }
+                }
+            }
+
+            // 確認メッセージ
+            if (confirm('<%= v.InputReportIndex_physicalDeleteCheckMessage %>')) {
+                $("#Act").val("DELETE_PHYSICAL");
+                $("#ActMode").val(actMode);
+                $("#formReportIndex").trigger('submit');
+                // 画面ロック
+                fConMasLockView();
+            }
+            return false;
+
+        } else if ($("#LabelID").val() == "Trash") {
+            // 未チェック
+            if (id.val() == "") {
+                alert('<%= v.InputReportIndex_selectUnDeleteReportMessage %>');
+                return false;
+            }
+            // 削除権限判定
+            for (var i = 0; i < $("input[type='checkbox'][name=Cbx]").length; i++) {
+                if ($("input[type='checkbox'][name=Cbx]")[i].checked) {
+                    if ($("input[name=deleteRoleFlg]")[i].value != "1") {
+                        alert('<%= v.existDeleteNoRoleMessage %>');
+                        return false;
+                    }
+                }
+            }
+
+            // 確認メッセージ
+            if (confirm('<%= v.InputReportIndex_unDeleteCheckMessage %>')) {
+                $("#Act").val("DELETE_RETURN_REPORT");
+                $("#ActMode").val(actMode);
+                $("#formReportIndex").trigger('submit');
+            }
+            return false;
+        }
+        // ↑-----------------ゴミ箱からの復活 OR 物理削除------------------↑
+
+        if (id.val() == "") {
+            alert('<%= v.selectDeleteReportMessage %>');
+            return false;
+        }
+
+        for (var i = 0; i < $("input[type='checkbox'][name=Cbx]").length; i++) {
+            if ($("input[type='checkbox'][name=Cbx]")[i].checked) {
+                if ($("input[name=lockedFlg]")[i].value == "1") {
+                    alert('<%= v.existLockedReportMessage %>');
+                    return false;
+                }
+                if ($("input[name=deleteRoleFlg]")[i].value != "1") {
+                    alert('<%= v.existDeleteNoRoleMessage %>');
+                    return false;
+                }
+            }
+        }
+
+        if (confirm('<%= v.deleteCheckMessage %>')) {
+            $("#Act").val("DELETE_REPORT");
+            $("#ActMode").val(actMode);
+            $("#formReportIndex").trigger('submit');
+        }
+        return false;
+    };
+
+    //一覧にすべてチェックをつける
+    function checkAll(obj, id) {
+        var chk = $(obj).prop('checked');
+        $("#" + id + " input[type='checkbox'][name=Cbx]").prop('checked', chk);
+    };
+
+    function fConMasClearCheck() {
+        $("input[type='checkbox'][name=CbxLinkLabel]").prop('checked', false);
+    };
+
+    //フィルタ実行
+    function filter() {
+        $("#formReportIndex").trigger('submit');
+        fConMasLockView();
+        return false;
+    };
+
+    //フィルタ実行
+    function pageSizeFilter(obj) {
+        $("#PageSize").val($(obj).val());
+        $("#formReportIndex").trigger('submit');
+        return false;
+    };
+
+    //フィルタ実行 ※未使用
+    function approverFilter() {
+
+        if ($('#Approver_')[0].className == "offModeLabel") {
+            $('#Approver_')[0].className = "onModeLabel";
+            //承認ダイアログ表示ボタンを表示
+            $('#approveButton').show();
+
+        } else {
+            $('#Approver_')[0].className = "offModeLabel";
+            //承認ダイアログ表示ボタンを非表示
+            $('#approveButton').hide();
+            $('#ApproveDialog').hide();
+        }
+        $("#formReportIndex").trigger('submit');
+        return false;
+    };
+
+    //フィルタ実行 ※未使用
+    function appricantFilter() {
+
+        if ($('#Appricant_')[0].className == "offModeLabel") {
+            $('#Appricant_')[0].className = "onModeLabel";
+
+        } else {
+            $('#Appricant_')[0].className = "offModeLabel";
+        }
+
+        $("#formReportIndex").trigger('submit');
+        return false;
+    };
+
+    //ラベル適用
+    function linkLabel(status) {
+        //-----------------------------
+        //選択ラベル取得
+        //-----------------------------
+        id = $("#ChkLinkLabelID");
+        id.val("");
+        $("input[name=CbxLinkLabel]:checked").map(function () {
+            id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+        });
+
+        if (id.val() == "") {
+            alert('<%= v.selectLabelMessage %>');
+            return false;
+        }
+
+        for (var i = 0; i < $("input[type='checkbox'][name=Cbx]").length; i++) {
+            if ($("input[type='checkbox'][name=Cbx]")[i].checked) {
+                if ($("input[name=lockedFlg]")[i].value == "1") {
+                    alert('<%= v.existLockedReportMessage %>');
+                    return false;
+                }
+                if ($("input[name=updateRoleFlg]")[i].value != "1") {
+                    alert('<%= v.existUpdateNoRoleMessage %>');
+                    return false;
+                }
+            }
+        }
+
+        //-----------------------------
+        //選択帳票取得
+        //-----------------------------
+        var id = $("#ChkRepTopID");
+        id.val("");
+        $("input[name=Cbx]:checked").map(function () {
+            id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+        });
+
+        if (id.val() == "") {
+            alert('<%= v.selectReportMessage %>');
+            return false;
+        }
+
+        $("#Act").val("LINK_LABEL");
+        $("#LinkLabelStatus").val(status);
+        $("#formReportIndex").trigger('submit');
+        return true;
+    };
+
+    //承認
+    function approveAction(approveEditStatus, rep_top_id) {
+
+        if (rep_top_id == "") {
+            //-----------------------------
+            //選択帳票取得
+            //-----------------------------
+            var id = $("#ChkRepTopID");
+            id.val("");
+            $("input[name=Cbx]:checked").map(function () {
+                id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+            });
+
+            if (id.val() == "") {
+                alert('<%= v.selectApproveReportMessage %>');
+                return false;
+            }
+
+            for (var i = 0; i < $("input[type='checkbox'][name=Cbx]").length; i++) {
+                if ($("input[type='checkbox'][name=Cbx]")[i].checked) {
+                    if ($("input[name=approveFlg]")[i].value == "0") {
+                        alert('<%= v.existApproveRoleMessage %>');
+                        return false;
+                    }
+                }
+            }
+            $("#approveRepTopId").attr("value", "-1");
+        }
+        else {
+            $("#approveRepTopId").attr("value", rep_top_id);
+        }
+
+
+        var message = '<%= v.approveCheckMessage %>';
+        if (approveEditStatus == 3) {
+            message = '<%= v.InputReportIndex_remandCheckMessage %>';
+        }
+        if (confirm(message)) {
+            $("#approveEditStatus").attr("value", approveEditStatus);
+
+            if (approveEditStatus == 4) {
+                // 本人確認可否取得
+                var repTopIds = $("#approveRepTopId").val() == "-1" ? $("#ChkRepTopID").val() : $("#approveRepTopId").val();
+                var url = $("#GetIdentificationRequiredForm").prop('action');
+                var verificationToken = $("form[id='GetIdentificationRequiredForm']>input[name='__RequestVerificationToken']").val();
+                getIdentificationRequired(url, verificationToken, repTopIds, executeApprove, showIdentificationCodeDialog, showServerError);
+                return false;
+            } else {
+                // 差し戻し
+                fConMasLockView();
+                $("#Act").val("APPROVE");
+                $('#ApproveDialog').hide();
+                return true;
+            }
+        }
+        return false;
+    };
+
+    function executeApprove(state) {
+        // 画面ロック
+        fConMasLockView();
+        $("#approveIdentificationState").val(state);
+        $("#Act").val("APPROVE");
+        $("#conmasIdentificationCloseButton").trigger('click');
+        $('#ApproveDialog').hide();
+        $("#formReportIndex").trigger('submit');
+        return false;
+    }
+
+    function showIdentificationCodeDialog() {
+        if (confirm(unescapeHTML('<%= r.MessageConfirmContinueBulkApproval %>'))) {
+            $("#identificationCode").val('');
+            $("#identificationCode").removeClass("input-validation-error");
+            $("#identificationCodeError").text('');
+            $("#goIdentification").trigger('click');
+        }
+    }
+
+    // HTML参照文字のアンエスケープ
+    function unescapeHTML(escapedHtml) {
+        const doc = new DOMParser().parseFromString(escapedHtml, 'text/html');
+        return doc.documentElement.textContent;
+    }
+
+    function onClickIdentification() {
+        var url = $("#IdentificationForm").prop('action');
+        var verificationToken = $("form[id='IdentificationForm']>input[name='__RequestVerificationToken']").val();
+        var identificationCode = $("#identificationCode").val();
+        if (identificationCode.length == 0) {
+            showIdentificationCodeError();
+        } else {
+            identification(url, verificationToken, identificationCode, executeApprove, showIdentificationCodeError, showServerError);
+        }
+    }
+
+    function showIdentificationCodeError() {
+        $("#identificationCode").addClass("input-validation-error");
+        $("#identificationCodeError").text('<%= r.MessageInvalidIdentificationCode %>');
+    }
+
+    function showServerError() {
+        alert('<%= r.serverError %>');
+    }
+
+    //検索小窓、ラベル適用、一括承認小窓の表示/非表示
+    function display(value) {
+        $("#" + value).toggle();
+        if (value == "SearchDialog" && $("#" + value).length > 0)
+        {
+            if ($("#" + value)[0].style.display == "none"){
+                $("#SearchInfo_IsWindow").val(false);
+            }
+            else{
+                $("#SearchInfo_IsWindow").val(true);
+            }
+
+        }
+        return false;
+    };
+    
+    function fConMasLabelSelectDisplay()
+    {
+        $("#LinkLabelDialog").toggle();
+        if ($("#conmasLabelSelectWindow").length == 0) {
+            $("#formLabelSelectListView").trigger('submit');
+        }
+        return false;
+    }
+
+    function fConMasInit() {
+        $("#formReportIndex").trigger('submit');
+        if ($("#LabelID").val() == "") {
+            if ($("#IsLabelInitLoad").val() == "True") {
+                $("#Labels li a:first").addClass("current");
+            }
+            //ゴミ箱戻しボタンを非表示
+            $('#riviveBox').hide();
+            $('#physicalDeleteButton').hide();
+        } else {
+            $("#Labels li a[name=" + $("#LabelID").val() + "]").addClass("current");
+        }
+
+        // 承認一覧表示時
+        if ($("#LabelID").val() == "Approve") {
+            // 承認ボタンを表示
+            $('#approveButton').show();
+            $('#ApproveDialog').hide();
+
+        } else {
+            // 承認ボタンを非表示
+            $('#approveButton').hide();
+            $('#ApproveDialog').hide();
+        }
+        //選択したラベルを選択状態にする
+        $("#Labels li a").on('click', function () {
+            $("#Labels li a").removeClass("current");
+            $(this).addClass("current");
+        });
+    };
+
+    //初期処理
+    function onComplete() {
+        $("#Act").val("");
+        timer();
+        setSelectedRow();
+    };
+
+    function timer() {
+        //更新レコードに色をつける
+        $("input[name='item.sys_update_time']").map(function () {
+            var date = Date.parse($(this).val()) + ($("#NewDisplayTime").val() * 60000);
+            if (date > $.now()) {
+                $(this).parent().parent().addClass("new");
+            } else {
+                $(this).parent().parent().removeClass("new");
+            }
+        });
+        setTimeout("timer()", $("#NewInterval").val() * 60000);
+    };
+
+    // ラベルの作成
+    function addConMasLabel(mode) {
+        // 確認メッセージ
+        if ($("#LabelID").val() != "Charge" && $("#LabelID").val() != "NoLabel" && $("#LabelID").val() != "All" && isNaN($("#LabelID").val())
+            && $("#LabelID").val() != "") {
+            alert('<%= r.LabelNoCreateMessage %>');
+            return false;
+        }
+
+        if (mode == "1" &&
+            ($("#LabelID").val() == "Charge" || $("#LabelID").val() == "NoLabel" || $("#LabelID").val() == "All" || $("#LabelID").val() == "")) {
+            alert('<%= r.LabelNoUnderCreateMessage %>');
+            return false;
+        }
+        $("#LabelAct").val("LABEL_MANAGEMENT_ADD");
+        $("#LabelSelectID").val($("#LabelID").val());
+        $("#LabelCreateMode").val(mode);
+        return true;
+    };
+
+    // ラベルの削除
+    function deleteConMasLabel() {
+        // 確認メッセージ
+        if (isNaN($("#LabelID").val()) || $("#LabelID").val() == "") {
+            alert('<%= r.LabelNoDeleteMessage %>');
+            return false;
+        }
+        if (!confirm("<%= r.LabelDeleteMessage %>")) {
+            return false;
+        }
+
+        $("#LabelAct").val("LABEL_MANAGEMENT_DELETE");
+        $("#LabelSelectID").val($("#LabelID").val());
+        document.getElementById("labelForm").submit();
+        return true;
+    };
+
+    // ラベル表示切替
+    function fConmasChangeLabelMode(val) {
+        if (val == "0") {
+            $("#LabelAct").val("LABEL_MODE_CHANGE_NORMAL");
+        } else {
+            $("#LabelAct").val("LABEL_MODE_CHANGE_HIDDEN");
+        }
+        document.getElementById("labelForm").submit();
+        return true;
+    };
+
+    function onPopWindow() {
+        $("#goTaskList")[0].click();
+    };
+
+    function fConMasReportCopy(reportCopyType) {
+        var id = $("#ChkRepTopID");
+        id.val("");
+        $("input[name=Cbx]:checked").map(function () {
+            id.val(id.val() + (id.val() != "" ? "," : "") + $(this).val());
+        });
+
+        if (id.val() == "") {
+            alert('<%= r.SelectDataMessage.replace('{0}', r.Target) %>');
+            return false;
+        }
+        if (confirm('<%= r.ConfirmCopyReport %>')) {
+            fConMasLockView();
+            $("#conmasCopyReportMode").val(reportCopyType);
+            $("#conmasCopyReportType").val($("#conmasCopyReportType")[0].checked);
+            $("#conmasCopyReportIdList").val(id.val());
+            $("#conmasReportCopyForm").trigger('submit');
+            return false;
+        }
+        return false;
+    }
+
+    // ※未使用
+    function fConMasGetLabelPageIndex() {
+        return $("#LabelPageIndex").val();
+    };
+
+    function searchTask() {
+        $("#contentTaskSearch").show();
+        onPopWindow();
+    }
+
+    // 定義ID選択 ※未使用
+    function fConMasSelectDef(defTopId, defTopName) {
+        if (defTopName == null) {
+            defTopName = "";
+        }
+        $("#SchData_def_top_id.def")[0].value = defTopId;
+        $("#SchData_def_top_name.def")[0].value = defTopName;
+        $("#conmasCloseButton")[0].click();
+        $("#lean_overlay")[0].click();
+    };
+
+    // 帳票ID選択 ※未使用
+    function fConMasSelectRep(repTopId, repTopName) {
+        if (repTopName == null) {
+            repTopName = "";
+        }
+        $("#SchData_rep_top_id.rep")[0].value = repTopId;
+        $("#SchData_rep_top_name.rep")[0].value = repTopName;
+        $("#conmasCloseButton")[0].click();
+        $("#lean_overlay")[0].click();
+    };
+
+    // タスクIDの選択
+    function fConMasSelectTask(taskId, taskName, taskRemark) {
+        $("#SchData_task_name")[0].value = taskName;
+        $("#SchData_task_remark")[0].value = taskRemark;
+        $("#SchData_task_name").attr("readonly", "true");
+        $("#SchData_task_remark").attr("readonly", "true");
+        $("#SchData_task_id")[0].value = taskId;
+        $("#conmasCloseButton")[0].click();
+        $("#lean_overlay")[0].click();
+    }
+
+    function setSelectedRow() {
+        // 選択されていた帳票の行に色をつける
+        var selectedRepTopId = localStorage.getItem('selectedRepTopId');
+        if (selectedRepTopId != null) {
+            var target = $('input[name="Cbx"][value="' + selectedRepTopId + '"]');
+            if (target) {
+                target.parent().parent().addClass("selected");
+            }
+            localStorage.removeItem("selectedRepTopId");
+        }
+
+        // 保存した位置までスクロール
+        var repListScrollTop = localStorage.getItem('repListScrollTop');
+        if (repListScrollTop != null) {
+            $("#GridSection").scrollTop(repListScrollTop);
+            localStorage.removeItem("repListScrollTop");
+        }
+    }

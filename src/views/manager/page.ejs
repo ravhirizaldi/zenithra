@@ -88,7 +88,7 @@
         <% } %>
       </div>
     <% } else if (documentPage) { %>
-      <%- include('documents/index', documentPage) %>
+      <%- include(documentPage.view === 'details' ? 'documents/details' : 'documents/index', documentPage) %>
     <% } else if (labelPage) { %>
       <%- include('labels/index', labelPage) %>
     <% } else if (libraryPage) { %>

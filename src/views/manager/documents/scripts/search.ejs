@@ -1,0 +1,20 @@
+
+                    $(function () {
+                        $('#SearchInfo_RegistDateFrom').datepicker($.datepicker.regional[browserLanguage()]);
+                        $('#SearchInfo_RegistTimeFrom').timepicker({ 'timeFormat': 'H:i' });
+                        $('#SearchInfo_RegistDateTo').datepicker($.datepicker.regional[browserLanguage()]);
+                        $('#SearchInfo_RegistTimeTo').timepicker({ 'timeFormat': 'H:i' });
+                        $('#SearchInfo_UpdateDateFrom').datepicker($.datepicker.regional[browserLanguage()]);
+                        $('#SearchInfo_UpdateTimeFrom').timepicker({ 'timeFormat': 'H:i' });
+                        $('#SearchInfo_UpdateDateTo').datepicker($.datepicker.regional[browserLanguage()]);
+                        $('#SearchInfo_UpdateTimeTo').timepicker({ 'timeFormat': 'H:i' });
+                    });
+                    function fConMasTimeInitInput(dateKey1, timeKey2) {
+                        if ($("#SearchInfo_" + dateKey1).val() != "" && $("#SearchInfo_" + timeKey2).val() == "") {
+                            $("#SearchInfo_" + timeKey2).val("00:00");
+                        }
+                    };
+                    function fConMasClearSearch() {
+                        $("input[name*='SearchInfo.']").val("");
+                    };
+                

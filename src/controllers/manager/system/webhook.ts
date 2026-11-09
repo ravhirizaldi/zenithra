@@ -350,7 +350,7 @@ async function loadSetting(db: pg.Pool, id: number): Promise<WebhookSetting | nu
   return row ? parseSettingRow(row) : null;
 }
 
-export async function webhookIsLinked(db: pg.Pool): Promise<boolean> {
+export async function webhookIsLinked(db: Pick<pg.Pool, 'query'>): Promise<boolean> {
   try {
     const row = (
       await db.query('SELECT com_value FROM mst_common WHERE com_key=$1 AND com_name=$2 ORDER BY com_index LIMIT 1', [

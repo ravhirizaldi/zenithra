@@ -1,0 +1,7 @@
+<% const lat = String(row.gps_lat ?? ''), lon = String(row.gps_lon ?? '');
+   if (row.cluster_role !== '2' && lat && lon && lat !== '0.000000' && lon !== '0.000000') { %>
+  <div><%= r.gps_lat %>:<%= lat %></div>
+  <div><%= r.gps_lon %>:<%= lon %></div>
+  <div><%= r.gps_alt %>:<%= row.gps_alt %></div>
+  <% if (Number.isFinite(Number(lat)) && Number.isFinite(Number(lon))) { %><input type="button" value="Map" onclick="linkGMapl(<%= Number(lat) %>,<%= Number(lon) %>);"><% } %>
+<% } %>

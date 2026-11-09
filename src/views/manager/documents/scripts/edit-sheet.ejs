@@ -1,0 +1,73 @@
+
+    $(function () {
+        // 常に画面アンロック
+        $(document).ajaxStop($.unblockUI);
+
+        $("#MessageWrap .PartialViewMessage").empty();
+        if ($(".PartialViewMessage li").length == 1 &&
+            $(".PartialViewMessage li").css("display") == "none") {
+            $(".PartialViewMessage").css("display", "none");
+        } else {
+            $(".PartialViewMessage").appendTo("#MessageWrap");
+        }
+
+        if ($('a[name="clusterError"]').length > 0) {
+            window.location.hash = "clusterError";
+        }
+    });
+
+    function fConmasKeyboardEnable(cnt) {
+        if ($("#rep_clusters_" + cnt + "__IsKeyboardInput").length > 0) {
+            var isChecked = $("#rep_clusters_" + cnt + "__IsKeyboardInput")[0].checked;
+            if ($("#idConmasSelectBox" + cnt).length > 0) {
+                if (isChecked) {
+                    $("#idConmasSelectBox" + cnt).hide();
+                    $("#rep_clusters_" + cnt + "__KeyboardValue").show();
+                }
+                else {
+                    $("#idConmasSelectBox" + cnt).show();
+                    $("#rep_clusters_" + cnt + "__KeyboardValue").hide();
+                }
+            }
+        }
+    };
+
+    function onChangeEditText(obj, cnt) {
+        if ($(obj).val() == "" || $(obj).val() == null) {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = false;
+        }
+        else {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = true;
+            $("#rep_clusters_" + cnt + "__Verified")[0].checked = false;
+        }
+    };
+
+    function onChangeEditCheck(obj, cnt) {
+        if (!$(obj)[0].checked) {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = false;
+        }
+        else {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = true;
+            $("#rep_clusters_" + cnt + "__Verified")[0].checked = false;
+        }
+    };
+
+    function onChangeEditImageClear(obj, cnt) {
+        if ($(obj)[0].checked) {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = false;
+        }
+        else {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = true;
+            $("#rep_clusters_" + cnt + "__Verified")[0].checked = false;
+        }
+    };
+
+    function onChangeEditApprove(obj, cnt) {
+        if ($(obj).val() == "" || $(obj).val() == null || $(obj).val() == "0") {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = false;
+        }
+        else {
+            $("#rep_clusters_" + cnt + "__Verified")[0].disabled = true;
+            $("#rep_clusters_" + cnt + "__Verified")[0].checked = false;
+        }
+    };

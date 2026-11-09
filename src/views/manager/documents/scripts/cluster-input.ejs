@@ -1,0 +1,7 @@
+<% if (kind === 'date-time') { %>
+                                $("#rep_clusters_" + <%= index %> + "__input_value_time").timepicker({ 'timeFormat': 'H:i:s' });
+<% } else if (kind === 'time') { %>
+                                    $("#rep_clusters_" + <%= index %> + "__input_value").timepicker({ 'timeFormat': 'H:i' });
+<% } else { %>
+                                fConmasKeyboardEnable('<%= index %>');
+<% } %>

@@ -82,7 +82,11 @@ export function registerSystemMiddleware(
       req.path === '/' ||
       req.path === '/InputReport' ||
       req.path.startsWith('/InputReport/') ||
-      ['/Common/LabelListView', '/Common/TaskList', '/Common/RegistTask'].includes(req.path);
+      ['/Common/LabelListView', '/Common/TaskList', '/Common/RegistTask'].includes(req.path) ||
+      (['/DefReport/EditLabel', '/DefReport/EditRole'].includes(req.path) &&
+        ['Rep', '0'].includes(
+          String(req.body?.mode ?? req.body?.ReportMode ?? req.query.mode ?? req.query.ReportMode),
+        ));
     if (
       !req.path.startsWith('/System') &&
       req.path !== '/SystemGoogleAuthCallback/IndexAsync' &&

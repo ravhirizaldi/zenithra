@@ -10,6 +10,7 @@ import { getReportDownload, ReportUnsupported, type ReportActor } from './client
 import { clientConfiguration } from '../config/client.js';
 import { directIsLinked } from '../controllers/manager/system/direct.js';
 import { setReportAuditFields, setReportName } from './client-report-name.js';
+import { createReportAutoLabels, updateReportAutoLabels } from './client-report-labels.js';
 import { checkReportTables, reportTableValue, saveReportTables } from './client-report-tables.js';
 import {
   child,
@@ -74,7 +75,7 @@ function binary(text: string): Buffer | null {
 export async function cleanupReportUpload(upload?: ReportUpload): Promise<void> {
   if (upload) await rm(upload.directory, { recursive: true, force: true });
 }
-async function checkFeatures(
+export async function checkReportSaveFeatures(
   db: Pick<pg.PoolClient, 'query'>,
   top: XmlNode,
   editStatus = field(top, 'editStatus'),
@@ -286,7 +287,7 @@ export async function beginReportUpload(
   const sourceTop = must(root(source.xml), 'top');
   if (integerField(sourceTop, 'defTopId') !== defId) return clientError(2);
   if (!definition && field(sourceTop, 'readOnly') === '1') return clientError(3);
-  await checkFeatures(db, sourceTop, field(top, 'editStatus'));
+  await checkReportSaveFeatures(db, sourceTop, field(top, 'editStatus'));
   const directory = await mkdtemp(join(tmpdir(), 'conmas-report-'));
   try {
     const raw = (
@@ -520,7 +521,7 @@ async function commitReportUpload(
       await client.query('ROLLBACK');
       return clientError(3);
     }
-    await checkFeatures(client, top, field(submitted, 'editStatus'));
+    await checkReportSaveFeatures(client, top, field(submitted, 'editStatus'));
     const sheets = children(must(top, 'sheets'), 'sheet');
     if (sheets.some((sheet) => !upload.sheets[field(sheet, 'sheetNo')])) {
       await client.query('ROLLBACK');
@@ -549,6 +550,7 @@ async function commitReportUpload(
         sys_update_user: actor.userId,
         sys_update_time: now,
       };
+    const previousTop = root(serialize(top));
     const account = (
         await client.query('SELECT user_name,approval_sign FROM mst_user WHERE user_id=$1', [actor.userId])
       ).rows[0],
@@ -954,6 +956,9 @@ async function commitReportUpload(
       await client.query('UPDATE rep_top SET fd_sheet_info=$2 WHERE rep_top_id=$1', [id, upload.fdInfo || null]);
     }
     await saveReportTables(client, top, changed, actor.cultureName);
+    const labelActor = { userId: actor.userId, userName: user, terminalId: actor.terminalId };
+    if (upload.definition) await createReportAutoLabels(client, top, labelActor, now);
+    else await updateReportAutoLabels(client, previousTop, top, labelActor, now, true);
     if (unlock)
       await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1 AND (user_id=$2 OR sys_regist_term=$3)', [
         id,

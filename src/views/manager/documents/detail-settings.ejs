@@ -1,0 +1,31 @@
+<script type="text/javascript"><%- js %></script>
+<div class="PartialViewMessage"></div>
+<div id="DetailTop">
+  <span id="infoTitle"><%= v.reportName %> : <%= report.rep_top_name %></span>
+  <span id="functionBar">
+    <% if (report.workflow_locked || report.locked) { %>
+      <span><label class="user_lock_label"><%= v.locked %>：<%= report.workflow_locked ? report.sys_update_user_name : report.lock_user_name %></label></span>
+    <% } else if (permissions.update && (view === 'DetailsLabel' ? report.role_update : report.current && report.def_role_update)) { %>
+      <span><a class="img_edit" title="<%= v.edit %>" href="<%= base %>/DefReport/<%= view === 'DetailsLabel' ? 'EditLabel' : 'EditRole' %>?defTopId=<%= report.rep_top_id %>&amp;mode=Rep" data-ajax="true" data-ajax-update="#content"> </a></span>
+    <% } %>
+  </span>
+</div>
+<div id="DetailSection"><div class="info">
+  <% if (view === 'DetailsLabel') { %>
+    <%= v.currentLabel %>:
+    <table cellpadding="0" cellspacing="0" class="table_information verticality">
+      <tr><th scope="col"><%= v.label %></th><th scope="col"><%= v.remark %></th></tr>
+      <% for (const row of rows) { %><tr>
+        <td><img src="<%= base %>/Content/ConMas/images/function/label_icon_<%= row.label_icon_id %>.png" alt="[<%= v.icon %><%= row.label_icon_id %>]" class="labelPictureSize"> <%= row.label_name_path %></td>
+        <td><%= row.label_remarks %></td>
+      </tr><% } %>
+    </table>
+  <% } else { %>
+    <%= v.currentGroup %>:
+    <table cellpadding="0" cellspacing="0" class="table_information verticality">
+      <tr><th scope="col" rowspan="2"><%= v.group %></th><th scope="col" colspan="3"><%= v.input %></th></tr>
+      <tr><th scope="col"><%= v.refer %></th><th scope="col"><%= v.edit %></th><th scope="col"><%= v.delete %></th></tr>
+      <% for (const row of rows) { %><tr><td><%= row.group_name_path %></td><% for (const field of ['read', 'update', 'delete']) { %><td class="center"><%= row[field] ? '○' : '' %></td><% } %></tr><% } %>
+    </table>
+  <% } %>
+</div></div>

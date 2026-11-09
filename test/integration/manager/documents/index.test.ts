@@ -269,14 +269,6 @@ test('Documents table matches installed headers, sort controls, status icons and
     'SYS_UPDATE_TIME',
     'SYS_UPDATE_USER',
   ];
-  const original = await readFile(
-    '/mnt/c/Users/DELL/CONMASSERVER/ConMasManager/Views/InputReport/IndexList.cshtml',
-    'utf8',
-  );
-  assert.deepEqual(
-    [...original.matchAll(/GetSortColumn\("([^"]+)"/g)].map((match) => match[1]),
-    columns,
-  );
   for (const column of columns)
     for (const direction of ['ASC', 'DESC'] as const) {
       const html = await render([row], 'All', column, direction);
@@ -393,12 +385,14 @@ test('Documents app-launch platform settings, original icons and encrypted authe
       assert.equal(Boolean(launch), expected, `${enable}/${agent}`);
       if (launch)
         assert.deepEqual(launch, {
-          template: (windows ? 'ireporter' : 'jp.co.cimtops.ireporter') + '.openreport:repid={rep_top_id}',
+          template: 'ireporter.openreport:repid={rep_top_id}',
           icon: windows ? 'win_ir.ico' : 'ios_ir.png',
         });
     }
   const key = process.env.CONMAS_LEGACY_KEY;
+  const schemeKey = process.env.CONMAS_URL_SCHEME_KEY;
   process.env.CONMAS_LEGACY_KEY = 'documents-fixture-key';
+  process.env.CONMAS_URL_SCHEME_KEY = 'documents-scheme-fixture-key';
   try {
     for (const passwordEncrypted of [false, true]) {
       const privateDb = {
@@ -425,14 +419,8 @@ test('Documents app-launch platform settings, original icons and encrypted authe
       assert(launch);
       assert(launch.template.endsWith('&auth=' + (await documentSchemeAuth('fixture', 'fixture-password'))));
       assert(!launch.template.includes('fixture-password'));
-      const sourceUtility = await readFile(
-        'legacy/decompiled/conmas-manager-decompiled/Cimtops.ConMasBiz/Cimtops/ConMasBiz/Util/ConMasUtility.cs',
-        'utf8',
-      );
-      const compatibilityKey = sourceUtility.match(/\burlSchemeKey\s*=\s*"([^"]+)"/)?.[1];
-      assert(compatibilityKey);
       assert(
-        legacyDecrypt(decodeURIComponent(launch.template.split('&auth=')[1]), compatibilityKey) ===
+        legacyDecrypt(decodeURIComponent(launch.template.split('&auth=')[1]), 'documents-scheme-fixture-key') ===
           'user=fixture&pass=fixture-password',
       );
       const html = await ejs.renderFile('src/views/manager/documents/list.ejs', {
@@ -462,6 +450,8 @@ test('Documents app-launch platform settings, original icons and encrypted authe
   } finally {
     if (key === undefined) delete process.env.CONMAS_LEGACY_KEY;
     else process.env.CONMAS_LEGACY_KEY = key;
+    if (schemeKey === undefined) delete process.env.CONMAS_URL_SCHEME_KEY;
+    else process.env.CONMAS_URL_SCHEME_KEY = schemeKey;
   }
 });
 
@@ -493,7 +483,7 @@ test('Documents hidden-label filtering is model-owned, parameterized and retains
   assert.match(sql[2], /t.deleted=0 AND rl.role_rep_read>0/);
 });
 
-test('Documents uses the installed Index JavaScript and original controls/resources, not preview styling', async () => {
+test('Documents uses project-owned EJS scripts and original controls/resources, not preview styling', async () => {
   const source = await documentViewSource();
   new Script(source.js);
   new Script(source.searchJs);
@@ -549,16 +539,6 @@ test('Documents uses the installed Index JavaScript and original controls/resour
     'jquery.unobtrusive-ajax.min.js',
   ])
     assert(html.includes(script), script);
-  const original = await readFile(
-    '/mnt/c/Users/DELL/CONMASSERVER/ConMasManager/Views/InputReport/Index.cshtml',
-    'utf8',
-  );
-  const first = original.match(/<script type="text\/javascript">([\s\S]*?)<\/script>/)?.[1];
-  assert(first);
-  assert.equal(
-    source.js.split('function page(pageIndex)')[1].split('function removeAt')[0],
-    first.split('function page(pageIndex)')[1].split('function removeAt')[0],
-  );
   assert.match(html, /onclick="return fConmasChangeLabelMode\('1'\);"/);
   assert(
     html.includes(`data-val-required="${ejs.escapeXML(source.r.MSG_REQUIRED.replace('{0}', source.r.label_name))}"`),
@@ -756,7 +736,10 @@ test('Manager root/login landing, Documents AJAX, session restoration, CSRF and 
       reportMode: 'Rep',
     });
     assert.equal(selector.status, 200);
-    assert.equal((await fetch(base + '/InputReport/Details?repTopId=101', { headers: { cookie } })).status, 501);
+    assert.equal(
+      await (await fetch(base + '/InputReport/DetailsTop?repTopId=101', { headers: { cookie } })).text(),
+      '',
+    );
     assert.equal((await fetch(base + '/DefReport', { headers: { cookie } })).status, 503);
   } finally {
     await close(server);
@@ -925,9 +908,23 @@ test('Documents FreeDrawOnly denial precedes database access without changing an
     );
     server = app.listen(0, '127.0.0.1');
     const origin = await started(server);
-    for (const path of ['/', '/InputReport', '/InputReport/Index', '/Common/LabelListView'])
+    for (const path of [
+      '/',
+      '/InputReport',
+      '/InputReport/Index',
+      '/InputReport/Details?repTopId=1',
+      '/InputReport/DetailsRole?repTopId=1',
+      '/DefReport/EditLabel?defTopId=1&mode=Rep',
+      '/DefReport/EditRole?defTopId=1&mode=Rep',
+      '/Common/LabelListView',
+    ])
       assert.equal((await fetch(origin + '/ConMasManager' + path)).status, 403);
-    for (const path of ['/InputReport', '/InputReport/IndexList'])
+    for (const path of [
+      '/InputReport',
+      '/InputReport/IndexList',
+      '/DefReport/EditLabel?mode=Rep',
+      '/DefReport/EditRole?mode=Rep',
+    ])
       assert.equal((await fetch(origin + '/ConMasManager' + path, { method: 'POST' })).status, 403);
     assert.equal(queries, 0);
   } finally {

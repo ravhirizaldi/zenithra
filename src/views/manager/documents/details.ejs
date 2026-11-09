@@ -1,0 +1,54 @@
+<% const id = report.rep_top_id;
+const href = (action, values = {}, controller = 'InputReport') => `${base}/${controller}/${action}?${new URLSearchParams({ repTopId: String(id), ...values })}`;
+const sheetTitle = sheet => sheet.fdSheetNo ? `${sheet.fdSheetNo}:i-Repo FreeDraw` : `${sheet.rep_sheet_no}:${sheet.rep_sheet_name || v.nonSheetName}`;
+const sheetLinks = (action, suffix) => { for (const sheet of sheets) { if (sheet.fdSheetNo) continue; %>
+  <li><a href="<%= href(action, { pageIndex: String(sheet.rownum) }) %>" id="<%= sheet.rep_sheet_no %><%= suffix %>" data-ajax="true" data-ajax-update="#content"><%= sheetTitle(sheet) %></a></li>
+<% } }; %>
+<script src="<%= base %>/Scripts/MicrosoftAjax.js?20250901-01" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/MicrosoftMvcAjax.js?20250901-01" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/jquery.unobtrusive-ajax.min.js?20250901-01" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/conmas.identification.js?20250901-01" type="text/javascript"></script>
+<script type="text/javascript"><%- js %></script>
+<%- include('ajax-failure') %>
+<div id="MessageWrap"></div>
+<input type="hidden" id="initPageIndex" value="<%= initPageIndex %>">
+<input type="hidden" id="errorViewName" value="<%= errorViewName %>">
+<input type="hidden" id="initDetailsFunction" value="<%= initDetailsFunction %>">
+<input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+<div id="Wrap">
+  <div id="SideWrap">
+    <div id="BackIndex"><a href="<%= backHref %>"><%= v.backIndexList %></a></div>
+    <div id="LabelSection"><ul id="Labels" class="treeview">
+      <li><a class="current" href="<%= href('DetailsTop', { isInitJudgeDisplay: String(report.initial_input_judge), errorCode }) %>" data-ajax="true" data-ajax-update="#content"><%= v.basicInformation %></a>
+        <ul class="rank1"><% for (const sheet of sheets) { %>
+          <li><a href="<%= sheet.fdSheetNo ? href('DetailsFdSheet', { fdSheetNo: String(sheet.fdSheetNo) }) : href('DetailsSheet', { pageIndex: String(sheet.rownum), errorViewName, isInitJudgeDisplay: String(report.initial_input_judge) }) %>" data-ajax="true" data-ajax-update="#content"><%= sheetTitle(sheet) %></a></li>
+        <% } %></ul>
+      </li>
+      <li><a href="<%= base %>/DefReport/DetailsMessage?reportType=Rep&amp;topId=<%= id %>&amp;actionType=ReferType"><%= r.MessageSetting %></a></li>
+      <li><a id="conmasRepLabelFunction" href="<%= href('DetailsLabel') %>" data-ajax="true" data-ajax-update="#content"><%= v.label %></a></li>
+      <% if (report.journalizing_def_top_id && String(report.journalizing_def_top_id) !== '0') { %><li><a href="<%= href('DetailsSortReport', { actionType: 'ReferType', topId: String(id) }) %>"><%= r.SortingTable %></a></li><% } %>
+      <li><%= r.MailManagement %><ul class="rank1"><% sheetLinks('EditClusterMail', 'conmasMailFunction'); %></ul></li>
+      <% if (directLinked) { %><li><%= r.DirectChatSetting %><ul class="rank1"><% sheetLinks('EditClusterDirectChat', 'conmasDirectChatFunction'); %></ul></li><% } %>
+      <% if (webhookLinked) { %><li><%= r.WebhookSetting %><ul class="rank1"><% sheetLinks('EditClusterWebhook', 'conmasWebhookFunction'); %></ul></li><% } %>
+      <li><span><%= v.role %></span><ul>
+        <li><a id="conmasRoleFunction" href="<%= href('DetailsRole') %>" data-ajax="true" data-ajax-update="#content"><%= v.input %></a></li>
+        <li><span><%= v.cluster %></span><ul class="rank2">
+          <% for (const sheet of sheets) { if (!sheet.fdSheetNo) { %><li><a id="<%= sheet.rep_sheet_no %>conmasClusterRoleFunction" href="<%= href('DetailsCluster', { pageIndex: String(sheet.rownum), isInitJudgeDisplay: String(report.initial_input_judge) }) %>" data-ajax="true" data-ajax-update="#content"><%= sheetTitle(sheet) %></a></li><% } } %>
+        </ul></li>
+      </ul></li>
+      <li><span><%= r.GrammarSetting %></span><ul class="rank1">
+        <li><a href="<%= base %>/DefReport/DetailsGrammar?voiceType=ClusterForcus&amp;reportType=Rep&amp;topId=<%= report.def_top_id %>&amp;actionType=ReferType"><%= r.DefRole %></a></li>
+        <li><a href="<%= href('DetailsGrammar') %>"><%= r.Report %></a></li>
+      </ul></li>
+      <% if (externalTypes & 7) { %><li><span><%= r.ExternalOutputLog %></span><ul class="rank1">
+        <% for (const [flag, action, suffix, text] of [[1, 'LogGoogleDriveUpload', 'Google', r.GoogleDriveOutputLog], [2, 'LogBoxUpload', 'Box', r.BoxOutputLog], [4, 'LogBim360Upload', 'Bim360', r.Bim360OutputLog]]) { if (externalTypes & flag) { %>
+          <li><a id="conmasLog<%= suffix %>Function" href="<%= href(action) %>" data-ajax="true" data-ajax-update="#content"><%= text %></a></li>
+        <% } } %>
+      </ul></li><% } %>
+    </ul></div>
+  </div>
+  <div id="MainWrap"><div id="content"><p class="PartialViewMessage" role="status">Loading report information.</p></div></div>
+  <div style="clear:both;"></div>
+  <div id="domMessage" style="display:none;"><h1><%= r.LockMessage %></h1></div>
+  <div id="popUpDialogForm"><div id="contentTaskSearch"></div></div>
+</div>

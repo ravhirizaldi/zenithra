@@ -1,0 +1,32 @@
+<% const name = 'rep_clusters[' + index + '].', id = 'rep_clusters_' + index + '__';
+   const attributes = 'onChange="onChangeEditText(this,' + index + ');"';
+   if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
+<% } else if (row.cluster_role !== '1' || ['Approve','Create','Inspect','Image','DrawingImage','FixedText','FreeText','FreeDraw','AudioRecording'].includes(row.cluster_type)) { %>
+  <%- include('cluster-value', {row}) %>
+  <input type="hidden" name="<%= name %>input_value" value="<%= row.input_value || '' %>">
+<% } else if (['Check','Action'].includes(row.cluster_type)) { %>
+  <input type="checkbox" id="<%= id %>input_check_value" name="<%= name %>input_check_value" value="true"<% if (row.input_check_value) { %> checked<% } %> onChange="onChangeEditCheck(this,<%= index %>);" aria-label="<%= row.cluster_name %>"><input type="hidden" name="<%= name %>input_check_value" value="false">
+<% } else if (['Date','CalendarDate'].includes(row.cluster_type)) { %>
+  <% if (!row.useTime) { %><div class="datetime"><input id="<%= id %>input_value" name="<%= name %>input_value" value="<%= row.input_value || '' %>" <%- attributes %> aria-label="<%= row.cluster_name %>"></div>
+  <% } else { %><div class="datetime" style="display: inline-block;"><input id="<%= id %>input_value_date" name="<%= name %>input_value_date" value="<%= row.input_value_date %>" <%- attributes %> aria-label="<%= row.cluster_name %> (date)"></div>
+    <div style="display: inline-block;"><input id="<%= id %>input_value_time" name="<%= name %>input_value_time" value="<%= row.input_value_time %>" <%- attributes %> aria-label="<%= row.cluster_name %> (time)"></div>
+    <script type="text/javascript"><%- include('scripts/cluster-input', {kind: 'date-time', index}) %></script>
+  <% } %>
+<% } else if (row.cluster_type === 'Time') { %>
+  <div class=""><input id="<%= id %>input_value" name="<%= name %>input_value" value="<%= row.input_value || '' %>" <%- attributes %> aria-label="<%= row.cluster_name %>"></div>
+  <div><script type="text/javascript"><%- include('scripts/cluster-input', {kind: 'time', index}) %></script></div>
+<% } else if (['Select','MultiSelect','MultipleChoiceNumber'].includes(row.cluster_type)) { const multiple = row.cluster_type === 'MultiSelect'; %>
+  <div id="idConmasSelectBox<%= index %>">
+    <select id="<%= id %><%= multiple ? 'multi_input_value' : 'input_value' %>" name="<%= name %><%= multiple ? 'multi_input_value' : 'input_value' %>"<% if (multiple) { %> multiple<% } %> <%- attributes %> aria-label="<%= row.cluster_name %>">
+      <% for (const option of row.options) { %><option value="<%= option.value %>"<% if (multiple ? row.multi_input_value.includes(option.value) : row.selected === option.value) { %> selected<% } %>><%= option.text %></option><% } %>
+    </select>
+  </div>
+  <% if (row.isKeyboardEnable) { %><div><input type="checkbox" id="<%= id %>IsKeyboardInput" name="<%= name %>IsKeyboardInput" value="true"<% if (row.isKeyboardInput) { %> checked<% } %> onchange="return fConmasKeyboardEnable(<%= index %>);"><input type="hidden" name="<%= name %>IsKeyboardInput" value="false"><label for="<%= id %>IsKeyboardInput"><%= r.IsKeyboardEnable %></label></div>
+    <div><textarea id="<%= id %>KeyboardValue" name="<%= name %>KeyboardValue" class="cluster_edit" aria-label="<%= row.cluster_name %> (<%= r.IsKeyboardEnable %>)"><%= row.keyboardValue %></textarea></div>
+    <script type="text/javascript"><%- include('scripts/cluster-input', {kind: 'keyboard', index}) %></script>
+  <% } %>
+  <input type="hidden" name="<%= name %>SelectListExItems" value="<%= row.selectItems %>"><input type="hidden" name="<%= name %>SelectListLabels" value="<%= row.selectLabels %>">
+<% } else if (['Handwriting','KeyboardText'].includes(row.cluster_type)) { %>
+  <textarea class="cluster_edit" id="<%= id %>input_value" name="<%= name %>input_value" <%- attributes %> aria-label="<%= row.cluster_name %>"><%= row.input_value || '' %></textarea>
+<% } else { %><input id="<%= id %>input_value" name="<%= name %>input_value" value="<%= row.input_value || '' %>" <%- attributes %> aria-label="<%= row.cluster_name %>">
+<% } %>

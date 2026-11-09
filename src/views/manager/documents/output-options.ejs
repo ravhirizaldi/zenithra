@@ -1,0 +1,11 @@
+<% const checkbox = (name, label, dependent = false) => { const field = output.fields.find(field => field.name === name); %>
+  <label><input type="checkbox" id="rep_top_<%= output.name %>_<%= name %>" name="rep_top.<%= output.name %>.<%= name %>" value="true" <%= field.checked ? 'checked' : '' %> <%= edit ? '' : 'disabled' %> <% if (edit && dependent) { %>onclick="outputFileSelect(this, false);"<% } %>><% if (edit) { %><input type="hidden" name="rep_top.<%= output.name %>.<%= name %>" value="false"><% } %><%= r[label] || label %></label>
+<% }; %>
+<% checkbox('Csv','CsvVertical',true); %>
+<div style="margin-left:20px;"><% checkbox('CsvImageAudio','IncludeImageAndRecordingFile',true); %><div style="margin-left:20px;"><% checkbox('CsvZip','ZIP'); %></div></div>
+<% checkbox('DataOutputCsv','CsvHorizontal',true); %>
+<div style="margin-left:20px;"><% checkbox('DataOutputCsvImageAudio','IncludeImageAndRecordingFile'); %></div>
+<% checkbox('Xml','XML'); %><br>
+<% checkbox('Pdf','PDF',true); %>
+<div style="margin-left:20px;"><% checkbox('PdfLayer','PdfLayer'); %><br><% checkbox('Docuworks','Docuworks'); %></div>
+<% checkbox('Excel','Excel'); %>

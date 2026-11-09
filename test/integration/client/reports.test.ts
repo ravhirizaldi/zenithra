@@ -111,7 +111,7 @@ async function fixture(run: (db: pg.Pool, connection: pg.PoolClient) => Promise<
       await connection.query(`CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING ALL)`);
     }
     await connection.query(
-      'CREATE TEMP SEQUENCE rep_top_rep_top_id_seq START 100;CREATE TEMP SEQUENCE rep_sheet_rep_sheet_id_seq START 200',
+      'CREATE TEMP SEQUENCE rep_top_rep_top_id_seq START 100;CREATE TEMP SEQUENCE rep_sheet_rep_sheet_id_seq START 200;CREATE TEMP SEQUENCE mst_label_def_mst_label_id_seq START 1000',
     );
     await connection.query(
       'ALTER TABLE pg_temp.rep_sheet ADD FOREIGN KEY (rep_top_id) REFERENCES pg_temp.rep_top(rep_top_id) ON DELETE CASCADE;ALTER TABLE pg_temp.rep_cluster ADD FOREIGN KEY (rep_sheet_id) REFERENCES pg_temp.rep_sheet(rep_sheet_id) ON DELETE CASCADE',
@@ -707,6 +707,95 @@ test(
         await assert.rejects(
           beginReportUpload(db, actor, [await file('report', top)]),
           (error) => error instanceof ReportUnsupported && error.code === 'report_table_deferred',
+        );
+      } finally {
+        await cleanupReportUpload(upload);
+        await rm(directory, { recursive: true, force: true });
+      }
+    }),
+);
+
+test(
+  'native finish shares automatic-label creation/regeneration and cannot acknowledge failed label-role persistence',
+  enabled,
+  async () =>
+    fixture(async (db, connection) => {
+      const directory = await mkdtemp('/tmp/opencode/report-label-finish-');
+      let upload: ReportUpload | undefined;
+      const file = async (data: string): Promise<Express.Multer.File> => {
+        const path = join(directory, 'report');
+        await writeFile(path, data);
+        return { fieldname: 'report', path, size: Buffer.byteLength(data) } as Express.Multer.File;
+      };
+      const top =
+        '<conmas><top><defTopId>1</defTopId><repTopId/><repTopName>Initial</repTopName><editStatus>1</editStatus><thumbnail/><sheets/></top></conmas>';
+      const incoming = (value: string) =>
+        `<conmas><sheet><defSheetId>10</defSheetId><sheetNo>1</sheetNo><clusters><cluster><clusterId>0</clusterId><value>${value}</value><displayValue>${value}</displayValue></cluster></clusters></sheet></conmas>`;
+      try {
+        await connection.query(`UPDATE pg_temp.def_role SET role_rep_update=1;
+      INSERT INTO pg_temp.mst_label_rep(mst_label_id,label_name,label_id_path,label_name_path,auto_creation,auto_label_name,report_update_type,auto_slash_hierarchy,bottom_layer,auto_delete)
+      VALUES(101,'Template','101','Template',1,'Auto/{report:repTopName}/{clusterValue_1_0}',1,1,1,1);
+      INSERT INTO pg_temp.def_rep_label(def_top_id,mst_label_id) VALUES(1,101);
+      INSERT INTO pg_temp.rep_label_role(mst_label_id,group_id) VALUES(101,4);`);
+        upload = (await beginReportUpload(db, actor, [await file(top)])) as ReportUpload;
+        assert.equal(typeof upload, 'object');
+        assert.equal(
+          parser.parse(await stageReportSheet(db, actor, upload, [await file(incoming('saved'))])).conmas.error.code,
+          '0',
+        );
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+        const labels = async () =>
+          (
+            await connection.query(
+              'SELECT m.label_name_path FROM pg_temp.mst_label_rep m JOIN pg_temp.rep_label l USING(mst_label_id) WHERE l.rep_top_id=100 ORDER BY m.label_name_path',
+            )
+          ).rows.map((row) => row.label_name_path);
+        assert.deepEqual(await labels(), ['Auto/Initial/saved']);
+        await cleanupReportUpload(upload);
+        upload = (await beginReportUpload(db, actor, [
+          await file(top.replace('<repTopId/>', '<repTopId>100</repTopId>')),
+        ])) as ReportUpload;
+        assert.equal(typeof upload, 'object');
+        assert.equal(
+          parser.parse(await stageReportSheet(db, actor, upload, [await file(incoming('updated'))])).conmas.error.code,
+          '0',
+        );
+        const before = (
+          await connection.query(
+            'SELECT xml_data,rep_top_name,sys_update_time FROM pg_temp.rep_top WHERE rep_top_id=100',
+          )
+        ).rows[0];
+        const failing = {
+          ...db,
+          connect: async () => ({
+            query: async (sql: string, values?: unknown[]) => {
+              if (sql.startsWith('INSERT INTO rep_label_role')) throw new Error('Fixture label role failed.');
+              return connection.query(sql, values);
+            },
+            release() {},
+          }),
+        } as unknown as pg.Pool;
+        await assert.rejects(finishReportUpload(failing, actor, upload), /Fixture label role failed/);
+        assert.equal(upload.result, undefined);
+        assert.deepEqual(
+          (
+            await connection.query(
+              'SELECT xml_data,rep_top_name,sys_update_time FROM pg_temp.rep_top WHERE rep_top_id=100',
+            )
+          ).rows[0],
+          before,
+        );
+        assert.deepEqual(await labels(), ['Auto/Initial/saved']);
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+        assert.deepEqual(await labels(), ['Auto/Initial/updated']);
+        assert.equal(
+          (
+            await connection.query(
+              'SELECT 1 FROM pg_temp.rep_label_role r JOIN pg_temp.mst_label_rep m USING(mst_label_id) WHERE m.label_name_path=$1 AND r.group_id=4',
+              ['Auto/Initial/updated'],
+            )
+          ).rowCount,
+          1,
         );
       } finally {
         await cleanupReportUpload(upload);

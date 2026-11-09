@@ -1,6 +1,7 @@
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { labelInteger, labelString, LabelValidationError } from '../labels/index.js';
+import { attachedAutoDeleteLabels, deleteEmptyReportLabels } from '../../client-report-labels.js';
 
 type Report = {
   rep_top_id: number;
@@ -12,37 +13,6 @@ type Report = {
   locked: boolean;
   current: boolean;
 };
-
-async function automaticLabels(client: pg.PoolClient, id: number) {
-  return (
-    await client.query<{ mst_label_id: number }>(
-      `WITH RECURSIVE seeds AS (
-        SELECT m.* FROM mst_label_rep m JOIN rep_label l USING(mst_label_id)
-        WHERE l.rep_top_id=$1 AND m.auto_delete=1
-      ), parents AS (
-        SELECT * FROM seeds UNION SELECT m.* FROM mst_label_rep m JOIN parents p ON m.mst_label_id=p.upper_label_id
-        WHERE p.auto_delete=1
-      ), descendants AS (
-        SELECT * FROM seeds UNION SELECT m.* FROM mst_label_rep m JOIN descendants d ON m.upper_label_id=d.mst_label_id
-        WHERE d.auto_delete=1
-      ) SELECT mst_label_id FROM mst_label_rep
-      WHERE auto_delete=1 AND mst_label_id IN (SELECT mst_label_id FROM parents UNION SELECT mst_label_id FROM descendants)
-      ORDER BY label_name_path DESC,mst_label_id`,
-      [id],
-    )
-  ).rows;
-}
-
-async function removeEmptyLabels(client: pg.PoolClient, labels: { mst_label_id: number }[]) {
-  for (const label of labels)
-    await client.query(
-      `DELETE FROM mst_label_rep m WHERE m.mst_label_id=$1 AND m.auto_delete=1 AND m.auto_creation<>1
-      AND NOT EXISTS (SELECT 1 FROM mst_label_rep child WHERE child.upper_label_id=m.mst_label_id)
-      AND NOT EXISTS (SELECT 1 FROM rep_label l JOIN rep_top t USING(rep_top_id)
-        WHERE l.mst_label_id=m.mst_label_id AND t.deleted=0)`,
-      [label.mst_label_id],
-    );
-}
 
 async function updateCurrent(client: pg.PoolClient, org: number) {
   const latest = (
@@ -116,7 +86,7 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
     for (const report of reports) {
       if (physical) await client.query('SAVEPOINT report_delete');
       try {
-        const labels = cleanup ? await automaticLabels(client, report.rep_top_id) : [];
+        const labels = cleanup ? await attachedAutoDeleteLabels(client, report.rep_top_id) : [];
         await client.query(
           `UPDATE rep_top SET deleted=$2,sys_update_term=$3,sys_update_user=$4,
           sys_update_user_name=(SELECT user_name FROM mst_user WHERE user_id=$4),sys_update_time=CURRENT_TIMESTAMP
@@ -125,7 +95,7 @@ export async function documentDelete(db: pg.Pool, input: unknown, action: string
         );
         if (physical) await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1', [report.rep_top_id]);
         if (physical) await client.query('DELETE FROM rep_top WHERE rep_top_id=$1 AND deleted=1', [report.rep_top_id]);
-        if (cleanup) await removeEmptyLabels(client, labels);
+        if (cleanup) await deleteEmptyReportLabels(client, labels);
         if (!physical) await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1', [report.rep_top_id]);
         if (!all && (report.current || restore)) await updateCurrent(client, report.rep_top_org);
         if (physical) await client.query('RELEASE SAVEPOINT report_delete');

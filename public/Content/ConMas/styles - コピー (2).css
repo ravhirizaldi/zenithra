@@ -1,0 +1,843 @@
+/* Styles for body
+-----------------------------------------------------------*/
+body,
+html {
+	margin: 0px; 
+	padding: 0px; 
+	width: 100%; 
+	height: 100%; 
+	color: #333;
+	font-family: "メイリオ", Meiryo, Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif; 
+	position: relative;
+}
+a {
+	color: #069;
+	text-decoration: none;
+}
+/*
+#HeaderMenu {
+	width: 100%; 
+	height: 180px; 
+	position: absolute; 
+	background-color: rgb(204, 204, 204);
+}
+*/
+
+
+
+
+/* Styles for header
+-----------------------------------------------------------*/
+#Header {
+	height: 100px;
+	width: 100%;
+	background-image: url(images/base/header_bg.png);
+	background-repeat: repeat-x;
+}
+a#Logo {
+	text-indent: -4000px;
+	display: block;
+	height: 56px;
+	width: 295px;
+	overflow: hidden;
+	background-image: url(images/base/logo.png);
+	background-repeat: no-repeat;
+	float: left;
+}
+#LoginStatus {
+	font-size: 14px;
+	line-height: 1em;
+	color: #FFF;
+	text-align: right;
+	display: block;
+	float: right;
+	padding-top: 18px;
+	padding-right: 15px;
+	margin: 0px;
+}
+#GMenu {
+	height: 38px;
+	width: 100%;
+	background-color: #F0F0F0;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #CCC;
+	clear: both;
+}
+#GMenu ul,
+#GMenu li {
+	margin: 0px;
+	padding: 0px;
+	list-style-type: none;
+}
+#GMenu li {
+	display: inline-block;
+	float: left;
+}
+#GMenu li a {
+	display: block;
+	height: 26px;
+	padding-top: 12px;
+	padding-right: 15px;
+	padding-left: 15px;
+	font-size: 16px;
+	line-height: 1em;
+	color: #000;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCC;
+}
+#GMenu li a:hover {
+	background-color: #87A5C9;
+	color: #FFF;
+}
+#GMenu li.current {
+	background-color: #CCC;
+}
+/*
+#Function {
+	background-color: #F0F0F0;
+	height: 63px;
+	margin-top: 16px;
+	margin-right: 10px;
+	margin-left: 10px;
+	border-top-width: 1px;
+	border-bottom-width: 1px;
+	border-top-style: solid;
+	border-bottom-style: solid;
+	border-top-color: #CCC;
+	border-bottom-color: #CCC;
+}
+*/
+h1#ReportList {
+	font-size: 24px;
+	line-height: 1em;
+	color: #666;
+	font-weight: normal;
+	background-image: url(images/function/doc_editing_32.png);
+	background-repeat: no-repeat;
+	background-position: left;
+	float: left;
+	margin-left: 20px;
+	padding-left: 45px;
+	height: 26px;
+	padding-top: 6px;
+	margin-top: 15px;
+	margin-right: 0px;
+	margin-bottom: 0px;
+	padding-right: 0px;
+	padding-bottom: 0px;
+}
+ul.func,
+ul.func li {
+	margin: 0px;
+	padding: 0px;
+	float: right;
+	list-style-type: none;
+	height: 63px;
+}
+ul.func {
+	padding-right: 15px;
+}
+ul.func li {
+	display: inline-block;
+	float: left;
+	height: 63px;
+}
+ul.func li a {
+	display: block;
+	text-align: center;
+	font-size: 14px;
+	line-height: 1em;
+	background-repeat: no-repeat;
+	background-position: center 5px;
+	height: 18px;
+	padding-top: 39px;
+	padding-right: 15px;
+	padding-bottom: 0px;
+	padding-left: 15px;
+	margin-top: 3px;
+	margin-right: 5px;
+	margin-bottom: 3px;
+	margin-left: 5px;
+}
+a.edit {
+	background-image: url(images/function/edit.png);
+}
+a.delete {
+	background-image: url(images/function/delete.png);
+}
+ul.func li a:hover {
+	background-color: #D4D4D4;
+	height: 17px;
+	padding-right: 14px;
+	border-right-width: 1px;
+	border-right-style: solid;
+	border-right-color: #CCC;
+	border-bottom-width: 1px;
+	border-bottom-style: solid;
+	border-bottom-color: #CCC;
+}
+
+#Wrap {
+/*	margin: 0px; 
+	padding: 0px; */
+/*    padding-right: 10px; 
+    padding-bottom: 20px; 
+    padding-left: 10px; */
+	border:1px solid yellow;
+    
+}
+
+#Wrap_backup {
+/*	margin: 0px; 
+	padding: 0px; */
+/*    padding-right: 10px; 
+    padding-bottom: 20px; 
+    padding-left: 10px; */
+    margin-right: 10px; 
+    margin-left: 10px; 
+	border:1px solid yellow;
+	left: 0px; 
+	right: 0px; 
+	top: 100px; 
+	bottom: 50px; 
+	position: absolute; 
+}
+
+
+#MessageWrap 
+{
+/*    width: 100%;*/
+}
+#SideWrap {
+/*	background-color: #F0F0F0;
+	margin-right: 0px;
+	margin-left: 10px;
+	padding-right: 0px;
+	padding-left: 10px;
+	padding-bottom: 20px;
+    float:left;
+    width:270px;
+    top: 0px;
+    bottom: 0px;
+	border:1px solid;
+	position: absolute;
+*/	
+	width: 270px; 
+	float: left; 
+	background-color: #F0F0F0;
+	left: 0px; 
+	right: 0px; 
+	top: 0px; 
+	bottom: 0px; 
+	position: absolute; 
+	border:1px solid;
+}
+/*
+#SideTop {
+	height: 50px;
+	vertical-align: middle;
+}
+*/
+#LabelSection {
+/*	margin-top: 10px;
+	margin-right: 10px;
+	margin-left: 10px;
+	padding-right: 10px;
+	padding-left: 10px;
+	padding-bottom: 20px;*/
+	margin-right: 10px;
+	margin-left: 10px;
+	margin-top: 20px;
+	margin-bottom: 20px;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	position: absolute;
+	background-color: #FFF;
+	float: left;
+	font-size: 14px;
+	line-height: 1.2em;
+	border:1px solid;
+	overflow: auto;
+}
+
+/*
+	width: 250px; overflow: auto; float: left; background-color: rgb(255, 255, 255);
+	padding-right: 10px; padding-bottom: 20px; padding-left: 10px; margin-right: 10px; margin-left: 10px; background-color: rgb(240, 240, 240);border:1px solid;
+
+*/
+#MainWrap {
+	background-color: #F0F0F0;
+/*	margin-right: 10px;
+	margin-left: 10px;*/
+	padding-right: 10px;
+	padding-left: 10px;
+	padding-bottom: 20px;
+/*    float:left;
+    width:800px;*/
+	margin-left: 270px;
+	border:1px solid;
+    float:left;
+    left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	position: absolute;
+}
+/*
+#MainTop {
+	height: 50px;
+	vertical-align: middle;
+	display: table-cell;
+	border:1px solid;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	position: absolute;
+}
+*/
+#Filters 
+{
+    z-index: 2;
+	padding-right: 10px;
+	padding-left: 10px;
+	height: 50px;
+	vertical-align: middle;
+/*	display: table-cell;*/
+	border:1px solid;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	position: absolute;
+}
+#Filters ul 
+{
+    display: block;
+    right: 0px;
+	position: absolute;
+}
+#Filters ul li {
+    float: left;
+    list-style: none;
+}
+#PageSection 
+{
+    z-index: 3;
+/*    display: block;
+    right:0;
+    position: absolute;*/
+    text-align: right;
+/*    margin-top: 50px;
+	padding-right: 10px;
+    padding-top: 2px;
+    display: block;
+	right: 0px;
+	top: 0px;
+	position: absolute;
+	border:1px solid;*/
+}
+#GridSection 
+{
+    margin-top: 50px;
+/*	margin-right: 10px;
+	margin-left: 10px;*/
+	margin-bottom: 20px;
+	padding-right: 10px;
+	padding-left: 10px;
+/*	padding-bottom: 20px;*/
+	border:1px solid;
+	overflow: auto;
+	left: 0px;
+	right: 0px;
+	top: 0px;
+	bottom: 0px;
+	position: absolute;
+}
+
+#DetailTop
+{
+    height: 50px;
+    border:1px solid;
+}
+#DetailSection
+{
+    border:1px solid;
+}
+
+/*
+#FilterBar {
+	height: 50px; 
+	padding-right: 20px; 
+	padding-left: 20px; 
+	margin-right: 10px; 
+	margin-left: 10px; 
+	background-color: rgb(240, 240, 240);
+}
+*/
+/*
+#Search {
+	height: 50px; 
+	vertical-align: middle; 
+	display: table-cell;
+}
+#Search label {
+	font-size: 16px;
+}
+#Search input.keyword {
+	border: 1px solid rgb(153, 153, 153); 
+	width: 260px; height: 20px; 
+	margin-right: 10px; 
+	margin-left: 10px;
+}
+*/
+/*
+#LabelGridSplitter {
+	padding-right: 10px; 
+	padding-bottom: 20px; 
+	padding-left: 10px; 
+	margin-right: 10px; 
+	margin-left: 10px; 
+	background-color: rgb(240, 240, 240);
+	border:1px solid;
+}
+#LabelCol {
+	width: 250px; 
+	overflow: auto; 
+	float: left; 
+	background-color: rgb(255, 255, 255);
+}
+#GridSection {
+	overflow: auto; 
+	margin-left: 270px;
+}
+*/
+#Footer {
+/*    left: 0px;
+    right: 0px;
+	bottom: 0px;
+	height: 40px;
+	width: 100%;*/
+	position: relative;
+	clear:both;
+	color: #DDD;
+	background-color: #900;
+}
+#Footer_backup {
+    left: 0px;
+    right: 0px;
+	bottom: 0px;
+	height: 40px;
+	width: 100%;
+	position: absolute;
+	color: #DDD;
+	background-color: #900;
+}
+
+
+
+
+
+
+
+
+
+/* Styles for Detail Preview
+-----------------------------------------------------------*/
+td#previewImage
+{
+    border-color: Black;
+    border-style: solid;
+    border-width: 1px;
+    background-color: #F0F0F0;
+    text-align: center;
+    padding: 20px;
+}
+td#previewLeftTop
+{
+    width: 150px;
+    vertical-align: top;
+    text-align: right;
+}
+td#previewLeftBottom
+{
+    width: 150px;
+    vertical-align: top;
+    text-align: right;
+}
+td#previewRightTop
+{
+    width: 150px;
+    vertical-align: top;
+    text-align: left;
+}
+td#previewRightBottom
+{
+    width: 150px;
+    vertical-align: top;
+    text-align: left;
+}
+td#previewFooter
+{
+    font-size: 12px;
+    text-align: center;
+}
+
+
+
+
+/* Styles for LabelList
+-----------------------------------------------------------*/
+ul#Labels,
+ul#Labels li ul {
+	margin: 0px;
+	list-style-type: none;
+	padding-top: 0px;
+	padding-right: 0px;
+	padding-bottom: 0px;
+	padding-left: 0em;
+}
+ul#Labels li {
+	margin: 0px;
+	padding: 0px;
+}
+ul#Labels li a {
+	color: #333;
+	padding-top: 5px;
+	padding-bottom: 5px;
+	padding-left: 1em;
+	display: block;
+}
+ul#Labels li a:hover {
+	background-color: #CCC;
+}
+ul#Labels ul.rank1 li a {
+	padding-left: 2em;
+}
+ul#Labels ul.rank2 li a {
+	padding-left: 3em;
+}
+ul#Labels ul.rank3 li a {
+	padding-left: 4em;
+}
+ul#Labels ul.rank4 li a {
+	padding-left: 5em;
+}
+ul#Labels ul.rank5 li a {
+	padding-left: 6em;
+}
+ul#Labels ul.rank6 li a {
+	padding-left: 7em;
+}
+ul#Labels ul.rank7 li a {
+	padding-left: 8em;
+}
+ul#Labels ul.rank8 li a {
+	padding-left: 9em;
+}
+ul#Labels ul.rank9 li a {
+	padding-left: 10em;
+}
+ul#Labels ul.rank10 li a {
+	padding-left: 11em;
+}
+ul#Labels li a.current {
+	color: #FFF;
+	background-color: #39F;	
+}
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+
+/* Styles for Detail
+-----------------------------------------------------------*/
+h2 {
+	background-color: #F0F0F0;
+	padding-top: 10px;
+	padding-right: 10px;
+	padding-bottom: 10px;
+	padding-left: 20px;
+	font-size: 18px;
+	line-height: 18px;
+	color: #333;
+	margin-top: 30px;
+	margin-right: 0px;
+	margin-bottom: 20px;
+	margin-left: 0px;
+	border-top-width: 1px;
+	border-bottom-width: 1px;
+	border-top-style: solid;
+	border-bottom-style: solid;
+	border-top-color: #CCC;
+	border-bottom-color: #CCC;
+}
+.info {
+	background-color: #FFF;
+	padding: 10px;
+}
+#BackIndex
+{
+    margin-left: 10px;
+    margin-top: 10px;
+    width: 250px;
+    vertical-align: middle;
+    background-image: url(images/function/back.png);
+    background-repeat: no-repeat;
+    background-position: left center;
+    text-align: center;
+    vertical-align: middle;
+	float: left;
+	font-size: 18px;
+	line-height: 1.6em;
+}
+#rightTop {
+	/*margin-left: 270px;*/
+    height: 50px;
+	padding-top: 10px;
+	padding-left: 0px;
+    vertical-align: middle;
+/*    background-repeat: no-repeat;
+    background-position: left center;*/
+    border:1px solid;
+}
+#infoTitle
+{
+	font-size: 20px;
+}
+#functionBar
+{
+	float: right;
+}
+a#back
+{
+    color: #FFFFFF;
+}
+.toggle
+{
+    cursor:pointer;
+}
+#PublicStatus 
+{
+    margin-left: 10px;
+    margin-bottom: 10px;
+}
+
+
+
+
+
+/* Styles for Index Dialog
+-----------------------------------------------------------*/
+#SearchDialog
+{
+    z-index: 1;
+    margin-top: 50px;
+    margin-right: 10px;
+    top: 0px;
+    right: 0px;
+	width: 310px;
+	height: 440px;
+	position: absolute;
+    display: none;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #b0c4de;
+    background-color:#e6e6fa;
+}
+.DialogMargin
+{
+    margin-left: 25px;
+    margin-right: 10px;
+    margin-top: 10px;
+    margin-bottom: 10px;
+}
+.DialogTitle
+{
+    margin-left: -15px;
+}
+.DialogLabel
+{
+	font-size: 12px;
+	margin-top: 10px;
+}
+#SearchDialog input[type=text]
+{
+    width: 250px;
+}
+#SearchDialog #SearchRegistTimeFrom,
+#SearchDialog #SearchRegistTimeTo,
+#SearchDialog #SearchUpdateTimeFrom,
+#SearchDialog #SearchUpdateTimeTo
+{
+    width: 80px;
+}
+
+#LinkLabelDialog
+{
+    z-index: 1;
+    margin-top: 50px;
+    margin-right: 10px;
+    top: 0px;
+    right: 0px;
+	width: 310px;
+	height: 440px;
+	position: absolute;
+    display: none;
+    border-width: 5px;
+    border-style: solid;
+    border-color: #b0c4de;
+    background-color:#e6e6fa;
+}
+#LinkLabelDialog ul li
+{
+    list-style: none;
+    font-size: 12px;
+}
+#LinkLabelDialog ul
+{
+    padding: 0px;
+    width: 260px;
+    height: 333px;
+    background-color: #FFFFFF;
+    border:1px solid;
+    overflow: auto;
+}
+
+#MainWrap hr
+{
+    margin-top: 50px;
+}
+
+
+/* Styles for Detail Image
+-----------------------------------------------------------*/
+.img_search
+{
+    background-image: url('/Content/sample.gif'); 
+    background-repeat: no-repeat; 
+    width: 55px;
+    height: 40px; 
+    padding-top: 0px;
+    padding-left: 0px; 
+    cursor: pointer; 
+    display: inline-block; 
+    vertical-align: middle;
+
+}
+
+.img_label
+{
+    background-image: url('/Content/sample.gif'); 
+    background-repeat: no-repeat; 
+    width: 55px;
+    height: 40px; 
+    padding-left: 0px; 
+    cursor: pointer; 
+    display: inline-block; 
+    padding-top: 0px;
+}
+
+.img_edit
+{
+    background-image: url('/Content/ConMas/images/function/edit.png'); 
+    background-repeat: no-repeat; 
+    width: 55px;
+    height: 40px; 
+    padding-left: 0px; 
+    cursor: pointer; 
+    display: inline-block; 
+    padding-top: 0px;
+}
+
+.img_delete
+{
+    background-image: url('/Content/ConMas/images/function/delete.png'); 
+    background-repeat: no-repeat; 
+    width: 55px;
+    height: 40px; 
+    padding-left: 0px; 
+    cursor: pointer; 
+    display: inline-block; 
+    padding-top: 0px;
+}
+
+
+
+
+
+
+
+/* Styles for login
+-----------------------------------------------------------*/
+#Login 
+{
+    position: relative;
+    float: left;    
+    text-align: center;
+    margin-top: 200px;
+    width: 100%;
+}
+
+#Login2
+{
+    margin: 0 auto;
+}
+
+.ValidationSummary
+{
+    position:absolute;
+}
+
+
+
+/* Styles for editor and display helpers
+----------------------------------------------------------*/
+/*
+.text-box {
+    width: 30em;
+}
+*/
+
+
+
+
+/* Styles for validation helpers
+-----------------------------------------------------------*/
+.field-validation-error {
+    color: #ff0000;
+}
+
+.field-validation-valid {
+    display: none;
+}
+
+.input-validation-error {
+    border: 1px solid #ff0000;
+    background-color: #ffeeee;
+}
+
+.validation-summary-errors {
+    font-weight: bold;
+    color: #ff0000;
+}
+
+.validation-summary-valid {
+    display: none;
+}

@@ -1,0 +1,4518 @@
+--
+-- PostgreSQL database dump
+--
+
+-- Dumped from database version 12.7
+-- Dumped by pg_dump version 12.7
+
+SET statement_timeout = 0;
+SET lock_timeout = 0;
+SET idle_in_transaction_session_timeout = 0;
+SET client_encoding = 'UTF8';
+SET standard_conforming_strings = on;
+SELECT pg_catalog.set_config('search_path', '', false);
+SET check_function_bodies = false;
+SET xmloption = content;
+SET client_min_messages = warning;
+SET row_security = off;
+
+--
+-- Name: func_mst_user_trigger(); Type: FUNCTION; Schema: public; Owner: postgres
+--
+
+CREATE FUNCTION public.func_mst_user_trigger() RETURNS trigger
+    LANGUAGE plpgsql
+    AS $$
+    DECLARE
+    LOG_ID    TEXT;
+    LOG_TYPE  TEXT;
+
+    SETTING_LOG_MODE       NUMERIC(1) := 0;
+    SETTING_IMAGE_DATA     NUMERIC(1) := 0;
+    SETTING_BINARY_DATA    NUMERIC(1) := 0;
+    SETTING_OTHER_DATA     NUMERIC(1) := 0;
+    BEGIN
+
+    --******************************************
+    -- ログ設定テーブルより設定値を取得
+    --******************************************
+    SELECT COALESCE(log.log_mode, 0)
+    ,COALESCE(log.image_data, 0)
+    ,COALESCE(log.binary_data, 0)
+    ,COALESCE(log.other_data, 0)
+    INTO  SETTING_LOG_MODE
+    ,SETTING_IMAGE_DATA
+    ,SETTING_BINARY_DATA
+    ,SETTING_OTHER_DATA
+    FROM  mst_logsetting log
+    WHERE log.table_name = TG_RELNAME
+    AND log.log_type = TG_OP;
+
+    -- なければデフォルト値
+    IF NOT FOUND THEN
+    SETTING_LOG_MODE = 0;
+    SETTING_IMAGE_DATA = 0;
+    SETTING_BINARY_DATA = 0;
+    SETTING_OTHER_DATA = 0;
+    END IF;
+
+    -- 出力判定
+    IF SETTING_LOG_MODE <> 1 THEN
+    RETURN NEW;
+    END IF;
+
+
+
+    LOG_ID = TO_CHAR(NOW(), 'YYYYMMDDHH24MISS') || NEXTVAL('LOG_MST_USER_SEQ');
+
+    IF TG_OP = 'INSERT' THEN
+    LOG_TYPE = 'I';
+    ELSIF TG_OP = 'UPDATE' THEN
+    LOG_TYPE = 'U';
+    ELSIF TG_OP = 'DELETE' THEN
+    LOG_TYPE = 'D';
+    END IF;
+
+    IF TG_OP = 'INSERT' OR
+    TG_OP = 'UPDATE' THEN
+    INSERT INTO LOG_MST_USER
+    (
+    LOG_ID
+    ,LOG_TYPE
+    ,USER_ID
+    ,PASSWORD
+    ,USER_NAME
+    ,E_MAIL
+    ,APPROVAL_SIGN
+    ,USE_START_TIME
+    ,USE_END_TIME
+    ,SYS_REGIST_TERM
+    ,SYS_REGIST_USER
+    ,SYS_REGIST_TIME
+    ,SYS_UPDATE_TERM
+    ,SYS_UPDATE_USER
+    ,SYS_UPDATE_TIME
+    ) VALUES (
+    LOG_ID
+    ,LOG_TYPE
+    ,NEW.USER_ID
+    ,NEW.PASSWORD
+    ,NEW.USER_NAME
+    ,NEW.E_MAIL
+    ,CASE WHEN SETTING_IMAGE_DATA = 1 THEN NEW.APPROVAL_SIGN END
+    ,NEW.USE_START_TIME
+    ,NEW.USE_END_TIME
+    ,NEW.SYS_REGIST_TERM
+    ,NEW.SYS_REGIST_USER
+    ,NEW.SYS_REGIST_TIME
+    ,NEW.SYS_UPDATE_TERM
+    ,NEW.SYS_UPDATE_USER
+    ,NEW.SYS_UPDATE_TIME
+    );
+    RETURN NEW;
+    ELSE
+    INSERT INTO LOG_MST_USER
+    (
+    LOG_ID
+    ,LOG_TYPE
+    ,USER_ID
+    ,PASSWORD
+    ,USER_NAME
+    ,E_MAIL
+    ,APPROVAL_SIGN
+    ,USE_START_TIME
+    ,USE_END_TIME
+    ,SYS_REGIST_TERM
+    ,SYS_REGIST_USER
+    ,SYS_REGIST_TIME
+    ,SYS_UPDATE_TERM
+    ,SYS_UPDATE_USER
+    ,SYS_UPDATE_TIME
+    ) VALUES (
+    LOG_ID
+    ,LOG_TYPE
+    ,OLD.USER_ID
+    ,OLD.PASSWORD
+    ,OLD.USER_NAME
+    ,OLD.E_MAIL
+    ,CASE WHEN SETTING_IMAGE_DATA = 1 THEN OLD.APPROVAL_SIGN END
+    ,OLD.USE_START_TIME
+    ,OLD.USE_END_TIME
+    ,OLD.SYS_REGIST_TERM
+    ,OLD.SYS_REGIST_USER
+    ,OLD.SYS_REGIST_TIME
+    ,OLD.SYS_UPDATE_TERM
+    ,OLD.SYS_UPDATE_USER
+    ,OLD.SYS_UPDATE_TIME
+    );
+    RETURN OLD;
+    END IF;
+
+    END;
+    $$;
+
+
+ALTER FUNCTION public.func_mst_user_trigger() OWNER TO postgres;
+
+SET default_tablespace = '';
+
+SET default_table_access_method = heap;
+
+--
+-- Name: bot_channel_account_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_channel_account_ir (
+    user_id text NOT NULL,
+    channel text NOT NULL,
+    account_id text,
+    deleted numeric(1,0),
+    insert_time timestamp without time zone,
+    insert_user text,
+    update_time timestamp without time zone,
+    update_user text,
+    email text,
+    pin text
+);
+
+
+ALTER TABLE public.bot_channel_account_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_channel_account_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_channel_account_ir IS 'BOTチャンネルアカウント';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.user_id IS 'ユーザID';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.channel; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.channel IS 'チャンネル';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.account_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.account_id IS 'チャンネルアカウントID';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.email; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.email IS 'Eメール';
+
+
+--
+-- Name: COLUMN bot_channel_account_ir.pin; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_channel_account_ir.pin IS 'PINコード';
+
+
+--
+-- Name: bot_command; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_command (
+    type text NOT NULL,
+    locale text NOT NULL,
+    index integer NOT NULL,
+    command text
+);
+
+
+ALTER TABLE public.bot_command OWNER TO postgres;
+
+--
+-- Name: TABLE bot_command; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_command IS 'BOTチャットコマンド';
+
+
+--
+-- Name: COLUMN bot_command.type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_command.type IS 'コマンド種別';
+
+
+--
+-- Name: COLUMN bot_command.locale; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_command.locale IS 'ロケール';
+
+
+--
+-- Name: COLUMN bot_command.index; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_command.index IS 'No';
+
+
+--
+-- Name: COLUMN bot_command.command; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_command.command IS 'コマンド';
+
+
+--
+-- Name: bot_def_role_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_def_role_ir (
+    def_top_id text NOT NULL,
+    group_id text NOT NULL,
+    role_def_read text,
+    role_def_update text,
+    role_def_delete text,
+    role_rep_read text,
+    role_rep_update text,
+    role_rep_create text,
+    role_rep_delete text,
+    regist_user text,
+    regist_time timestamp without time zone,
+    update_user text,
+    update_time timestamp without time zone
+);
+
+
+ALTER TABLE public.bot_def_role_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_def_role_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_def_role_ir IS 'BOT定義権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.def_top_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.def_top_id IS '定義ID';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.group_id IS 'グループID';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_def_read; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_def_read IS '定義参照権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_def_update; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_def_update IS '定義編集権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_def_delete; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_def_delete IS '定義削除権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_rep_read; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_rep_read IS '帳票参照権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_rep_update; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_rep_update IS '帳票編集権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_rep_create; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_rep_create IS '帳票作成権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.role_rep_delete; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.role_rep_delete IS '帳票削除権限';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.regist_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.regist_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.regist_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.regist_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN bot_def_role_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_def_role_ir.update_time IS '更新日時';
+
+
+--
+-- Name: bot_group_affiliation_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_group_affiliation_ir (
+    group_id text NOT NULL,
+    user_id text NOT NULL,
+    regist_time timestamp without time zone,
+    update_time timestamp without time zone,
+    cooperation_time timestamp without time zone
+);
+
+
+ALTER TABLE public.bot_group_affiliation_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_group_affiliation_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_group_affiliation_ir IS 'BOTグループ所属';
+
+
+--
+-- Name: COLUMN bot_group_affiliation_ir.group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_affiliation_ir.group_id IS 'グループID';
+
+
+--
+-- Name: COLUMN bot_group_affiliation_ir.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_affiliation_ir.user_id IS 'ユーザID';
+
+
+--
+-- Name: COLUMN bot_group_affiliation_ir.regist_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_affiliation_ir.regist_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_group_affiliation_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_affiliation_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_group_affiliation_ir.cooperation_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_affiliation_ir.cooperation_time IS 'Chatbot連携日時';
+
+
+--
+-- Name: bot_group_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_group_ir (
+    group_id text NOT NULL,
+    group_name text,
+    upper_group_id text,
+    group_id_path text,
+    group_name_path text,
+    role_mst_read text,
+    role_mst_update text,
+    role_mst_create text,
+    role_mst_delete text,
+    role_def_read text,
+    role_def_update text,
+    role_def_create text,
+    role_def_delete text,
+    role_rep_read text,
+    role_rep_update text,
+    role_rep_create text,
+    role_rep_delete text,
+    group_remarks text,
+    regist_user text,
+    regist_time timestamp without time zone,
+    update_user text,
+    update_time timestamp without time zone
+);
+
+
+ALTER TABLE public.bot_group_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_group_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_group_ir IS 'BOTグループ';
+
+
+--
+-- Name: COLUMN bot_group_ir.group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.group_id IS 'グループID';
+
+
+--
+-- Name: COLUMN bot_group_ir.group_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.group_name IS 'グループ名称';
+
+
+--
+-- Name: COLUMN bot_group_ir.upper_group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.upper_group_id IS '親グループID';
+
+
+--
+-- Name: COLUMN bot_group_ir.group_id_path; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.group_id_path IS 'グループIDパス';
+
+
+--
+-- Name: COLUMN bot_group_ir.group_name_path; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.group_name_path IS 'グループ名称パス';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_mst_read; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_mst_read IS 'マスター参照権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_mst_update; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_mst_update IS 'マスター編集権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_mst_create; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_mst_create IS 'マスター作成権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_mst_delete; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_mst_delete IS 'マスター削除権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_def_read; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_def_read IS '定義参照権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_def_update; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_def_update IS '定義編集権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_def_create; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_def_create IS '定義作成権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_def_delete; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_def_delete IS '定義削除権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_rep_read; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_rep_read IS '帳票参照権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_rep_update; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_rep_update IS '帳票編集権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_rep_create; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_rep_create IS '帳票作成権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.role_rep_delete; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.role_rep_delete IS '帳票削除権限';
+
+
+--
+-- Name: COLUMN bot_group_ir.group_remarks; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.group_remarks IS 'グループ備考';
+
+
+--
+-- Name: COLUMN bot_group_ir.regist_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.regist_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_group_ir.regist_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.regist_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_group_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN bot_group_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_group_ir.update_time IS '更新日時';
+
+
+--
+-- Name: bot_network_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_network_ir (
+    top_key text NOT NULL,
+    prev_question_key1 text NOT NULL,
+    prev_question_key2 text NOT NULL,
+    next_question_key1 text NOT NULL,
+    next_question_key2 text NOT NULL,
+    insert_time timestamp without time zone,
+    insert_user text,
+    update_time timestamp without time zone,
+    update_user text,
+    network_group integer
+);
+
+
+ALTER TABLE public.bot_network_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_network_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_network_ir IS 'BOTネットワーク';
+
+
+--
+-- Name: COLUMN bot_network_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN bot_network_ir.prev_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.prev_question_key1 IS '先行クラスターのシートNO';
+
+
+--
+-- Name: COLUMN bot_network_ir.prev_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.prev_question_key2 IS '先行クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN bot_network_ir.next_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.next_question_key1 IS '後続クラスターのシートNO';
+
+
+--
+-- Name: COLUMN bot_network_ir.next_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.next_question_key2 IS '後続クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN bot_network_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_network_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_network_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_network_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN bot_network_ir.network_group; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_network_ir.network_group IS 'ネットワークグループ';
+
+
+--
+-- Name: bot_parameter_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_parameter_ir (
+    top_key text NOT NULL,
+    question_key1 text NOT NULL,
+    question_key2 text NOT NULL,
+    parameter_key text NOT NULL,
+    parameter_value text,
+    insert_time timestamp without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text
+);
+
+
+ALTER TABLE public.bot_parameter_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_parameter_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_parameter_ir IS 'BOT入力パラメータ';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.top_key IS 'bot定義キー';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.question_key1 IS '質問キー１';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.question_key2 IS '質問キー２';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.parameter_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.parameter_key IS 'パラメーターキー';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.parameter_value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.parameter_value IS 'パラメーター値';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.insert_user_id IS '登録ユーザーID';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.insert_user_name IS '登録ユーザー名';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.update_user_id IS '更新ユーザーID';
+
+
+--
+-- Name: COLUMN bot_parameter_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_parameter_ir.update_user_name IS '更新ユーザー名';
+
+
+--
+-- Name: bot_question_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_question_ir (
+    top_key text NOT NULL,
+    question_key1 text,
+    question_key2 text,
+    question_name text,
+    question_type text,
+    question_index integer NOT NULL,
+    question_enable integer,
+    insert_time timestamp without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text,
+    deleted numeric(1,0) DEFAULT 0 NOT NULL,
+    chatbot_only numeric(1,0) DEFAULT 0 NOT NULL,
+    question_id integer NOT NULL,
+    temporary_flag numeric(1,0) DEFAULT 0 NOT NULL,
+    parent_question_id integer,
+    conversation_type integer DEFAULT 0,
+    return_question_id integer,
+    return_question_id_yes integer,
+    return_type integer,
+    return_type_yes integer,
+    carboncopy_flag numeric(1,0),
+    def_top_org text,
+    rev_no integer,
+    network_group integer
+);
+
+
+ALTER TABLE public.bot_question_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_question_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_question_ir IS 'BOT質問';
+
+
+--
+-- Name: COLUMN bot_question_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.top_key IS 'bot定義キー';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_key1 IS '質問キー１';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_key2 IS '質問キー２';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_name IS '質問キー名称';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_type IS '質問キータイプ';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_index; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_index IS '質問順';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_enable; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_enable IS '質問有効可否';
+
+
+--
+-- Name: COLUMN bot_question_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_question_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.insert_user_id IS '登録ユーザーID';
+
+
+--
+-- Name: COLUMN bot_question_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.insert_user_name IS '登録ユーザー名';
+
+
+--
+-- Name: COLUMN bot_question_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_question_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.update_user_id IS '更新ユーザーID';
+
+
+--
+-- Name: COLUMN bot_question_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.update_user_name IS '更新ユーザー名';
+
+
+--
+-- Name: COLUMN bot_question_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN bot_question_ir.chatbot_only; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.chatbot_only IS '質問・会話フラグ 0:質問文、1:会話文';
+
+
+--
+-- Name: COLUMN bot_question_ir.question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.question_id IS '質問ID';
+
+
+--
+-- Name: COLUMN bot_question_ir.temporary_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.temporary_flag IS '仮保存フラグ';
+
+
+--
+-- Name: COLUMN bot_question_ir.parent_question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.parent_question_id IS '親質問ID';
+
+
+--
+-- Name: COLUMN bot_question_ir.conversation_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.conversation_type IS '会話文タイプ 0:通常のメッセージ 1:「はい」「いいえ」の確認方式 2:「はい」「いいえ」からのみ';
+
+
+--
+-- Name: COLUMN bot_question_ir.return_question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.return_question_id IS '「いいえ」の場合のジャンプ先質問ID';
+
+
+--
+-- Name: COLUMN bot_question_ir.return_question_id_yes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.return_question_id_yes IS '「はい」の場合のジャンプ先質問ID';
+
+
+--
+-- Name: COLUMN bot_question_ir.return_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.return_type IS '「いいえ」の場合の動作 0:質問にジャンプ 1:会話にジャンプ 2:すべてキャンセル';
+
+
+--
+-- Name: COLUMN bot_question_ir.return_type_yes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.return_type_yes IS '「はい」の場合の動作 0:質問にジャンプ 1:会話にジャンプ 2:すべてキャンセル';
+
+
+--
+-- Name: COLUMN bot_question_ir.carboncopy_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.carboncopy_flag IS 'カーボンコピーフラグ';
+
+
+--
+-- Name: COLUMN bot_question_ir.def_top_org; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.def_top_org IS '元定義ID';
+
+
+--
+-- Name: COLUMN bot_question_ir.rev_no; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.rev_no IS 'リビジョンNo';
+
+
+--
+-- Name: COLUMN bot_question_ir.network_group; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_ir.network_group IS 'ネットワークグループ';
+
+
+--
+-- Name: bot_question_value_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_question_value_ir (
+    top_key text NOT NULL,
+    temporary_flag numeric(1,0) NOT NULL,
+    question_key1 text,
+    question_key2 text,
+    locale text NOT NULL,
+    chatbot_only numeric(1,0),
+    question_value text,
+    deleted numeric(1,0) DEFAULT 0 NOT NULL,
+    insert_time time without time zone,
+    insert_user text,
+    update_time time without time zone,
+    update_user text,
+    question_id integer NOT NULL,
+    confirm_cancel_message text,
+    confirm_cancel_message_yes text,
+    def_top_org text,
+    rev_no integer
+);
+
+
+ALTER TABLE public.bot_question_value_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_question_value_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_question_value_ir IS 'BOT質問文';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.temporary_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.temporary_flag IS '仮保存フラグ';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.question_key1 IS '質問キー1';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.question_key2 IS '質問キー2';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.locale; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.locale IS 'ロケール';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.chatbot_only; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.chatbot_only IS '質問・会話フラグ 0:質問文、1:会話文';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.question_value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.question_value IS '質問文';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.question_id IS '質問ID';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.confirm_cancel_message; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.confirm_cancel_message IS '「いいえ」選択時の確認メッセージ';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.confirm_cancel_message_yes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.confirm_cancel_message_yes IS '「はい」選択時の確認メッセージ';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.def_top_org; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.def_top_org IS '元定義ID';
+
+
+--
+-- Name: COLUMN bot_question_value_ir.rev_no; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_question_value_ir.rev_no IS 'リビジョンNo';
+
+
+--
+-- Name: bot_recepiton_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_recepiton_ir (
+    "GUID" text NOT NULL,
+    one_time_password text NOT NULL,
+    top_key text NOT NULL,
+    report_id text NOT NULL,
+    authorize_key text NOT NULL,
+    mode numeric(1,0) DEFAULT 0 NOT NULL,
+    create_report numeric(1,0) DEFAULT 0 NOT NULL,
+    deleted numeric(1,0) DEFAULT 0 NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    insert_time timestamp without time zone
+);
+
+
+ALTER TABLE public.bot_recepiton_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_recepiton_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_recepiton_ir IS '未使用';
+
+
+--
+-- Name: bot_schedule; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_schedule (
+    schedule_id text NOT NULL,
+    rep_top_id text,
+    rep_top_name text,
+    public_status text,
+    edit_status text,
+    task_id text,
+    task_name text,
+    user_id text,
+    start_date timestamp without time zone,
+    end_date timestamp without time zone,
+    comment1 text,
+    comment2 text,
+    auto_download numeric(1,0),
+    def_top_id text,
+    report_type numeric(1,0),
+    input_type numeric(1,0),
+    start_type numeric(1,0),
+    task_remark text,
+    comment_label1 text,
+    comment_label2 text,
+    comment_label3 text,
+    comment_label4 text,
+    comment_label5 text,
+    comment_label6 text,
+    comment_label7 text,
+    comment_label8 text,
+    comment_label9 text,
+    comment_label10 text,
+    comment3 text,
+    comment4 text,
+    comment5 text,
+    comment6 text,
+    comment7 text,
+    comment8 text,
+    comment9 text,
+    comment10 text,
+    project_code text,
+    project_name text,
+    order_code text,
+    order_name text,
+    process_code text,
+    process_name text,
+    group_id text,
+    sys_update_time timestamp without time zone
+);
+
+
+ALTER TABLE public.bot_schedule OWNER TO postgres;
+
+--
+-- Name: TABLE bot_schedule; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_schedule IS 'BOTスケジュール';
+
+
+--
+-- Name: COLUMN bot_schedule.schedule_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.schedule_id IS 'スケジュールID';
+
+
+--
+-- Name: COLUMN bot_schedule.rep_top_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.rep_top_id IS '帳票ID';
+
+
+--
+-- Name: COLUMN bot_schedule.rep_top_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.rep_top_name IS '帳票名称';
+
+
+--
+-- Name: COLUMN bot_schedule.public_status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.public_status IS '公開ステータス';
+
+
+--
+-- Name: COLUMN bot_schedule.edit_status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.edit_status IS '編集ステータス';
+
+
+--
+-- Name: COLUMN bot_schedule.task_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.task_id IS 'タスクID';
+
+
+--
+-- Name: COLUMN bot_schedule.task_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.task_name IS 'タスク名称';
+
+
+--
+-- Name: COLUMN bot_schedule.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.user_id IS 'ユーザID';
+
+
+--
+-- Name: COLUMN bot_schedule.start_date; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.start_date IS '開始日';
+
+
+--
+-- Name: COLUMN bot_schedule.end_date; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.end_date IS '終了日';
+
+
+--
+-- Name: COLUMN bot_schedule.comment1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment1 IS 'コメント1';
+
+
+--
+-- Name: COLUMN bot_schedule.comment2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment2 IS 'コメント2';
+
+
+--
+-- Name: COLUMN bot_schedule.auto_download; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.auto_download IS '自動ダウンロード 0:しない、1:する';
+
+
+--
+-- Name: COLUMN bot_schedule.def_top_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.def_top_id IS '定義ID';
+
+
+--
+-- Name: COLUMN bot_schedule.report_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.report_type IS '帳票区分';
+
+
+--
+-- Name: COLUMN bot_schedule.input_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.input_type IS '入力区分';
+
+
+--
+-- Name: COLUMN bot_schedule.start_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.start_type IS '開始区分';
+
+
+--
+-- Name: COLUMN bot_schedule.task_remark; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.task_remark IS 'タスクコメント';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label1 IS 'コメントラベル1';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label2 IS 'コメントラベル2';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label3; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label3 IS 'コメントラベル3';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label4; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label4 IS 'コメントラベル4';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label5; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label5 IS 'コメントラベル5';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label6; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label6 IS 'コメントラベル6';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label7; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label7 IS 'コメントラベル7';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label8; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label8 IS 'コメントラベル8';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label9; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label9 IS 'コメントラベル9';
+
+
+--
+-- Name: COLUMN bot_schedule.comment_label10; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment_label10 IS 'コメントラベル10';
+
+
+--
+-- Name: COLUMN bot_schedule.comment3; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment3 IS 'コメント3';
+
+
+--
+-- Name: COLUMN bot_schedule.comment4; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment4 IS 'コメント4';
+
+
+--
+-- Name: COLUMN bot_schedule.comment5; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment5 IS 'コメント5';
+
+
+--
+-- Name: COLUMN bot_schedule.comment6; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment6 IS 'コメント6';
+
+
+--
+-- Name: COLUMN bot_schedule.comment7; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment7 IS 'コメント7';
+
+
+--
+-- Name: COLUMN bot_schedule.comment8; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment8 IS 'コメント8';
+
+
+--
+-- Name: COLUMN bot_schedule.comment9; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment9 IS 'コメント9';
+
+
+--
+-- Name: COLUMN bot_schedule.comment10; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.comment10 IS 'コメント10';
+
+
+--
+-- Name: COLUMN bot_schedule.project_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.project_code IS 'プロジェクトID';
+
+
+--
+-- Name: COLUMN bot_schedule.project_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.project_name IS 'プロジェクト名称';
+
+
+--
+-- Name: COLUMN bot_schedule.order_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.order_code IS 'オーダーID';
+
+
+--
+-- Name: COLUMN bot_schedule.order_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.order_name IS 'オーダー名称';
+
+
+--
+-- Name: COLUMN bot_schedule.process_code; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.process_code IS 'プロセスID';
+
+
+--
+-- Name: COLUMN bot_schedule.process_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.process_name IS 'プロセス名称';
+
+
+--
+-- Name: COLUMN bot_schedule.group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.group_id IS 'グループID';
+
+
+--
+-- Name: COLUMN bot_schedule.sys_update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_schedule.sys_update_time IS '更新日時';
+
+
+--
+-- Name: bot_top_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_top_ir (
+    top_key text NOT NULL,
+    top_name text,
+    remarks01 text,
+    remarks02 text,
+    remarks03 text,
+    remarks04 text,
+    remarks05 text,
+    remarks06 text,
+    remarks07 text,
+    remarks08 text,
+    remarks09 text,
+    remarks10 text,
+    deleted numeric(1,0),
+    edit_status text,
+    insert_time timestamp without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text,
+    def_top_org text,
+    rev_no integer,
+    create_report numeric(1,0) DEFAULT 0 NOT NULL,
+    require_location integer DEFAULT 0,
+    create_role_mode integer DEFAULT 0,
+    label_mode integer DEFAULT 0,
+    sys_insert_time timestamp(6) without time zone DEFAULT NULL::timestamp without time zone,
+    sys_update_time timestamp(6) without time zone DEFAULT NULL::timestamp without time zone
+);
+
+
+ALTER TABLE public.bot_top_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_top_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_top_ir IS 'BOT定義';
+
+
+--
+-- Name: COLUMN bot_top_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.top_key IS 'bot定義キー';
+
+
+--
+-- Name: COLUMN bot_top_ir.top_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.top_name IS 'bot定義名称';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks01; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks01 IS '備考１';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks02; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks02 IS '備考２';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks03; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks03 IS '備考３';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks04; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks04 IS '備考４';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks05; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks05 IS '備考５';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks06; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks06 IS '備考６';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks07; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks07 IS '備考７';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks08; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks08 IS '備考８';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks09; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks09 IS '備考９';
+
+
+--
+-- Name: COLUMN bot_top_ir.remarks10; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.remarks10 IS '備考１０';
+
+
+--
+-- Name: COLUMN bot_top_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN bot_top_ir.edit_status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.edit_status IS '編集ステータス 2:編集中、4：完了';
+
+
+--
+-- Name: COLUMN bot_top_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_top_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.insert_user_id IS '登録ユーザーID';
+
+
+--
+-- Name: COLUMN bot_top_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.insert_user_name IS '登録ユーザー名';
+
+
+--
+-- Name: COLUMN bot_top_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_top_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.update_user_id IS '更新ユーザーID';
+
+
+--
+-- Name: COLUMN bot_top_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.update_user_name IS '更新ユーザー名';
+
+
+--
+-- Name: COLUMN bot_top_ir.def_top_org; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.def_top_org IS '元定義ID';
+
+
+--
+-- Name: COLUMN bot_top_ir.rev_no; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.rev_no IS 'リビジョンNo';
+
+
+--
+-- Name: COLUMN bot_top_ir.create_report; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.create_report IS '帳票作成フラグ 0:帳票作成する 1:帳票作成しない';
+
+
+--
+-- Name: COLUMN bot_top_ir.require_location; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.require_location IS '位置情報要否フラグ 0:位置情報不要 1:位置情報必要';
+
+
+--
+-- Name: COLUMN bot_top_ir.create_role_mode; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.create_role_mode IS '帳票作成時のユーザーグループ権限設定モード 0:すべて 1:作成ユーザーの所属するグループのみ 2:作成ユーザーの所属するグループ、その上位グループのみ';
+
+
+--
+-- Name: COLUMN bot_top_ir.label_mode; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.label_mode IS 'ラベルの設定位置 0:全てのラベルにつける 1:一番下のラベルにのみつける';
+
+
+--
+-- Name: COLUMN bot_top_ir.sys_insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.sys_insert_time IS 'manager登録日時';
+
+
+--
+-- Name: COLUMN bot_top_ir.sys_update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_top_ir.sys_update_time IS 'manager更新日時';
+
+
+--
+-- Name: bot_usable_def_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_usable_def_ir (
+    group_id text NOT NULL,
+    top_key text NOT NULL,
+    deleted numeric(1,0),
+    insert_time timestamp without time zone,
+    insert_user text,
+    update_time timestamp without time zone,
+    update_user text
+);
+
+
+ALTER TABLE public.bot_usable_def_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_usable_def_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_usable_def_ir IS 'BOT使用可能帳票定義';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.group_id IS 'グループID';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_usable_def_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_usable_def_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: bot_user_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_user_ir (
+    user_id text NOT NULL,
+    user_name text,
+    email text,
+    use_start_time timestamp without time zone,
+    use_end_time timestamp without time zone,
+    regist_time timestamp without time zone,
+    update_time timestamp without time zone,
+    cooperation_time timestamp without time zone,
+    license_exists integer DEFAULT 0
+);
+
+
+ALTER TABLE public.bot_user_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_user_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_user_ir IS 'BOTユーザ';
+
+
+--
+-- Name: COLUMN bot_user_ir.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.user_id IS 'ユーザID';
+
+
+--
+-- Name: COLUMN bot_user_ir.user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.user_name IS 'ユーザ名';
+
+
+--
+-- Name: COLUMN bot_user_ir.email; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.email IS 'Eメール';
+
+
+--
+-- Name: COLUMN bot_user_ir.use_start_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.use_start_time IS '利用開始日時';
+
+
+--
+-- Name: COLUMN bot_user_ir.use_end_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.use_end_time IS '利用終了日時';
+
+
+--
+-- Name: COLUMN bot_user_ir.regist_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.regist_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_user_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_user_ir.cooperation_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.cooperation_time IS 'Chatbot連携日時';
+
+
+--
+-- Name: COLUMN bot_user_ir.license_exists; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_user_ir.license_exists IS 'ライセンス有無(0:なし/1:あり)';
+
+
+--
+-- Name: bot_valuelink_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.bot_valuelink_ir (
+    top_key text NOT NULL,
+    prev_question_key1 text NOT NULL,
+    prev_question_key2 text NOT NULL,
+    next_question_key1 text NOT NULL,
+    next_question_key2 text NOT NULL,
+    parent_value text NOT NULL,
+    select_values text,
+    insert_time timestamp without time zone,
+    insert_user text,
+    update_time timestamp without time zone,
+    update_user text
+);
+
+
+ALTER TABLE public.bot_valuelink_ir OWNER TO postgres;
+
+--
+-- Name: TABLE bot_valuelink_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.bot_valuelink_ir IS 'BOTバリューリンク';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.prev_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.prev_question_key1 IS '先行クラスターのシートNO';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.prev_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.prev_question_key2 IS '先行クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.next_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.next_question_key1 IS '後続クラスターのシートNO';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.next_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.next_question_key2 IS '後続クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.parent_value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.parent_value IS '先行クラスターの選択値';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.select_values; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.select_values IS '後続クラスターの選択要素';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN bot_valuelink_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.bot_valuelink_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: chat_value_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.chat_value_ir (
+    token text NOT NULL,
+    top_key text NOT NULL,
+    question_key1 text NOT NULL,
+    question_key2 text NOT NULL,
+    content_type text,
+    value_txt text,
+    value_bin bytea,
+    insert_time timestamp without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text,
+    location text,
+    deleted numeric(1,0) DEFAULT 0 NOT NULL,
+    question_id integer NOT NULL,
+    rep_key text,
+    value_bin_id text,
+    value_bin_name text,
+    cooperation_time timestamp without time zone,
+    location_latitude text,
+    location_longitude text,
+    location_altitude text,
+    update_channel_account_id text,
+    while_editing_flag integer DEFAULT 0,
+    value_bin_thumbnail bytea,
+    value_bin_thumbnail_id text
+);
+
+
+ALTER TABLE public.chat_value_ir OWNER TO postgres;
+
+--
+-- Name: TABLE chat_value_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.chat_value_ir IS 'BOTチャットログ';
+
+
+--
+-- Name: COLUMN chat_value_ir.token; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.token IS 'セッション維持トークン';
+
+
+--
+-- Name: COLUMN chat_value_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN chat_value_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.question_key1 IS 'シート番号';
+
+
+--
+-- Name: COLUMN chat_value_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.question_key2 IS 'クラスターindex';
+
+
+--
+-- Name: COLUMN chat_value_ir.content_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.content_type IS 'コンテンツタイプ';
+
+
+--
+-- Name: COLUMN chat_value_ir.value_txt; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.value_txt IS '値（テキスト）';
+
+
+--
+-- Name: COLUMN chat_value_ir.value_bin; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.value_bin IS '値（バイナリ）';
+
+
+--
+-- Name: COLUMN chat_value_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN chat_value_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.insert_user_id IS '登録ユーザID';
+
+
+--
+-- Name: COLUMN chat_value_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.insert_user_name IS '登録ユーザ名';
+
+
+--
+-- Name: COLUMN chat_value_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN chat_value_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.update_user_id IS '更新ユーザID';
+
+
+--
+-- Name: COLUMN chat_value_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.update_user_name IS '更新ユーザ名';
+
+
+--
+-- Name: COLUMN chat_value_ir.location; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.location IS '未使用';
+
+
+--
+-- Name: COLUMN chat_value_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN chat_value_ir.question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.question_id IS '質問ID';
+
+
+--
+-- Name: COLUMN chat_value_ir.rep_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.rep_key IS '帳票ID';
+
+
+--
+-- Name: COLUMN chat_value_ir.value_bin_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.value_bin_id IS '値（Blobストレージキー）';
+
+
+--
+-- Name: COLUMN chat_value_ir.value_bin_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.value_bin_name IS '値（画像ファイル名）';
+
+
+--
+-- Name: COLUMN chat_value_ir.cooperation_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.cooperation_time IS '連携日時';
+
+
+--
+-- Name: COLUMN chat_value_ir.location_latitude; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.location_latitude IS '緯度';
+
+
+--
+-- Name: COLUMN chat_value_ir.location_longitude; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.location_longitude IS '経度';
+
+
+--
+-- Name: COLUMN chat_value_ir.location_altitude; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.location_altitude IS '高度';
+
+
+--
+-- Name: COLUMN chat_value_ir.update_channel_account_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.update_channel_account_id IS '更新チャンネルアカウントID';
+
+
+--
+-- Name: COLUMN chat_value_ir.while_editing_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.while_editing_flag IS '編集中フラグ';
+
+
+--
+-- Name: COLUMN chat_value_ir.value_bin_thumbnail; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.value_bin_thumbnail IS '値（バイナリサムネイル用）';
+
+
+--
+-- Name: COLUMN chat_value_ir.value_bin_thumbnail_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.chat_value_ir.value_bin_thumbnail_id IS '値（Blobサムネイル用ストレージキー）';
+
+
+--
+-- Name: log_info; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.log_info (
+    insert_time timestamp without time zone DEFAULT now() NOT NULL,
+    log_kind text,
+    channel_id text,
+    token text,
+    user_id text,
+    log_time text,
+    class_name text,
+    method_name text,
+    line_number text,
+    message text
+);
+
+
+ALTER TABLE public.log_info OWNER TO postgres;
+
+--
+-- Name: TABLE log_info; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.log_info IS '未使用';
+
+
+--
+-- Name: COLUMN log_info.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.insert_time IS 'DB保存日時';
+
+
+--
+-- Name: COLUMN log_info.log_kind; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.log_kind IS 'ログ種類';
+
+
+--
+-- Name: COLUMN log_info.channel_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.channel_id IS 'チャンネル ID';
+
+
+--
+-- Name: COLUMN log_info.token; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.token IS 'トークン ID';
+
+
+--
+-- Name: COLUMN log_info.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.user_id IS 'ユーザー ID';
+
+
+--
+-- Name: COLUMN log_info.log_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.log_time IS 'ログ記録日時';
+
+
+--
+-- Name: COLUMN log_info.class_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.class_name IS 'クラス名';
+
+
+--
+-- Name: COLUMN log_info.method_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.method_name IS 'メソッド名';
+
+
+--
+-- Name: COLUMN log_info.line_number; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.line_number IS '行番号';
+
+
+--
+-- Name: COLUMN log_info.message; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.log_info.message IS 'ログメッセージ';
+
+
+--
+-- Name: mst_setting; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.mst_setting (
+    key text NOT NULL,
+    value text,
+    insert_user_id text NOT NULL,
+    insert_user_name text,
+    insert_time time without time zone DEFAULT now(),
+    update_user_id text,
+    update_user_name text,
+    update_time time without time zone DEFAULT now()
+);
+
+
+ALTER TABLE public.mst_setting OWNER TO postgres;
+
+--
+-- Name: TABLE mst_setting; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.mst_setting IS '共通設定';
+
+
+--
+-- Name: COLUMN mst_setting.key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.key IS '設定項目キー';
+
+
+--
+-- Name: COLUMN mst_setting.value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.value IS '設定値';
+
+
+--
+-- Name: COLUMN mst_setting.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.insert_user_id IS '登録ユーザID';
+
+
+--
+-- Name: COLUMN mst_setting.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.insert_user_name IS '登録ユーザ名';
+
+
+--
+-- Name: COLUMN mst_setting.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN mst_setting.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.update_user_id IS '更新ユーザID';
+
+
+--
+-- Name: COLUMN mst_setting.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.update_user_name IS '更新ユーザ名';
+
+
+--
+-- Name: COLUMN mst_setting.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.mst_setting.update_time IS '更新日時';
+
+
+--
+-- Name: web_input_temporary; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_input_temporary (
+    temporary_id integer NOT NULL,
+    user_id text NOT NULL,
+    user_name text,
+    user_agent text,
+    top_key text NOT NULL,
+    rep_key text,
+    schedule_id text,
+    last_save_time timestamp without time zone
+);
+
+
+ALTER TABLE public.web_input_temporary OWNER TO postgres;
+
+--
+-- Name: TABLE web_input_temporary; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_input_temporary IS '入力内容一時保存ヘッダ';
+
+
+--
+-- Name: COLUMN web_input_temporary.temporary_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.temporary_id IS '一時保存ID';
+
+
+--
+-- Name: COLUMN web_input_temporary.user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.user_id IS 'ユーザーID';
+
+
+--
+-- Name: COLUMN web_input_temporary.user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.user_name IS 'ユーザー名';
+
+
+--
+-- Name: COLUMN web_input_temporary.user_agent; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.user_agent IS 'ユーザーエージェント';
+
+
+--
+-- Name: COLUMN web_input_temporary.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_input_temporary.rep_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.rep_key IS '帳票ID';
+
+
+--
+-- Name: COLUMN web_input_temporary.schedule_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.schedule_id IS 'スケジュールID';
+
+
+--
+-- Name: COLUMN web_input_temporary.last_save_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary.last_save_time IS '最終保存日時';
+
+
+--
+-- Name: web_input_temporary_detail; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_input_temporary_detail (
+    temporary_id integer NOT NULL,
+    top_key text NOT NULL,
+    rep_key text,
+    question_id integer NOT NULL,
+    value_text text,
+    value_bin_name text,
+    value_bin_id text,
+    value_bin_base64 text,
+    location_latitude text,
+    location_longitude text,
+    location_altitude text,
+    insert_time timestamp without time zone,
+    insert_terminal text,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp without time zone,
+    update_terminal text,
+    update_user_id text,
+    update_user_name text
+);
+
+
+ALTER TABLE public.web_input_temporary_detail OWNER TO postgres;
+
+--
+-- Name: TABLE web_input_temporary_detail; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_input_temporary_detail IS '入力内容一時保存明細';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.temporary_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.temporary_id IS '一時保存ID';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.rep_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.rep_key IS '帳票ID';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.question_id IS '質問ID';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.value_text; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.value_text IS '回答テキスト';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.value_bin_base64; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.value_bin_base64 IS '回答バイナリ';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.location_latitude; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.location_latitude IS '緯度';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.location_longitude; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.location_longitude IS '経度';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.location_altitude; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.location_altitude IS '高度';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.insert_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.insert_user_id IS '更新ユーザーID';
+
+
+--
+-- Name: COLUMN web_input_temporary_detail.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_input_temporary_detail.insert_user_name IS '更新ユーザー名';
+
+
+--
+-- Name: web_input_temporary_temporary_id_seq; Type: SEQUENCE; Schema: public; Owner: postgres
+--
+
+CREATE SEQUENCE public.web_input_temporary_temporary_id_seq
+    AS integer
+    START WITH 1
+    INCREMENT BY 1
+    NO MINVALUE
+    NO MAXVALUE
+    CACHE 1;
+
+
+ALTER TABLE public.web_input_temporary_temporary_id_seq OWNER TO postgres;
+
+--
+-- Name: web_input_temporary_temporary_id_seq; Type: SEQUENCE OWNED BY; Schema: public; Owner: postgres
+--
+
+ALTER SEQUENCE public.web_input_temporary_temporary_id_seq OWNED BY public.web_input_temporary.temporary_id;
+
+
+--
+-- Name: web_network_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_network_ir (
+    top_key text NOT NULL,
+    prev_question_key1 text NOT NULL,
+    prev_question_key2 text NOT NULL,
+    next_question_key1 text NOT NULL,
+    next_question_key2 text NOT NULL,
+    insert_time timestamp(6) without time zone,
+    insert_user text,
+    update_time timestamp(6) without time zone,
+    update_user text,
+    skip integer DEFAULT 0,
+    network_group integer
+);
+
+
+ALTER TABLE public.web_network_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_network_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_network_ir IS 'WEBネットワーク';
+
+
+--
+-- Name: COLUMN web_network_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_network_ir.prev_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.prev_question_key1 IS '先行クラスターのシートNO';
+
+
+--
+-- Name: COLUMN web_network_ir.prev_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.prev_question_key2 IS '先行クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN web_network_ir.next_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.next_question_key1 IS '後続クラスターのシートNO';
+
+
+--
+-- Name: COLUMN web_network_ir.next_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.next_question_key2 IS '後続クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN web_network_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_network_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN web_network_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_network_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN web_network_ir.network_group; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_network_ir.network_group IS 'ネットワークグループ';
+
+
+--
+-- Name: web_parameter_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_parameter_ir (
+    top_key text NOT NULL,
+    question_key1 text NOT NULL,
+    question_key2 text NOT NULL,
+    parameter_key text NOT NULL,
+    parameter_value text,
+    insert_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text
+);
+
+
+ALTER TABLE public.web_parameter_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_parameter_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_parameter_ir IS 'WEB入力パラメータ';
+
+
+--
+-- Name: COLUMN web_parameter_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_parameter_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.question_key1 IS '質問キー１';
+
+
+--
+-- Name: COLUMN web_parameter_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.question_key2 IS '質問キー２';
+
+
+--
+-- Name: COLUMN web_parameter_ir.parameter_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.parameter_key IS 'パラメーターキー';
+
+
+--
+-- Name: COLUMN web_parameter_ir.parameter_value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.parameter_value IS 'パラメーター値';
+
+
+--
+-- Name: COLUMN web_parameter_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_parameter_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.insert_user_id IS '登録ユーザID';
+
+
+--
+-- Name: COLUMN web_parameter_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.insert_user_name IS '登録ユーザ名';
+
+
+--
+-- Name: COLUMN web_parameter_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_parameter_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.update_user_id IS '更新ユーザID';
+
+
+--
+-- Name: COLUMN web_parameter_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_parameter_ir.update_user_name IS '更新ユーザ名';
+
+
+--
+-- Name: web_question_custom_master_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_question_custom_master_ir (
+    top_key text NOT NULL,
+    question_key1 text NOT NULL,
+    question_key2 text NOT NULL,
+    target_question_key1 text NOT NULL,
+    target_question_key2 text NOT NULL,
+    field integer,
+    field_name text
+);
+
+
+ALTER TABLE public.web_question_custom_master_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_question_custom_master_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_question_custom_master_ir IS 'クラスターに対するカスタムマスターの設定内容を保持';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.question_key1 IS '質問キー１';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.question_key2 IS '質問キー２';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.target_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.target_question_key1 IS '対象質問キー１';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.target_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.target_question_key2 IS '対象質問キー２';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.field; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.field IS 'フィールド';
+
+
+--
+-- Name: COLUMN web_question_custom_master_ir.field_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_custom_master_ir.field_name IS 'フィールド名';
+
+
+--
+-- Name: web_question_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_question_ir (
+    top_key text NOT NULL,
+    question_key1 text,
+    question_key2 text,
+    question_name text,
+    question_type text,
+    question_index integer NOT NULL,
+    question_enable integer,
+    insert_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text,
+    deleted numeric(1,0) DEFAULT 0 NOT NULL,
+    chatbot_only numeric(1,0) DEFAULT 0 NOT NULL,
+    question_id integer NOT NULL,
+    temporary_flag numeric(1,0) DEFAULT 0 NOT NULL,
+    parent_question_id integer,
+    conversation_type integer DEFAULT 0,
+    return_question_id integer,
+    return_question_id_yes integer,
+    return_type integer,
+    return_type_yes integer,
+    carboncopy_flag numeric(1,0),
+    def_top_org text,
+    rev_no integer,
+    question_style text,
+    document_id text,
+    document_name text,
+    document_type text,
+    document_url text,
+    image_id text,
+    image_name text,
+    image_link_url text,
+    document_flg integer,
+    image bytea,
+    network_group integer,
+    action_post text
+);
+
+
+ALTER TABLE public.web_question_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_question_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_question_ir IS 'WEB質問';
+
+
+--
+-- Name: COLUMN web_question_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_question_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_key1 IS '質問キー１';
+
+
+--
+-- Name: COLUMN web_question_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_key2 IS '質問キー２';
+
+
+--
+-- Name: COLUMN web_question_ir.question_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_name IS '質問名称';
+
+
+--
+-- Name: COLUMN web_question_ir.question_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_type IS '質問タイプ';
+
+
+--
+-- Name: COLUMN web_question_ir.question_index; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_index IS '質問順';
+
+
+--
+-- Name: COLUMN web_question_ir.question_enable; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_enable IS '質問有効可否';
+
+
+--
+-- Name: COLUMN web_question_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_question_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.insert_user_id IS '登録ユーザID';
+
+
+--
+-- Name: COLUMN web_question_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.insert_user_name IS '登録ユーザ名';
+
+
+--
+-- Name: COLUMN web_question_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_question_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.update_user_id IS '更新ユーザID';
+
+
+--
+-- Name: COLUMN web_question_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.update_user_name IS '更新ユーザ名';
+
+
+--
+-- Name: COLUMN web_question_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN web_question_ir.chatbot_only; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.chatbot_only IS '質問・会話フラグ 0:質問文、1:会話文';
+
+
+--
+-- Name: COLUMN web_question_ir.question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.question_id IS '質問ID';
+
+
+--
+-- Name: COLUMN web_question_ir.temporary_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.temporary_flag IS '仮保存フラグ';
+
+
+--
+-- Name: COLUMN web_question_ir.parent_question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.parent_question_id IS '親質問ID';
+
+
+--
+-- Name: COLUMN web_question_ir.conversation_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.conversation_type IS '会話文タイプ 0:通常のメッセージ 1:「はい」「いいえ」の確認方式 2:「はい」「いいえ」からのみ';
+
+
+--
+-- Name: COLUMN web_question_ir.return_question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.return_question_id IS '「いいえ」の場合のジャンプ先質問ID';
+
+
+--
+-- Name: COLUMN web_question_ir.return_question_id_yes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.return_question_id_yes IS ' 「はい」の場合のジャンプ先質問ID';
+
+
+--
+-- Name: COLUMN web_question_ir.return_type; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.return_type IS ' 「いいえ」の場合の動作 0:質問にジャンプ 1:会話にジャンプ 2:すべてキャンセル';
+
+
+--
+-- Name: COLUMN web_question_ir.return_type_yes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.return_type_yes IS '「はい」の場合の動作 0:質問にジャンプ 1:会話にジャンプ 2:すべてキャンセル';
+
+
+--
+-- Name: COLUMN web_question_ir.carboncopy_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.carboncopy_flag IS 'カーボンコピーフラグ';
+
+
+--
+-- Name: COLUMN web_question_ir.def_top_org; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.def_top_org IS '元定義ID';
+
+
+--
+-- Name: COLUMN web_question_ir.rev_no; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.rev_no IS 'リビジョンNo';
+
+
+--
+-- Name: COLUMN web_question_ir.image_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.image_id IS '画像ID';
+
+
+--
+-- Name: COLUMN web_question_ir.image_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.image_name IS '画像ファイル名';
+
+
+--
+-- Name: COLUMN web_question_ir.image_link_url; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.image_link_url IS '画像リンクURL';
+
+
+--
+-- Name: COLUMN web_question_ir.image; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.image IS '画像';
+
+
+--
+-- Name: COLUMN web_question_ir.network_group; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_ir.network_group IS 'ネットワークグループ';
+
+
+--
+-- Name: web_question_value_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_question_value_ir (
+    top_key text NOT NULL,
+    temporary_flag numeric(1,0) NOT NULL,
+    question_key1 text,
+    question_key2 text,
+    locale text NOT NULL,
+    chatbot_only numeric(1,0),
+    question_value text,
+    deleted numeric(1,0) DEFAULT 0 NOT NULL,
+    insert_time time without time zone,
+    insert_user text,
+    update_time time without time zone,
+    update_user text,
+    question_id integer NOT NULL,
+    confirm_cancel_message text,
+    confirm_cancel_message_yes text,
+    def_top_org text,
+    rev_no integer
+);
+
+
+ALTER TABLE public.web_question_value_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_question_value_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_question_value_ir IS 'WEB質問文';
+
+
+--
+-- Name: COLUMN web_question_value_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_question_value_ir.temporary_flag; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.temporary_flag IS '仮保存フラグ';
+
+
+--
+-- Name: COLUMN web_question_value_ir.question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.question_key1 IS '質問キー１';
+
+
+--
+-- Name: COLUMN web_question_value_ir.question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.question_key2 IS '質問キー２';
+
+
+--
+-- Name: COLUMN web_question_value_ir.locale; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.locale IS 'ロケール';
+
+
+--
+-- Name: COLUMN web_question_value_ir.chatbot_only; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.chatbot_only IS '質問・会話フラグ 0:質問文、1:会話文';
+
+
+--
+-- Name: COLUMN web_question_value_ir.question_value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.question_value IS '質問文';
+
+
+--
+-- Name: COLUMN web_question_value_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN web_question_value_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_question_value_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN web_question_value_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_question_value_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: COLUMN web_question_value_ir.question_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.question_id IS '質問ID';
+
+
+--
+-- Name: COLUMN web_question_value_ir.confirm_cancel_message; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.confirm_cancel_message IS '「いいえ」選択時の確認メッセージ';
+
+
+--
+-- Name: COLUMN web_question_value_ir.confirm_cancel_message_yes; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.confirm_cancel_message_yes IS '「はい」選択時の確認メッセージ';
+
+
+--
+-- Name: COLUMN web_question_value_ir.def_top_org; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.def_top_org IS '元定義ID';
+
+
+--
+-- Name: COLUMN web_question_value_ir.rev_no; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_question_value_ir.rev_no IS 'リビジョンNo';
+
+
+--
+-- Name: web_schedule; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_schedule (
+    schedule_id text NOT NULL,
+    rep_top_id text,
+    rep_top_name text,
+    public_status text,
+    edit_status text,
+    task_id text,
+    task_name text,
+    user_id text,
+    start_date timestamp(6) without time zone,
+    end_date timestamp(6) without time zone,
+    comment1 text,
+    comment2 text,
+    auto_download numeric(1,0),
+    def_top_id text,
+    report_type numeric(1,0),
+    input_type numeric(1,0),
+    start_type numeric(1,0),
+    task_remark text,
+    comment_label1 text,
+    comment_label2 text,
+    comment_label3 text,
+    comment_label4 text,
+    comment_label5 text,
+    comment_label6 text,
+    comment_label7 text,
+    comment_label8 text,
+    comment_label9 text,
+    comment_label10 text,
+    comment3 text,
+    comment4 text,
+    comment5 text,
+    comment6 text,
+    comment7 text,
+    comment8 text,
+    comment9 text,
+    comment10 text,
+    project_code text,
+    project_name text,
+    order_code text,
+    order_name text,
+    process_code text,
+    process_name text,
+    group_id text,
+    sys_update_time timestamp(6) without time zone
+);
+
+
+ALTER TABLE public.web_schedule OWNER TO postgres;
+
+--
+-- Name: web_top_display_save_menu; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_top_display_save_menu (
+    top_key text NOT NULL,
+    local_save numeric(1,0),
+    continuation_save numeric(1,0),
+    server_save numeric(1,0),
+    finish_save numeric(1,0),
+    continuation_server_save numeric(1,0),
+    continuation_finish_save numeric(1,0),
+    mail_image numeric(1,0),
+    mail_pdf numeric(1,0),
+    open_app numeric(1,0),
+    print numeric(1,0),
+    print_receipt numeric(1,0),
+    save_pdf numeric(1,0),
+    save_excel numeric(1,0),
+    deleted numeric(1,0),
+    insert_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text
+);
+
+
+ALTER TABLE public.web_top_display_save_menu OWNER TO postgres;
+
+--
+-- Name: web_top_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_top_ir (
+    top_key text NOT NULL,
+    top_name text,
+    remarks01 text,
+    remarks02 text,
+    remarks03 text,
+    remarks04 text,
+    remarks05 text,
+    remarks06 text,
+    remarks07 text,
+    remarks08 text,
+    remarks09 text,
+    remarks10 text,
+    deleted numeric(1,0),
+    edit_status text,
+    insert_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    insert_user_id text,
+    insert_user_name text,
+    update_time timestamp(6) without time zone DEFAULT now() NOT NULL,
+    update_user_id text,
+    update_user_name text,
+    def_top_org text,
+    rev_no integer,
+    create_report numeric(1,0) DEFAULT 0 NOT NULL,
+    require_location integer DEFAULT 0,
+    create_role_mode integer DEFAULT 0,
+    label_mode integer DEFAULT 0,
+    sys_insert_time timestamp(6) without time zone DEFAULT NULL::timestamp without time zone,
+    sys_update_time timestamp(6) without time zone DEFAULT NULL::timestamp without time zone,
+    save_before_preview integer DEFAULT 1,
+    pager_when_multi_sheet integer DEFAULT 1,
+    required_check_mode numeric(1,0),
+    required_save_mode numeric(1,0)
+);
+
+
+ALTER TABLE public.web_top_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_top_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_top_ir IS 'WEB定義';
+
+
+--
+-- Name: COLUMN web_top_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_top_ir.top_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.top_name IS '定義名称';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks01; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks01 IS '備考１';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks02; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks02 IS '備考２';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks03; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks03 IS '備考３';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks04; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks04 IS '備考４';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks05; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks05 IS '備考５';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks06; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks06 IS '備考６';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks07; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks07 IS '備考７';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks08; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks08 IS '備考８';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks09; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks09 IS '備考９';
+
+
+--
+-- Name: COLUMN web_top_ir.remarks10; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.remarks10 IS '備考１０';
+
+
+--
+-- Name: COLUMN web_top_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN web_top_ir.edit_status; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.edit_status IS '編集ステータス 2:編集中、4：完了';
+
+
+--
+-- Name: COLUMN web_top_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_top_ir.insert_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.insert_user_id IS '登録ユーザID';
+
+
+--
+-- Name: COLUMN web_top_ir.insert_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.insert_user_name IS '登録ユーザ名';
+
+
+--
+-- Name: COLUMN web_top_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_top_ir.update_user_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.update_user_id IS '更新ユーザID';
+
+
+--
+-- Name: COLUMN web_top_ir.update_user_name; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.update_user_name IS '更新ユーザ名';
+
+
+--
+-- Name: COLUMN web_top_ir.def_top_org; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.def_top_org IS '元定義ID';
+
+
+--
+-- Name: COLUMN web_top_ir.rev_no; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.rev_no IS 'リビジョンNo';
+
+
+--
+-- Name: COLUMN web_top_ir.create_report; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.create_report IS '帳票作成フラグ 0:帳票作成する 1:帳票作成しない';
+
+
+--
+-- Name: COLUMN web_top_ir.require_location; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.require_location IS '位置情報要否フラグ 0:位置情報不要 1:位置情報必要';
+
+
+--
+-- Name: COLUMN web_top_ir.create_role_mode; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.create_role_mode IS '帳票作成時のユーザーグループ権限設定モード 0:すべて 1:作成ユーザーの所属するグループのみ 2:作成ユーザーの所属するグループ、その上位グループのみ';
+
+
+--
+-- Name: COLUMN web_top_ir.label_mode; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.label_mode IS 'ラベルの設定位置 0:全てのラベルにつける 1:一番下のラベルにのみつける';
+
+
+--
+-- Name: COLUMN web_top_ir.sys_insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.sys_insert_time IS 'manager登録日時';
+
+
+--
+-- Name: COLUMN web_top_ir.sys_update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.sys_update_time IS 'manager更新日時';
+
+
+--
+-- Name: COLUMN web_top_ir.save_before_preview; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.save_before_preview IS 'プレビュー前の自動保存 0:しない、1:する';
+
+
+--
+-- Name: COLUMN web_top_ir.pager_when_multi_sheet; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_top_ir.pager_when_multi_sheet IS '複数シートの場合画面切り替える 0:しない、1:する';
+
+
+--
+-- Name: web_usable_def_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_usable_def_ir (
+    group_id text NOT NULL,
+    top_key text NOT NULL,
+    deleted numeric(1,0),
+    insert_time timestamp(6) without time zone,
+    insert_user text,
+    update_time timestamp(6) without time zone,
+    update_user text
+);
+
+
+ALTER TABLE public.web_usable_def_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_usable_def_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_usable_def_ir IS 'WEB使用可能帳票定義';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.group_id; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.group_id IS 'グループID';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.deleted; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.deleted IS '削除フラグ';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_usable_def_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_usable_def_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: web_valuelink_ir; Type: TABLE; Schema: public; Owner: postgres
+--
+
+CREATE TABLE public.web_valuelink_ir (
+    top_key text NOT NULL,
+    prev_question_key1 text NOT NULL,
+    prev_question_key2 text NOT NULL,
+    next_question_key1 text NOT NULL,
+    next_question_key2 text NOT NULL,
+    parent_value text NOT NULL,
+    select_values text,
+    insert_time timestamp(6) without time zone,
+    insert_user text,
+    update_time timestamp(6) without time zone,
+    update_user text
+);
+
+
+ALTER TABLE public.web_valuelink_ir OWNER TO postgres;
+
+--
+-- Name: TABLE web_valuelink_ir; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON TABLE public.web_valuelink_ir IS 'WEBバリューリンク';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.top_key; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.top_key IS '定義ID';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.prev_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.prev_question_key1 IS '先行クラスターのシートNO';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.prev_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.prev_question_key2 IS '先行クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.next_question_key1; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.next_question_key1 IS '後続クラスターのシートNO';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.next_question_key2; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.next_question_key2 IS '後続クラスターのクラスターID';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.parent_value; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.parent_value IS '先行クラスターの選択肢';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.select_values; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.select_values IS '後続クラスターの選択要素';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.insert_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.insert_time IS '登録日時';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.insert_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.insert_user IS '登録ユーザ';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.update_time; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.update_time IS '更新日時';
+
+
+--
+-- Name: COLUMN web_valuelink_ir.update_user; Type: COMMENT; Schema: public; Owner: postgres
+--
+
+COMMENT ON COLUMN public.web_valuelink_ir.update_user IS '更新ユーザ';
+
+
+--
+-- Name: web_input_temporary temporary_id; Type: DEFAULT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_input_temporary ALTER COLUMN temporary_id SET DEFAULT nextval('public.web_input_temporary_temporary_id_seq'::regclass);
+
+
+--
+-- Data for Name: bot_channel_account_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_channel_account_ir (user_id, channel, account_id, deleted, insert_time, insert_user, update_time, update_user, email, pin) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_command; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_command (type, locale, index, command) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_def_role_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_def_role_ir (def_top_id, group_id, role_def_read, role_def_update, role_def_delete, role_rep_read, role_rep_update, role_rep_create, role_rep_delete, regist_user, regist_time, update_user, update_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_group_affiliation_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_group_affiliation_ir (group_id, user_id, regist_time, update_time, cooperation_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_group_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_group_ir (group_id, group_name, upper_group_id, group_id_path, group_name_path, role_mst_read, role_mst_update, role_mst_create, role_mst_delete, role_def_read, role_def_update, role_def_create, role_def_delete, role_rep_read, role_rep_update, role_rep_create, role_rep_delete, group_remarks, regist_user, regist_time, update_user, update_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_network_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_network_ir (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2, insert_time, insert_user, update_time, update_user, network_group) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_parameter_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_parameter_ir (top_key, question_key1, question_key2, parameter_key, parameter_value, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_question_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_question_ir (top_key, question_key1, question_key2, question_name, question_type, question_index, question_enable, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name, deleted, chatbot_only, question_id, temporary_flag, parent_question_id, conversation_type, return_question_id, return_question_id_yes, return_type, return_type_yes, carboncopy_flag, def_top_org, rev_no, network_group) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_question_value_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_question_value_ir (top_key, temporary_flag, question_key1, question_key2, locale, chatbot_only, question_value, deleted, insert_time, insert_user, update_time, update_user, question_id, confirm_cancel_message, confirm_cancel_message_yes, def_top_org, rev_no) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_recepiton_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_recepiton_ir ("GUID", one_time_password, top_key, report_id, authorize_key, mode, create_report, deleted, insert_user_id, insert_user_name, insert_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_schedule; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_schedule (schedule_id, rep_top_id, rep_top_name, public_status, edit_status, task_id, task_name, user_id, start_date, end_date, comment1, comment2, auto_download, def_top_id, report_type, input_type, start_type, task_remark, comment_label1, comment_label2, comment_label3, comment_label4, comment_label5, comment_label6, comment_label7, comment_label8, comment_label9, comment_label10, comment3, comment4, comment5, comment6, comment7, comment8, comment9, comment10, project_code, project_name, order_code, order_name, process_code, process_name, group_id, sys_update_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_top_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_top_ir (top_key, top_name, remarks01, remarks02, remarks03, remarks04, remarks05, remarks06, remarks07, remarks08, remarks09, remarks10, deleted, edit_status, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name, def_top_org, rev_no, create_report, require_location, create_role_mode, label_mode, sys_insert_time, sys_update_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_usable_def_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_usable_def_ir (group_id, top_key, deleted, insert_time, insert_user, update_time, update_user) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_user_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_user_ir (user_id, user_name, email, use_start_time, use_end_time, regist_time, update_time, cooperation_time, license_exists) FROM stdin;
+\.
+
+
+--
+-- Data for Name: bot_valuelink_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.bot_valuelink_ir (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2, parent_value, select_values, insert_time, insert_user, update_time, update_user) FROM stdin;
+\.
+
+
+--
+-- Data for Name: chat_value_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.chat_value_ir (token, top_key, question_key1, question_key2, content_type, value_txt, value_bin, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name, location, deleted, question_id, rep_key, value_bin_id, value_bin_name, cooperation_time, location_latitude, location_longitude, location_altitude, update_channel_account_id, while_editing_flag, value_bin_thumbnail, value_bin_thumbnail_id) FROM stdin;
+\.
+
+
+--
+-- Data for Name: log_info; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.log_info (insert_time, log_kind, channel_id, token, user_id, log_time, class_name, method_name, line_number, message) FROM stdin;
+\.
+
+
+--
+-- Data for Name: mst_setting; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.mst_setting (key, value, insert_user_id, insert_user_name, insert_time, update_user_id, update_user_name, update_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_input_temporary; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_input_temporary (temporary_id, user_id, user_name, user_agent, top_key, rep_key, schedule_id, last_save_time) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_input_temporary_detail; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_input_temporary_detail (temporary_id, top_key, rep_key, question_id, value_text, value_bin_name, value_bin_id, value_bin_base64, location_latitude, location_longitude, location_altitude, insert_time, insert_terminal, insert_user_id, insert_user_name, update_time, update_terminal, update_user_id, update_user_name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_network_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_network_ir (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2, insert_time, insert_user, update_time, update_user, skip, network_group) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_parameter_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_parameter_ir (top_key, question_key1, question_key2, parameter_key, parameter_value, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_question_custom_master_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_question_custom_master_ir (top_key, question_key1, question_key2, target_question_key1, target_question_key2, field, field_name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_question_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_question_ir (top_key, question_key1, question_key2, question_name, question_type, question_index, question_enable, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name, deleted, chatbot_only, question_id, temporary_flag, parent_question_id, conversation_type, return_question_id, return_question_id_yes, return_type, return_type_yes, carboncopy_flag, def_top_org, rev_no, question_style, document_id, document_name, document_type, document_url, image_id, image_name, image_link_url, document_flg, image, network_group, action_post) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_question_value_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_question_value_ir (top_key, temporary_flag, question_key1, question_key2, locale, chatbot_only, question_value, deleted, insert_time, insert_user, update_time, update_user, question_id, confirm_cancel_message, confirm_cancel_message_yes, def_top_org, rev_no) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_schedule; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_schedule (schedule_id, rep_top_id, rep_top_name, public_status, edit_status, task_id, task_name, user_id, start_date, end_date, comment1, comment2, auto_download, def_top_id, report_type, input_type, start_type, task_remark, comment_label1, comment_label2, comment_label3, comment_label4, comment_label5, comment_label6, comment_label7, comment_label8, comment_label9, comment_label10, comment3, comment4, comment5, comment6, comment7, comment8, comment9, comment10, project_code, project_name, order_code, order_name, process_code, process_name, group_id, sys_update_time) FROM stdin;
+27	19318	202211021813__COVID-19_Daily健康チェック表	2	0		task1	chat	2022-11-02 18:00:00	2022-11-02 19:00:00			0	1740	0	1	0	task detail1																										\N
+\.
+
+
+--
+-- Data for Name: web_top_display_save_menu; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_top_display_save_menu (top_key, local_save, continuation_save, server_save, finish_save, continuation_server_save, continuation_finish_save, mail_image, mail_pdf, open_app, print, print_receipt, save_pdf, save_excel, deleted, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_top_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_top_ir (top_key, top_name, remarks01, remarks02, remarks03, remarks04, remarks05, remarks06, remarks07, remarks08, remarks09, remarks10, deleted, edit_status, insert_time, insert_user_id, insert_user_name, update_time, update_user_id, update_user_name, def_top_org, rev_no, create_report, require_location, create_role_mode, label_mode, sys_insert_time, sys_update_time, save_before_preview, pager_when_multi_sheet, required_check_mode, required_save_mode) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_usable_def_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_usable_def_ir (group_id, top_key, deleted, insert_time, insert_user, update_time, update_user) FROM stdin;
+\.
+
+
+--
+-- Data for Name: web_valuelink_ir; Type: TABLE DATA; Schema: public; Owner: postgres
+--
+
+COPY public.web_valuelink_ir (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2, parent_value, select_values, insert_time, insert_user, update_time, update_user) FROM stdin;
+\.
+
+
+--
+-- Name: web_input_temporary_temporary_id_seq; Type: SEQUENCE SET; Schema: public; Owner: postgres
+--
+
+SELECT pg_catalog.setval('public.web_input_temporary_temporary_id_seq', 1, false);
+
+
+--
+-- Name: bot_channel_account_ir bot_channel_account_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_channel_account_ir
+    ADD CONSTRAINT bot_channel_account_ir_pkey PRIMARY KEY (user_id, channel);
+
+
+--
+-- Name: bot_command bot_command_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_command
+    ADD CONSTRAINT bot_command_pkey PRIMARY KEY (type, locale, index);
+
+
+--
+-- Name: bot_def_role_ir bot_def_role_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_def_role_ir
+    ADD CONSTRAINT bot_def_role_ir_pkey PRIMARY KEY (def_top_id, group_id);
+
+
+--
+-- Name: bot_group_affiliation_ir bot_group_affiliation_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_group_affiliation_ir
+    ADD CONSTRAINT bot_group_affiliation_ir_pkey PRIMARY KEY (group_id, user_id);
+
+
+--
+-- Name: bot_group_ir bot_group_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_group_ir
+    ADD CONSTRAINT bot_group_ir_pkey PRIMARY KEY (group_id);
+
+
+--
+-- Name: bot_network_ir bot_network_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_network_ir
+    ADD CONSTRAINT bot_network_ir_pkey PRIMARY KEY (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2);
+
+
+--
+-- Name: bot_parameter_ir bot_parameter_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_parameter_ir
+    ADD CONSTRAINT bot_parameter_pkey PRIMARY KEY (top_key, question_key1, question_key2, parameter_key);
+
+
+--
+-- Name: bot_question_ir bot_question_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_question_ir
+    ADD CONSTRAINT bot_question_ir_pkey PRIMARY KEY (top_key, question_id, temporary_flag);
+
+
+--
+-- Name: bot_question_value_ir bot_question_value_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_question_value_ir
+    ADD CONSTRAINT bot_question_value_ir_pkey PRIMARY KEY (top_key, temporary_flag, question_id, locale);
+
+
+--
+-- Name: bot_recepiton_ir bot_reception_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_recepiton_ir
+    ADD CONSTRAINT bot_reception_ir_pkey PRIMARY KEY ("GUID");
+
+
+--
+-- Name: bot_schedule bot_schedule_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_schedule
+    ADD CONSTRAINT bot_schedule_pkey PRIMARY KEY (schedule_id);
+
+
+--
+-- Name: bot_top_ir bot_top_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_top_ir
+    ADD CONSTRAINT bot_top_ir_pkey PRIMARY KEY (top_key);
+
+
+--
+-- Name: bot_usable_def_ir bot_usable_def_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_usable_def_ir
+    ADD CONSTRAINT bot_usable_def_ir_pkey PRIMARY KEY (group_id, top_key);
+
+
+--
+-- Name: bot_user_ir bot_user_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_user_ir
+    ADD CONSTRAINT bot_user_ir_pkey PRIMARY KEY (user_id);
+
+
+--
+-- Name: bot_valuelink_ir bot_valuelink_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.bot_valuelink_ir
+    ADD CONSTRAINT bot_valuelink_ir_pkey PRIMARY KEY (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2, parent_value);
+
+
+--
+-- Name: chat_value_ir chat_value_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.chat_value_ir
+    ADD CONSTRAINT chat_value_ir_pkey PRIMARY KEY (token, top_key, question_id);
+
+
+--
+-- Name: mst_setting mst_setting_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.mst_setting
+    ADD CONSTRAINT mst_setting_pkey PRIMARY KEY (key, insert_user_id);
+
+
+--
+-- Name: web_input_temporary_detail web_input_temporary_detail_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_input_temporary_detail
+    ADD CONSTRAINT web_input_temporary_detail_pkey PRIMARY KEY (temporary_id, top_key, question_id);
+
+
+--
+-- Name: web_input_temporary web_input_temporary_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_input_temporary
+    ADD CONSTRAINT web_input_temporary_pkey PRIMARY KEY (temporary_id);
+
+
+--
+-- Name: web_network_ir web_network_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_network_ir
+    ADD CONSTRAINT web_network_ir_pkey PRIMARY KEY (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2);
+
+
+--
+-- Name: web_parameter_ir web_parameter_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_parameter_ir
+    ADD CONSTRAINT web_parameter_ir_pkey PRIMARY KEY (top_key, question_key1, question_key2, parameter_key);
+
+
+--
+-- Name: web_question_custom_master_ir web_question_custom_master_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_question_custom_master_ir
+    ADD CONSTRAINT web_question_custom_master_ir_pkey PRIMARY KEY (top_key, question_key1, question_key2, target_question_key1, target_question_key2);
+
+
+--
+-- Name: web_question_ir web_question_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_question_ir
+    ADD CONSTRAINT web_question_ir_pkey PRIMARY KEY (top_key, question_id, temporary_flag);
+
+
+--
+-- Name: web_question_value_ir web_question_value_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_question_value_ir
+    ADD CONSTRAINT web_question_value_ir_pkey PRIMARY KEY (top_key, temporary_flag, question_id, locale);
+
+
+--
+-- Name: web_schedule web_schedule_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_schedule
+    ADD CONSTRAINT web_schedule_pkey PRIMARY KEY (schedule_id);
+
+
+--
+-- Name: web_top_display_save_menu web_top_display_save_menu_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_top_display_save_menu
+    ADD CONSTRAINT web_top_display_save_menu_pkey PRIMARY KEY (top_key);
+
+
+--
+-- Name: web_top_ir web_top_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_top_ir
+    ADD CONSTRAINT web_top_ir_pkey PRIMARY KEY (top_key);
+
+
+--
+-- Name: web_usable_def_ir web_usable_def_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_usable_def_ir
+    ADD CONSTRAINT web_usable_def_ir_pkey PRIMARY KEY (group_id, top_key);
+
+
+--
+-- Name: web_valuelink_ir web_valuelink_ir_pkey; Type: CONSTRAINT; Schema: public; Owner: postgres
+--
+
+ALTER TABLE ONLY public.web_valuelink_ir
+    ADD CONSTRAINT web_valuelink_ir_pkey PRIMARY KEY (top_key, prev_question_key1, prev_question_key2, next_question_key1, next_question_key2, parent_value);
+
+
+--
+-- PostgreSQL database dump complete
+--
+

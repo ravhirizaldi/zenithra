@@ -1,0 +1,41 @@
+<% const isVerified = row.summary_verified ?? (Number(row.verified) === 1 && (['FixedText','FreeText','Image','DrawingImage','FreeDraw','AudioRecording'].includes(row.cluster_type)
+  ? String(row.input_value) !== '1' : row.cluster_type === 'Check' ? !row.display_value || String(row.display_value).toUpperCase() === 'FALSE' : !row.display_value));
+if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
+<% } else if (isVerified) { %><div style="color:Red;"><%= r.VarifiedMessage %></div>
+<% } else {
+  const historic = row.history_id !== undefined;
+  const media = (imageType, resize = false) => historic
+    ? base + '/InputReport/GetHistoryImage?' + new URLSearchParams({historyId: String(row.history_id), imageType, isResize: String(resize)}).toString()
+    : base + '/InputReport/' + (imageType === '2' ? 'GetRecordingValue' : 'GetInputValueImage') + '?' + new URLSearchParams({repSheetId: String(row.rep_sheet_id), clusterId: String(row.cluster_id), signFlg: String(imageType === '1'), inputValueFlg: 'true', isResize: String(resize)}).toString();
+  if (['FixedText','FreeText','Image','DrawingImage','FreeDraw'].includes(row.cluster_type)) { %>
+    <% if (historic ? row.has_image : String(row.input_value) === '1') { %><a href="<%= media('0') %>"><%= r.Download %></a><br><img src="<%= media('0', true) %>" alt="[image]">
+      <% if (!historic && row.cluster_type === 'FreeDraw') { %>
+        <table cellpadding="0" cellspacing="0" class="table_information horizontal"><% if (row.display_value) { %><tr><th><%= r.FreeDrawText %></th><td><% for (const text of String(row.display_value).split(',')) { %><div><%= text %></div><% } %></td></tr><% } %></table>
+        <% if (row.draws?.length) { %><table cellpadding="0" cellspacing="0" class="table_information verticality" width="100%"><tr><th style="width:23px;" scope="col"><%= r.rep_cluster_draw %></th></tr>
+          <% for (const draw of row.draws) { const url = base + '/InputReport/GetLayerDraw?' + new URLSearchParams({repSheetId: String(row.rep_sheet_id), layerId: String(draw.key_id), imageNo: String(draw.image_no), type: 'cluster'}).toString(); %>
+            <tr><td style="text-align:center;"><a href="<%= url %>&amp;isResize=false"><%= r.Download %></a><br><img src="<%= url %>&amp;isResize=true" alt="[layer]"></td></tr>
+          <% } %></table><% } %>
+      <% } %>
+    <% } %>
+  <% } else if (row.cluster_type === 'AudioRecording') { %>
+    <% if (historic ? row.has_recording : String(row.input_value) === '1') { %><% if (!historic) { %><div><%= r.Format %>:<%= row.recording_file_extension || 'm4a' %></div><% } %><audio id="audio_start" src="<%= media('2') %>" controls><p><%= r.GuideAudioTag %></p></audio><br><a href="<%= media('2') %>"><%= r.Download %></a><% } %>
+  <% } else if (row.cluster_type === 'Check') { %><%= /^(?:true|1)$/i.test(String(row.input_value)) ? '○' : '' %>
+  <% } else if (['Approve','Create','Inspect'].includes(row.cluster_type)) {
+    const approve = row.cluster_type === 'Approve', complete = String(row.input_value) === '4';
+    const status = approve ? ({'2':v.edit2,'3':historic ? v.topEdit3 : v.sheetEdit3,'4':v.InputReportDetailsSheet_edit4}[row.input_value] || '') : complete ? historic ? r[row.cluster_type] : v[row.cluster_type.toLowerCase()] : '';
+    const userLabel = approve ? r.approver_name : historic ? r[row.cluster_type + 'User'] : v[row.cluster_type.toLowerCase() + 'User'];
+    const dateLabel = approve ? r.approver_date : historic ? r[row.cluster_type + 'Date'] : v[row.cluster_type.toLowerCase() + 'Date'];
+    if (approve) { %><div><table class="applicant_detail_table"><tr><td class="applicant_detail_header"><%= v.applicant %></td></tr><tr><td>
+      <% if (!['3','4'].includes(String(row.input_value))) { %><div class="box_head_left">[<%= r.input_value %>]</div><div>：<%= status %></div><br style="line-height:5px"><% } %>
+      <div class="box_head_left">[<%= r.applicant_name %>]</div><div>：<%= row.applicant_name %></div><br style="line-height:5px">
+      <div class="box_head_left">[<%= r.applicant_date %>]</div><div class="datetime">：<%= row.applicant_date %></div><br style="line-height:5px">
+      <div class="box_head_left">[<%= historic ? r.DatabaseResource_comment : v.comment %>]</div><div>：<%= row.applicant_comment %></div>
+    </td></tr></table><br style="line-height:5px"><% } else { %><div><% }
+    if (!approve || ['3','4'].includes(String(row.input_value))) { %><table class="<%= approve ? 'approve' : 'create_inspect' %>_detail_table"><tr><td class="<%= approve ? 'approve' : 'create_inspect' %>_detail_header"><%= approve ? v.approveSheet : historic ? r[row.cluster_type] : v[row.cluster_type.toLowerCase()] %></td></tr><tr><td>
+      <div class="box_head_left">[<%= r.input_value %>]</div><div>：<%= status %></div><br style="line-height:5px">
+      <div class="box_head_left">[<%= userLabel %>]</div><div>：<%= row.approver_name %></div><br style="line-height:5px">
+      <div class="box_head_left">[<%= dateLabel %>]</div><div class="datetime">：<%= row.approver_date %></div><br style="line-height:5px">
+      <div class="box_head_left">[<%= historic ? r.DatabaseResource_comment : v.comment %>]</div><div>：<%= row.approver_comment %></div>
+    </td></tr><% if (row.has_signature && (!approve || complete)) { %><tr><td align="center"><img src="<%= media('1') %>" alt="[image]"></td></tr><% } %></table><% } %></div>
+  <% } else { %><%= row.display_value %><% } %>
+<% } %>

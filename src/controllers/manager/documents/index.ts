@@ -2,6 +2,8 @@ import type { Express, Request, RequestHandler, Response } from 'express';
 import type pg from 'pg';
 import { randomBytes } from 'node:crypto';
 import { registerDocumentMedia } from './media.js';
+import { registerDocumentDetails } from './details.js';
+import { registerDocumentContent } from './content.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import { base } from '../../../config/manager.js';
 import type { RenderPage } from '../../../services/manager/page.js';
@@ -61,6 +63,7 @@ export function registerDocumentController(
       req.path !== '/' &&
       req.path !== '/InputReport' &&
       !req.path.startsWith('/InputReport/') &&
+      !['/DefReport/EditLabel', '/DefReport/EditRole'].includes(req.path) &&
       !['/Common/LabelListView', '/Common/TaskList', '/Common/RegistTask'].includes(req.path)
     )
       return next();
@@ -376,7 +379,10 @@ export function registerDocumentController(
   };
   app.get(`${base}/Common/RegistTask`, registTask);
   app.post(`${base}/Common/RegistTask`, registTask);
-  app.get(`${base}/InputReport/Details`, (_req, res) => res.status(501).send(pending));
-  if (db) registerDocumentMedia(app, db);
+  if (db) {
+    registerDocumentDetails(app, db, page);
+    registerDocumentContent(app, db);
+    registerDocumentMedia(app, db);
+  }
   app.use(`${base}/InputReport`, (_req, res) => res.status(501).send(pending));
 }

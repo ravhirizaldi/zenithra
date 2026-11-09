@@ -1,6 +1,8 @@
 import type pg from 'pg';
 import { labelChecked, labelInteger, labelString, LabelValidationError } from '../labels/index.js';
 import { irfdAttachments, irfdImageLocation, irfdImagePreview } from '../../../shared/irfd.js';
+import { documentClusterPermissionQuery } from './clusters.js';
+import { documentAdministratorId } from './details.js';
 
 const reportAccess = `EXISTS (SELECT 1 FROM rep_role r JOIN mst_group_affiation a USING(group_id)
   WHERE r.rep_top_id=t.rep_top_id AND (r.role_rep_read>0 OR r.role_rep_update>0) AND a.user_id=$1)`;
@@ -106,8 +108,17 @@ export async function documentMedia(
     row = (
       await db.query(
         `SELECT d.image_file AS data FROM rep_${type}_draw d JOIN rep_sheet s USING(rep_sheet_id)
-      JOIN rep_top t USING(rep_top_id) WHERE d.rep_sheet_id=$2 AND d.key_id=$3 AND d.image_no=$4 AND ${reportAccess}`,
-        [user, id('repSheetId'), id('layerId'), id('imageNo')],
+      JOIN rep_top t USING(rep_top_id)
+      ${type === 'cluster' ? `JOIN rep_cluster c ON c.rep_sheet_id=d.rep_sheet_id AND c.cluster_id=d.key_id CROSS JOIN LATERAL(${documentClusterPermissionQuery}) roles` : ''}
+      WHERE d.rep_sheet_id=$2 AND d.key_id=$3 AND d.image_no=$4 AND ${reportAccess}
+      ${type === 'cluster' ? 'AND ($1=$5 OR roles.refer OR NOT roles.none AND roles.edit)' : ''}`,
+        [
+          user,
+          id('repSheetId'),
+          id('layerId'),
+          id('imageNo'),
+          ...(type === 'cluster' ? [await documentAdministratorId()] : []),
+        ],
       )
     ).rows[0];
     download = !resize;
@@ -122,9 +133,13 @@ export async function documentMedia(
     row = (
       await db.query(
         `SELECT c.${column} AS data,c.recording_file_extension AS extension FROM ${history ? 'history_rep_cluster' : 'rep_cluster'} c
-      JOIN rep_sheet s USING(rep_sheet_id) JOIN rep_top t USING(rep_top_id)
-      WHERE ${history ? 'c.history_id=$2' : 'c.rep_sheet_id=$2 AND c.cluster_id=$3'} AND ${reportAccess}`,
-        history ? [user, labelString(input.historyId)] : [user, id('repSheetId'), id('clusterId')],
+       JOIN rep_sheet s USING(rep_sheet_id) JOIN rep_top t USING(rep_top_id)
+       CROSS JOIN LATERAL(${documentClusterPermissionQuery}) roles
+       WHERE ${history ? 'c.history_id=$2' : 'c.rep_sheet_id=$2 AND c.cluster_id=$3'} AND ${reportAccess}
+       AND ($1=${history ? '$3' : '$4'} OR roles.refer OR NOT roles.none AND roles.edit)`,
+        history
+          ? [user, labelString(input.historyId), await documentAdministratorId()]
+          : [user, id('repSheetId'), id('clusterId'), await documentAdministratorId()],
       )
     ).rows[0];
     download = history || audio || (!signature && !resize);

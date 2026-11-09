@@ -47,7 +47,7 @@ flowchart TB
         Manager["Manager · /ConMasManager<br/>Web interface / own session"]
         Native["Native REST · /ConMasWeb<br/>XML and binary / own session"]
         API["Business API · /ConMasAPI<br/>XML and binary / own session"]
-        Views["EJS rendering<br/>64 templates and partials"]
+        Views["EJS rendering<br/>90 templates and partials"]
         Business["Models and shared business logic<br/>Validation / permissions / transactions"]
         Manager --> Views
         Manager --> Business
@@ -57,7 +57,8 @@ flowchart TB
 
     Business --> Database[("PostgreSQL")]
     Business --> Files["Report binaries and local files"]
-    Views -.-> Originals["Privately supplied original assets and resources"]
+    Views --> Assets["Bundled original CSS, JavaScript and images"]
+    Business -.-> Originals["Private installation settings and query XML"]
     Business -.-> Originals
 
     classDef surface fill:#eff6ff,stroke:#2563eb,color:#172554
@@ -66,13 +67,14 @@ flowchart TB
     class Manager,Native,API surface
     class Views,Business,Database core
     class Files,Originals private
+    class Assets core
 ```
 
 Three application surfaces share selected business helpers and storage—not authentication sessions. The original .NET installation is the compatibility reference, not a fourth public application bundled in this repository.
 
 ## Migration by the numbers
 
-<sub>Rechecked: 8 November 2026 · Source actions, installed templates, current route registration and reviewed command inventories</sub>
+<sub>Rechecked: 9 November 2026 · Source actions, installed templates, current route registration and reviewed command inventories</sub>
 
 <table>
   <tr>
@@ -84,8 +86,8 @@ Three application surfaces share selected business helpers and storage—not aut
   <tr>
     <td><strong>Manager</strong><br><code>/ConMasManager</code></td>
     <td><strong>461</strong> action signatures<br><strong>321</strong> distinct action paths<br><strong>17</strong> source controllers</td>
-    <td><strong>250</strong> source signatures have matching Node routes<br><strong>211</strong> remain unregistered<br><strong>5 / 11</strong> menu tabs reachable; none claimed complete</td>
-    <td><strong>252</strong> installed Razor templates<br><strong>64</strong> current Node EJS templates/partials</td>
+    <td><strong>267</strong> source signatures have matching Node routes<br><strong>194</strong> remain unregistered<br><strong>5 / 11</strong> menu tabs reachable; none claimed complete</td>
+    <td><strong>252</strong> installed Razor templates<br><strong>90</strong> current Node EJS templates/partials</td>
   </tr>
   <tr>
     <td><strong>Native-client REST</strong><br><code>/ConMasWeb</code></td>
@@ -101,7 +103,7 @@ Three application surfaces share selected business helpers and storage—not aut
   </tr>
 </table>
 
-**How to read these counts:** “Function” here means a public action signature or mapped command—not every internal helper. GET/POST overloads count separately. Manager registration includes blocked shells and explicit unsupported handlers; it is **not** 250 completed functions. Razor/EJS totals include partials and layouts, so **64 / 252 is not a screen-completion ratio**. Same-name API pages are alternate entry points, not extra commands. GeneralProcess operations are counted separately; unavailable targets and scope exclusions are not completed work.
+**How to read these counts:** “Function” here means a public action signature or mapped command—not every internal helper. GET/POST overloads count separately. Manager registration includes blocked shells and explicit unsupported handlers; it is **not** 267 completed functions. Razor/EJS totals include partials and layouts, so **90 / 252 is not a screen-completion ratio**. Same-name API pages are alternate entry points, not extra commands. GeneralProcess operations are counted separately; unavailable targets and scope exclusions are not completed work.
 
 <details>
 <summary><strong>Manager breakdown · actions, registration gaps and original views</strong></summary>
@@ -115,27 +117,31 @@ Three application surfaces share selected business helpers and storage—not aut
 | Master Manager / CustomMaster |             14 |          1 |           13 |                        6 |
 | Custom menu                   |             11 |          1 |           10 |                        4 |
 | Data Output                   |             18 |         18 |            0 |                        9 |
-| Forms / DefReport             |             71 |          2 |           69 |                       40 |
+| Forms / DefReport             |             71 |          6 |           65 |                       40 |
 | FreeDrawOnly                  |              1 |          0 |            1 |                        0 |
 | Help                          |              8 |          0 |            8 |                        1 |
-| **Documents / InputReport**   |         **67** |     **15** |       **52** |                   **31** |
+| **Documents / InputReport**   |         **67** |     **28** |       **39** |                   **31** |
 | Labels                        |             10 |         10 |            0 |                        5 |
 | Library                       |             19 |         19 |            0 |                        9 |
 | Schedule                      |              8 |          1 |            7 |                        4 |
 | Standard dialogs              |              3 |          0 |            3 |                        1 |
 | System                        |            169 |        169 |            0 |                       86 |
 | SystemGoogleAuthCallback      |              1 |          1 |            0 |                        0 |
-| **Controller totals**         |        **461** |    **250** |      **211** |                  **237** |
+| **Controller totals**         |        **461** |    **267** |      **194** |                  **237** |
 
-Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **64** EJS files are independently counted from `src/views/manager/`; shared dialogs may serve multiple controllers. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
+Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **90** EJS files are independently counted from `src/views/manager/`; shared dialogs may serve multiple controllers. Four registered DefReport signatures serve Documents label/permission editors only; Forms remains blocked. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
+
+Across Manager, **143 paths lack at least one source signature; 138 have no registered handler**. Within Documents, **28 / 67 signatures are registered and 39 remain unregistered**. A protected PDF handler returning 501 counts as registered, so these figures do not measure working workflows.
 
 The registration check constructs the app with a throw-on-query/connect database stub and inspects routes: **zero database calls, no listener, no live-server requests**. Native/API status labels come from reviewed command inventories checked against the current configuration; they are not a fresh end-to-end acceptance result.
+
+The current Documents/Library publication check passed **130 affected tests**, typecheck, targeted ESLint and formatting. These checks use isolated fixtures; no application rebuild/restart, live-server requests or automated browser/client acceptance was performed.
 
 </details>
 
 ## Migration progress
 
-<sub>Snapshot: 8 November 2026 · Current priority: Manager Documents Index</sub>
+<sub>Snapshot: 9 November 2026 · Current priority: full Manager Documents area</sub>
 
 ### Server-side indicators
 
@@ -147,8 +153,8 @@ The registration check constructs the app with a throw-on-query/connect database
   </tr>
   <tr>
     <td><strong>Manager server</strong></td>
-    <td><strong>≈54%</strong> route registration</td>
-    <td>250 / 461 source action signatures have matching Node routes. Includes partial, blocked and explicitly unsupported handlers—not completed workflows.</td>
+    <td><strong>≈58%</strong> route registration</td>
+    <td>267 / 461 source action signatures have matching Node routes. Includes partial, blocked and explicitly unsupported handlers—not completed workflows.</td>
   </tr>
   <tr>
     <td><strong>Native REST server</strong></td>
@@ -186,8 +192,8 @@ Working server communication with an existing client does **not** mean that clie
   </tr>
   <tr>
     <td><strong>Documents</strong><br><sub>Active priority</sub></td>
-    <td>Index filtering, sorting and paging; label navigation/linking; app launch; deletion lifecycle; identification checks; task picker/registration; protected media and FreeDraw detail view.</td>
-    <td>Approval persistence, Manager report copying, main Details workflows, deletion edge parity, notification delivery and complete visual/locale acceptance.</td>
+    <td>Index and detail navigation; Basic and normal-sheet detail views; cluster/report history with CSV/ZIP downloads; label/permission editors; guarded Basic settings and sheet metadata saves; shared automatic labels; tasks, lifecycle and protected media/FreeDraw views.</td>
+    <td>Actual cluster/binary editing and history writes; completion/numbering, approval and Manager copying; PDF rendering; output/notification delivery; remaining lifecycle effects and complete visual/locale parity.</td>
   </tr>
   <tr>
     <td><strong>System</strong></td>
@@ -223,12 +229,14 @@ Working server communication with an existing client does **not** mean that clie
 
 > **Not a drop-in replacement yet.** Unfinished workflows may explicitly reject requests. Registered routes, HTTP 200 responses and passing tests are not evidence of complete behavioral or visual parity. Other Manager tabs remain blocked rather than being presented as finished.
 
+**Documents details can now be viewed**, including Basic information, sheets and input history. Editing is still limited: unchanged cluster controls allow guarded metadata saves, but actual cluster changes and unfinished downstream effects fail before commit. Full approval, copying, completion and PDF workflows remain migration work.
+
 ## Next milestones
 
-- [ ] **Finish Documents Index end to end** — complete visible controls and their required transactional side effects.
-- [ ] **Complete approval, copy and Details** — preserve report state, permissions, binaries and downstream effects before reporting success.
+- [ ] **Finish Documents editing end to end** — complete Basic, sheet/cluster/binary/history writes and their required transactional side effects.
+- [ ] **Complete approval, copy, completion and output** — preserve report state, numbering, permissions, binaries and downstream effects before reporting success; implement PDF rendering and remaining Index lifecycle behavior.
 - [ ] **Accept the original UI** — recheck tables, headers, menus, assets, dialogs and locale against the installed application; manual Edge UAT at 80% zoom remains outstanding.
-- [ ] **Resume Library and Data Output** — close their remaining branch and workflow gaps after the Documents Index priority.
+- [ ] **Resume Library and Data Output** — close their remaining branch and workflow gaps after the full Documents priority.
 - [ ] **Close native/API compatibility gaps** — finish remaining supplied commands and verify unchanged client contracts.
 - [ ] **Consider redesigns** — only after the compatibility baseline is verified.
 
@@ -258,13 +266,13 @@ Both guides also show direct `/Rests/NAME.aspx` URLs and distinguish migrated pa
 <details>
 <summary><strong>Local setup and prerequisites</strong></summary>
 
-A fresh clone is **not self-contained**. Some compatibility paths still load private original resources, query XML and views; workstation-specific paths are not fully portable yet.
+A fresh clone includes the original runtime CSS, JavaScript and images under `public/Content` and `public/Scripts`, plus the original database base backups under `database/`. It is **not fully self-contained**: some compatibility paths still load private installation settings and query XML; workstation-specific paths are not fully portable yet. Manager UI templates are project-owned EJS.
 
 Required:
 
 - Node.js supporting the project's `node --watch` workflow and pnpm **10.30.3**.
-- PostgreSQL with a separately prepared compatible schema and authorized data.
-- Your own legally obtained original installation and required local assets/resources.
+- PostgreSQL 16 with a compatible schema and authorized data; see the [database bootstrap guide](database/README.md) for the included original base backups.
+- Your own legally obtained original installation and required private settings/resources.
 - A private `.env` based on [`.env.example`](.env.example), with database access, a strong session secret and your installation's compatibility keys.
 
 After those prerequisites are prepared:
@@ -278,7 +286,9 @@ Manager login: `http://127.0.0.1:3000/ConMasManager/Account/LogOn`.
 
 Do not start another server on an occupied port. Sessions and unfinished transfer staging are process-local; restarting can interrupt them.
 
-**Database preparation is separate.** Review `pnpm db:prepare` before applying changes. `pnpm import:samples` writes forms/documents and is not a setup shortcut for customer databases. This snapshot does not include a clean-install database bootstrap.
+**Database preparation is separate.** The [database bootstrap guide](database/README.md) documents restoring the supplied plain-SQL base backups into new databases. Review `pnpm db:prepare` before applying the additional Node schema changes. `pnpm import:samples` writes forms/documents and is not a setup shortcut for customer databases.
+
+**Uploaded Library files** default to `SettingFiles/xml/Library/<document_id>` under this project root, independently of the installed reference settings and the shell's working directory. An existing explicit `LIBRARY/BASE_FOLDER` database setting still overrides that default. Runtime Library files are Git-ignored; back them up with the active databases. Multipart uploads and report staging use Node's `os.tmpdir()` on Windows/Linux, rather than a hardcoded `/tmp` path.
 
 </details>
 
@@ -311,6 +321,8 @@ src/
   views/          EJS templates
 test/             Layer-specific and integration checks
 config/           Native-client and business-API configuration
+public/           Original runtime assets and Node preview styles
+database/         Original base SQL backups and provenance
 ```
 
 Manager MVC stays layer-first: `src/controllers/manager/<menu>/`, `src/models/manager/<menu>/` and `src/views/manager/<menu>/`.
@@ -319,4 +331,4 @@ Manager MVC stays layer-first: `src/controllers/manager/<menu>/`, `src/models/ma
 
 ---
 
-<sub><strong>Public source, private prerequisites.</strong> This repository includes the migration implementation, templates, configuration and tests—not original vendor assets, binaries, licenses, decompiled projects, private evidence, customer data, backups or credentials. These remain local and Git-ignored. Use only installations and data you are authorized to access. Zenithra is an independent project, not an official i-Reporter release; publication grants no rights to proprietary components.</sub>
+<sub><strong>Source and original bootstrap files.</strong> This repository includes the migration implementation, templates, configuration, tests, original runtime web assets and the two supplied database base backups. Vendor executables, licenses, decompiled projects, private evidence, live customer data, other backups and credentials remain local and Git-ignored. Included originals retain their licensing terms. Use only installations and data you are authorized to access. Zenithra is an independent project, not an official i-Reporter release; publication grants no rights to proprietary components.</sub>

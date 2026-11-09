@@ -1,0 +1,245 @@
+
+    //Ajaxキャッシュしない
+    $.ajaxSetup({
+        cache: false
+    });
+
+    $(function () {
+        //レイアウト
+        $("#MainWrap").css("margin-left", $("#SideWrap").width());
+        $(window).on('resize', function () {
+            $("#MainWrap").css("margin-left", $("#SideWrap").width());
+        });
+
+        $("#Labels").treeview({
+            collapsed: false,
+            animated: "medium",
+            control: "#sidetreecontrol",
+            persist: "location"
+        });
+
+        if ($("#initDetailsFunction").val() == "conmasRepLabelFunction") {
+            
+            $("#initDetailsFunction").val("");
+            $("#content").load($("#conmasRepLabelFunction").attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#conmasRepLabelFunction").addClass("current")
+        }
+        else if ($("#initDetailsFunction").val() == "conmasRoleFunction") {
+            
+            $("#initDetailsFunction").val("");
+            $("#content").load($("#conmasRoleFunction").attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#conmasRoleFunction").addClass("current")
+        }
+        else if ($("#initDetailsFunction").val().indexOf("conmasClusterRoleFunction") > 0) {
+            
+            $("#content").load($("#" + $("#initDetailsFunction").val()).attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#" + $("#initDetailsFunction").val()).addClass("current");
+            $("#initDetailsFunction").val("");
+        }
+        else if ($("#initDetailsFunction").val().indexOf("conmasMailFunction") > 0) {
+            
+            $("#content").load($("#" + $("#initDetailsFunction").val()).attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#" + $("#initDetailsFunction").val()).addClass("current");
+            $("#initDetailsFunction").val("");
+        }
+        else if ($("#initDetailsFunction").val().indexOf("conmasDirectChatFunction") > 0) {
+            
+            $("#content").load($("#" + $("#initDetailsFunction").val()).attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#" + $("#initDetailsFunction").val()).addClass("current");
+            $("#initDetailsFunction").val("");
+        }
+        else if ($("#initDetailsFunction").val().indexOf("conmasWebhookFunction") > 0) {
+            
+            $("#content").load($("#" + $("#initDetailsFunction").val()).attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#" + $("#initDetailsFunction").val()).addClass("current");
+            $("#initDetailsFunction").val("");
+        }
+        else if ($("#initDetailsFunction").val() == "conmasLogGoogleFunction") {
+            
+            $("#initDetailsFunction").val("");
+            $("#content").load($("#conmasLogGoogleFunction").attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#conmasLogGoogleFunction").addClass("current")
+        }
+        else if ($("#initDetailsFunction").val() == "conmasLogBoxFunction") {
+            
+            $("#initDetailsFunction").val("");
+            $("#content").load($("#conmasLogBoxFunction").attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#conmasLogBoxFunction").addClass("current")
+        }
+        else if ($("#initDetailsFunction").val() == "conmasLogBim360Function") {
+            
+            $("#initDetailsFunction").val("");
+            $("#content").load($("#conmasLogBim360Function").attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("#conmasLogBim360Function").addClass("current")
+        }
+        else if ($("#initPageIndex").val() == "") {
+            $("#content").load($("ul#Labels li a:first").attr("href"));
+        }
+        else {
+            var pageIndex;
+            pageIndex = parseInt($("#initPageIndex").val()) + 1;
+            $("#content").load($("ul#Labels li a:eq(" + pageIndex + ")").attr("href"));
+            $("#Labels li a:first").removeClass("current");
+            $("ul#Labels li a:eq(" + pageIndex + ")").addClass("current")
+            $("#initPageIndex").val("");
+        }
+        $("#Labels li a").on('click', function () {
+            $("#Labels li a").removeClass("current");
+            $(this).addClass("current");
+        });
+
+        if ('<%= copyError ? 'TRUE' : 'FALSE' %>' == 'TRUE')
+        {
+            alert('<%= v.copyFailureMessage %>');
+        }
+
+        // 選択中の帳票IDを保存
+        localStorage.setItem('selectedRepTopId', <%= id %>);
+
+        //カレンダー表示
+        $(document).on('mousedown', '.datetime input', function () {
+            $(this).datepicker($.datepicker.regional[browserLanguage()]);
+        });
+
+        $(document).on('mousedown', '.starttime input', function () {
+            $(this).timepicker({ 'timeFormat': 'H:i' });
+        });
+    });
+
+    //クラスターのグループ全チェック
+    function groupCheckAll(obj, id) {
+        var chk = $(obj).prop('checked');
+        $("#" + id + " input[type='checkbox']").prop('checked', chk);
+    };
+
+    function fConMasClassCheckAll(obj, id, className) {
+        var chk = $(obj).prop('checked');
+        $("#" + id + " input[type='checkbox'][class=" + className + "]").prop('checked', chk);
+    };
+
+    function toggle3() {
+        $(".clusterSetting").toggle();
+    };
+
+    //キャンセルボタン
+    function saveCancel() {
+        $("#isCanceled").attr("value", "true");
+    };
+
+    //承認
+    function approveAction(approveEditStatus, rep_sheet_id, clusterid, pageIndex) {
+        var message = '<%= v.approveCheckMessage %>';
+        if (approveEditStatus == 3) {
+            message = '<%= v.InputReportDetails_remandCheckMessage %>';
+        }
+        if (confirm(message)) {
+            $("#approveEditStatus").attr("value", approveEditStatus);
+            $("#approveRepSheetId").attr("value", rep_sheet_id);
+            $("#approveClusterId").attr("value", clusterid);
+            $("#pageIndex").attr("value", pageIndex);
+            $("#approveComment").val($("#approveComment_" + rep_sheet_id + "_" + clusterid).val());
+
+            if (approveEditStatus == 4) {
+                // 本人確認可否取得
+                var repTopIds = $("#rep_top_rep_top_id").val();
+                var url = $("#GetIdentificationRequiredForm").prop('action');
+                var verificationToken = $("form[id='GetIdentificationRequiredForm']>input[name='__RequestVerificationToken']").val();
+                getIdentificationRequired(url, verificationToken, repTopIds, executeApprove, showIdentificationCodeDialog, showServerError);
+                return false;
+            } else {
+                // 差し戻し
+                fConMasLockView()
+                return true;
+            }
+        }
+        return false;
+    };
+
+    function executeApprove(state) {
+        // 画面ロック
+        fConMasLockView()
+        $("#approveIdentificationState").val(state);
+        $("#conmasIdentificationCloseButton").trigger('click');
+        $("#approveForm").trigger('submit');
+    }
+
+    function showIdentificationCodeDialog() {
+        $("#identificationCode").val('');
+        $("#identificationCode").removeClass("input-validation-error");
+        $("#identificationCodeError").text('');
+        $("#goIdentification").trigger('click');
+    }
+
+    function onClickIdentification() {
+        var url = $("#IdentificationForm").prop('action');
+        var verificationToken = $("form[id='IdentificationForm']>input[name='__RequestVerificationToken']").val();
+        var identificationCode = $("#identificationCode").val();
+        if (identificationCode.length == 0) {
+            showIdentificationCodeError();
+        } else {
+            identification(url, verificationToken, identificationCode, executeApprove, showIdentificationCodeError, showServerError);
+        }
+    }
+
+    function showIdentificationCodeError() {
+        $("#identificationCode").addClass("input-validation-error");
+        $("#identificationCodeError").text('<%= r.MessageInvalidIdentificationCode %>');
+    }
+
+    function showServerError() {
+        alert('<%= r.serverError %>');
+    }
+
+    // 完了帳票コピー
+    function copyReport(message) {
+        if (confirm(message)) {
+            // 画面ロック            
+            fConMasLockView()
+            return true;
+        }
+        return false ;
+    };
+
+    //画面ロック
+    function lockView() {
+        if ($("form").valid() == true) {
+            // 画面ロック
+            fConMasLockView()
+        }
+    };
+
+    //マップリンク
+    function linkGMapl(latString, lonString) {
+        window.open('https://maps.google.com/maps?q=' + latString + "," + lonString);
+    };
+
+    function fConMasLabelSubmitAction(actionTypeName, saveLabelId, isSaveLabelType) {
+        $("#ActionCommonType").val(actionTypeName);
+        if ($("#ActionCommonType").val() == "EditType")
+        {
+            $("#SaveLabelId").val(saveLabelId);
+            $("#IsSaveLabelType").val(isSaveLabelType);
+        }
+    };
+
+    function fConMasPageSave(pageIndex)
+    {
+        $("#PageIndex").val(pageIndex);
+        $("#form0").trigger('submit');
+        return false;
+    };
+
+    function fConMasSubmit()
+    {
+        $("#form0").trigger('submit');
+        return false;
+    };

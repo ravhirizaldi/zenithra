@@ -106,7 +106,7 @@ export async function documentAppLaunch(db: Database, settings: DocumentSettings
     auth = '&auth=' + (await documentSchemeAuth(user, password));
   }
   return {
-    template: (windows ? 'ireporter' : 'jp.co.cimtops.ireporter') + '.openreport:repid={rep_top_id}' + auth,
+    template: 'ireporter.openreport:repid={rep_top_id}' + auth,
     icon: windows ? 'win_ir.ico' : 'ios_ir.png',
   };
 }

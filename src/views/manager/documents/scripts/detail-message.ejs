@@ -1,0 +1,10 @@
+
+    $(function () {
+        $("#MessageWrap .PartialViewMessage").empty();
+        if ($(".PartialViewMessage li").length == 1 &&
+            $(".PartialViewMessage li").css("display") == "none") {
+            $(".PartialViewMessage").css("display", "none");
+        } else {
+            $(".PartialViewMessage").appendTo("#MessageWrap");
+        }
+    });

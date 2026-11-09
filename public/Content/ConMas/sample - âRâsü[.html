@@ -1,0 +1,199 @@
+﻿<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01 Transitional//EN" "http://www.w3c.org/TR/1999/REC-html401-19991224/loose.dtd">
+<!-- saved from url=(0042)http://www.conmas.jp/test/report_list.html -->
+<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd"><HTML 
+xmlns="http://www.w3.org/1999/xhtml"><HEAD>
+<META content="text/html; charset=utf-8" http-equiv="Content-Type"><TITLE>ConMas 
+Manager - 入力帳票</TITLE>
+<SCRIPT type="text/javascript" src="../../Content/ConMas/jquery-1.7.1.min.js"></SCRIPT>
+
+<SCRIPT type="text/javascript" src="../../Content/ConMas/jquery-ui-1.8.18.custom.min.js"></SCRIPT>
+
+<SCRIPT type="text/javascript" src="../../Content/ConMas/jquery.cookie.js"></SCRIPT>
+
+<SCRIPT type="text/javascript" src="../../Content/ConMas/jquery.easing.1.3.js"></SCRIPT>
+
+<SCRIPT type="text/javascript" src="../../Content/ConMas/jquery.mousewheel.min.js"></SCRIPT>
+<LINK rel="stylesheet" type="text/css" href="../../Content/ConMas/jquery.mCustomScrollbar.css">
+<LINK rel="stylesheet" type="text/css" href="../../Content/ConMas/styles.css">
+<LINK rel="stylesheet" type="text/css" href="../../Content/ConMas/grid.css">
+<SCRIPT type="text/javascript">
+$(function() {
+	var contentsh = $('#Wrap').height()-70;
+	$('#LabelGridSplitter').height(contentsh);
+	$('#LabelCol').height(contentsh);
+	$('#GridSection').height(contentsh);
+	var lgsw = $('#LabelGridSplitter').width()-270;
+	$('#GridSection').width(lgsw);
+		$(window).resize(function(){
+		var contentsh = $('#Wrap').height()-70;
+		$('#LabelGridSplitter').height(contentsh);
+		$('#LabelCol').height(contentsh);
+		$('#GridSection').height(contentsh);
+		var lgsw = $('#LabelGridSplitter').width()-270;
+		$('#GridSection').width(lgsw);
+	});
+});
+</SCRIPT>
+
+<META name="GENERATOR" content="MSHTML 9.00.8112.16441"></HEAD>
+<BODY>
+<DIV id="HeaderMenu">header</DIV>
+<DIV id="Wrap">
+<DIV id="FilterBar">
+<DIV id="Search"><LABEL for="keyword">検索</LABEL><INPUT class="keyword" name="keyword" 
+type="text"></DIV><!-- /Search -->
+<DIV id="Filters"></DIV><!-- /Filters --></DIV><!-- /FilterBar -->
+<DIV id="LabelGridSplitter">
+<DIV id="LabelCol">
+<DIV class="customScrollBox">
+<DIV class="container">
+<DIV class="content">
+<UL id="Labels">
+  <LI>すべて</LI>
+  <LI>ラベルなし</LI>
+  <LI>オーダー票  
+  <UL>
+    <LI>オーダー票 12年04月</LI>
+    <LI>オーダー票 12年05月</LI>
+    <LI>オーダー票 12年06月</LI></UL></LI>
+  <LI>部品表  
+  <UL>
+    <LI>部品表 12年04月</LI>
+    <LI>部品表 12年05月</LI>
+    <LI>部品表 12年06月</LI></UL></LI>
+  <LI>作業報告  
+  <UL>
+    <LI>作業報告 12年04月</LI>
+    <LI>作業報告 12年05月</LI>
+    <LI>作業報告 12年06月</LI></UL></LI>
+  <LI>不良報告  
+  <UL>
+    <LI>不良報告 12年04月</LI>
+    <LI>不良報告 12年05月</LI>
+    <LI>不良報告 12年06月</LI></UL></LI>
+  <LI>設備点検  
+  <UL>
+    <LI>設備点検 12年04月</LI>
+    <LI>設備点検 12年05月</LI>
+    <LI>設備点検 12年06月</LI></UL></LI>
+  <LI>検査表</LI>
+  <LI>検査記録</LI>
+  <LI>設変・修正指示書  
+  <UL>
+    <LI>設変・修正指示書 12年04月</LI>
+    <LI>設変・修正指示書 12年05月</LI></UL></LI></UL></DIV></DIV>
+<DIV class="dragger_container">
+<DIV class="dragger"></DIV></DIV></DIV></DIV>
+<DIV id="GridSection">
+<TABLE class="GridCommon" border="0" cellSpacing="1">
+  <TBODY>
+  <TR>
+    <TH class="checkCol" scope="col"><INPUT id="checkbox" name="checkbox" 
+      type="checkbox"></TH>
+    <TH scope="col"><SPAN>帳票名</SPAN><A class="sort" href="http://www.conmas.jp/test/report_list.html#">sort</A></TH>
+    <TH scope="col"><SPAN>状態</SPAN><A class="sort" href="http://www.conmas.jp/test/report_list.html#">sort</A></TH>
+    <TH scope="col"><SPAN>登録日時</SPAN><A class="sort" href="http://www.conmas.jp/test/report_list.html#">sort</A></TH>
+    <TH scope="col"><SPAN>登録者</SPAN><A class="sort" href="http://www.conmas.jp/test/report_list.html#">sort</A></TH>
+    <TH class="sorting" scope="col"><SPAN>更新日時</SPAN><A class="sort desc" 
+      href="http://www.conmas.jp/test/report_list.html#">sort</A></TH>
+    <TH scope="col"><SPAN>更新者</SPAN><A class="sort" href="http://www.conmas.jp/test/report_list.html#">sort</A></TH></TR>
+  <TR style="background-color: rgb(255, 255, 204);" class="odd">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">作業報告</A></SPAN><BR>ASDRED12（備考）</TD>
+    <TD class="CenterCol status1"></TD>
+    <TD class="CenterCol">2012/03/27<BR>      15:26</TD>
+    <TD class="CenterCol">筒井　大作</TD>
+    <TD class="CenterCol">2012/03/27<BR>      15:26</TD>
+    <TD class="CenterCol">筒井　大作</TD></TR>
+  <TR style="background-color: rgb(255, 255, 204);" class="even">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">作業報告</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status2"></TD>
+    <TD class="CenterCol">2012/03/27<BR>      11:48</TD>
+    <TD class="CenterCol">伊賀上　聡</TD>
+    <TD class="CenterCol">2012/03/27<BR>      15:25</TD>
+    <TD class="CenterCol">伊賀上　聡</TD></TR>
+  <TR class="odd">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">作業報告</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status3"></TD>
+    <TD class="CenterCol">2012/03/27<BR>      9:26</TD>
+    <TD class="CenterCol"> 松尾　泰延</TD>
+    <TD class="CenterCol">2012/03/27<BR>    14:12</TD>
+    <TD class="CenterCol"> 松尾　泰延</TD></TR>
+  <TR class="even">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">設備点検表</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status4"></TD>
+    <TD class="CenterCol">2012/03/21<BR>      14:31</TD>
+    <TD class="CenterCol">生出　さやか</TD>
+    <TD class="CenterCol">2012/03/26<BR>      17:54</TD>
+    <TD class="CenterCol">生出　さやか</TD></TR>
+  <TR class="odd">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">設備点検表</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status3"></TD>
+    <TD class="CenterCol">2012/03/24<BR>      13:07</TD>
+    <TD class="CenterCol">筒井　大作</TD>
+    <TD class="CenterCol">2012/03/26<BR>    12:06</TD>
+    <TD class="CenterCol">筒井　大作</TD></TR>
+  <TR class="even">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">不良発生報告</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status2"></TD>
+    <TD class="CenterCol">2012/03/26<BR>      11:02</TD>
+    <TD class="CenterCol">伊賀上　聡</TD>
+    <TD class="CenterCol">2012/03/26<BR>    11:43</TD>
+    <TD class="CenterCol">伊賀上　聡</TD></TR>
+  <TR class="odd">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">不良発生報告</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status2"></TD>
+    <TD class="CenterCol">2012/03/26<BR>      9:12</TD>
+    <TD class="CenterCol">筒井　大作</TD>
+    <TD class="CenterCol">2012/03/26<BR>    10:28</TD>
+    <TD class="CenterCol">筒井　大作</TD></TR>
+  <TR class="even">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">不良発生報告</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status3"></TD>
+    <TD class="CenterCol">2012/03/22<BR>      18:05</TD>
+    <TD class="CenterCol">伊賀上　聡</TD>
+    <TD class="CenterCol">2012/03/23<BR>    13:37</TD>
+    <TD class="CenterCol">伊賀上　聡</TD></TR>
+  <TR class="odd">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">棚卸準備表</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status3"></TD>
+    <TD class="CenterCol">2012/03/21<BR>      9:52</TD>
+    <TD class="CenterCol">松尾　泰延</TD>
+    <TD class="CenterCol">2012/03/22<BR>    9:40</TD>
+    <TD class="CenterCol">松尾　泰延</TD></TR>
+  <TR class="even">
+    <TD class="checkCol"><INPUT id="checkbox" name="checkbox" 
+    type="checkbox"></TD>
+    <TD><SPAN class="docTitle"><A href="http://www.conmas.jp/test/report_list.html#">棚卸調査票</A></SPAN><BR>ASDRED12</TD>
+    <TD class="CenterCol status2"></TD>
+    <TD class="CenterCol">2012/03/21<BR>      11:45</TD>
+    <TD class="CenterCol">伊賀上　聡</TD>
+    <TD class="CenterCol">2012/03/22<BR>      11:06</TD>
+    <TD class="CenterCol">伊賀上　聡</TD></TR></TBODY></TABLE></DIV>
+<!-- /GridSection --></DIV><!-- /LabelGridSplitter --></DIV><!-- /Wrap -->
+<DIV id="Footer">Footer</DIV>
+<SCRIPT type="text/javascript">
+$(window).load(function() {
+    $("#LabelCol").mCustomScrollbar("vertical",0,"easeOutCirc",1.1,"auto","yes","no",10);
+});
+</SCRIPT>
+
+<SCRIPT type="text/javascript" src="../../Content/ConMas/jquery.mCustomScrollbar.js"></SCRIPT>
+</BODY></HTML>

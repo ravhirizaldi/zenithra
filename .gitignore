@@ -5,7 +5,7 @@ dist/
 !.env.example
 logs/
 
-# Private migration references, working notes and original vendor assets.
+# Private migration references and working notes.
 /AGENTS.md
 /docs/*
 !/docs/api/
@@ -14,14 +14,19 @@ logs/
 !/docs/api/native-rest.md
 !/docs/api/business-api.md
 /legacy/
-/public/Content/
-/public/Scripts/
+
+# Original runtime assets are versioned; workstation/editor metadata is not.
+/public/**/Thumbs.db
+/public/**/_notes/
 
 # Local runtime data and credentials must never enter the public repository.
 /uploads/
 /storage/
+/SettingFiles/xml/Library/
 /backups/
 *.dump
+!/database/irepodbBase.dump
+!/database/irepowbdbBase.dump
 *.backup
 *.pem
 *.p12

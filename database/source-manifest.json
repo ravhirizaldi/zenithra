@@ -1,0 +1,19 @@
+{
+  "source": "Installed CONMASSERVER Tools/db base backups; not a live database export",
+  "files": [
+    {
+      "file": "irepodbBase.dump",
+      "source": "/mnt/c/Users/DELL/CONMASSERVER/Tools/db/irepodbBase.dump",
+      "bytes": 80914851,
+      "sha256": "b3d45f49955aece918ade09ebc29823623cf02f96e619acf381389fd36d1c858",
+      "format": "plain-sql"
+    },
+    {
+      "file": "irepowbdbBase.dump",
+      "source": "/mnt/c/Users/DELL/CONMASSERVER/Tools/db/irepowbdbBase.dump",
+      "bytes": 122610,
+      "sha256": "d3c94d79d6d3039df6efa9a52c58214bb17d35d4af1f85286d071651eafb73c6",
+      "format": "plain-sql"
+    }
+  ]
+}

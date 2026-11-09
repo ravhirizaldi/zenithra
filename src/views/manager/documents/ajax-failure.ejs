@@ -1,0 +1,10 @@
+<script type="text/javascript">
+  function fConMasDocumentFailure(xhr) {
+    if (xhr.responseText && xhr.responseText.indexOf('id="DetailTop"') !== -1) {
+      $('#content').html(xhr.responseText);
+    } else {
+      $('#MessageWrap').text(xhr.responseText || '<%= r.serverError %>');
+    }
+    $.unblockUI();
+  }
+</script>

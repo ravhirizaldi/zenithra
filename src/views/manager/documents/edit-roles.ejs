@@ -1,0 +1,43 @@
+<script src="<%= base %>/Scripts/jquery.validate.min.js" type="text/javascript"></script>
+<script src="<%= base %>/Scripts/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
+<script type="text/javascript"><%- js %></script>
+<div class="PartialViewMessage"><% if (error) { %><ul role="alert"><li><%= error %></li></ul><% } %></div>
+<div id="DetailTop"><span id="infoTitle"><%= v.reportName %> : <%= report.rep_top_name %></span></div>
+<div id="DetailSection"><div class="info"><%= v.roleSetting %>:
+  <form id="conmasPageForm" action="<%= base %>/DefReport/EditRole" method="post" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure">
+    <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+    <input type="hidden" id="ActionCommonType" name="ActionCommonType" value="">
+    <input type="hidden" id="defTopId" name="defTopId" value="<%= report.rep_top_id %>">
+    <input type="hidden" id="ReportMode" name="ReportMode" value="Rep">
+    <input type="hidden" id="PageData_PageIndex" name="PageData.PageIndex" value="<%= index %>">
+    <p><input type="submit" class="image-ok_btn" value="<%= r.Fix %>" onclick="return fConMasPageSubmitAction('SaveType');"> <input type="submit" class="image-cancel_btn" value="<%= r.Cancel %>" onclick="saveCancel();"></p>
+    <div>
+      <label for="GroupSearchData_GroupId"><%= r.group_id %></label>&nbsp;<input id="GroupSearchData_GroupId" name="GroupSearchData.GroupId" value="<%= groupId %>">&nbsp;&nbsp;
+      <label for="GroupSearchData_GroupName"><%= r.group_name %></label>&nbsp;<input id="GroupSearchData_GroupName" name="GroupSearchData.GroupName" value="<%= groupName %>">&nbsp;&nbsp;
+      <input type="button" value="<%= r.Search %>" class="image-search_user" onclick="return fConMasPageSubmitAction('PageType');">
+    </div>
+    <%- include('settings-paging', { kind: 'roles', bottom: false }) %>
+    <table id="conmasReportRoleTable" cellpadding="0" cellspacing="0" class="table_information verticality">
+      <tr><th scope="col" rowspan="2"><%= r.Group %></th><th scope="col" colspan="3"><%= r.Report %></th><th scope="col"></th></tr>
+      <tr><th scope="col"><%= r.Refer %></th><th scope="col"><%= r.Edit %></th><th scope="col"><%= r.Delete %></th><th scope="col"></th></tr>
+      <tr><th scope="col"></th>
+        <% for (const field of ['read', 'update', 'delete']) { %><th scope="col"><input type="checkbox" aria-label="<%= r['role_rep_' + field] || field %>" onclick="fConMasClassCheckAll(this,'conmasReportRoleTable','roles_role_rep_<%= field %>_check'); fConMasGroupVerticalAllEditFlgON('roles_role_rep_<%= field %>_check','rep_<%= field %>');"></th><% } %>
+        <th scope="col"><input type="checkbox" aria-label="<%= r.Group %>" onclick="groupCheckAll(this,'conmasReportRoleTable'); fConMasGroupAllEditFlgON();"></th>
+      </tr>
+      <% rows.forEach((row, count) => { %><tr id="conmasReportRole_<%= count %>">
+        <td><%= row.group_name_path %>
+          <input type="hidden" id="RolePages_<%= count %>__group_id" name="RolePages[<%= count %>].group_id" value="<%= row.group_id %>">
+          <input type="hidden" id="RolePages_<%= count %>__group_name_path" name="RolePages[<%= count %>].group_name_path" value="<%= row.group_name_path %>">
+          <input type="hidden" id="RolePages_<%= count %>__EditFlg" name="RolePages[<%= count %>].EditFlg" value="" class="conmas_role_edit_flg">
+        </td>
+        <% for (const field of ['read', 'update', 'delete']) { %><td class="center">
+          <input type="hidden" id="RolePages_<%= count %>__role_rep_<%= field %>" name="RolePages[<%= count %>].role_rep_<%= field %>" class="role_rep_<%= field %>_post_class" value="<%= row[field] %>">
+          <input type="checkbox" id="conmas_check_role_rep_<%= field %>_<%= count %>" class="roles_role_rep_<%= field %>_check" value="<%= row[field] %>"<% if (row[field]) { %> checked<% } %> aria-label="<%= row.group_name_path %> <%= field %>" onclick="fConMasGroupEditFlgON(<%= count %>,'conmas_check_role_rep_<%= field %>_<%= count %>','RolePages_<%= count %>__role_rep_<%= field %>');">
+        </td><% } %>
+        <th class="center"><input type="checkbox" name="conmasReportRoleAllChk" aria-label="<%= row.group_name_path %>" onclick="groupCheckAll(this,'conmasReportRole_<%= count %>'); fConMasGrouphorizontalAllEditFlgON(<%= count %>);"></th>
+      </tr><% }); %>
+    </table>
+    <%- include('settings-paging', { kind: 'roles', bottom: true }) %>
+    <p><input type="submit" class="image-ok_btn" value="<%= r.Fix %>" onclick="return fConMasPageSubmitAction('SaveType');"> <input id="btnCancel" type="submit" class="image-cancel_btn" value="<%= r.Cancel %>" onclick="saveCancel();"><input type="hidden" id="isCanceled" name="isCanceled" value=""></p>
+  </form>
+</div></div>

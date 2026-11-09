@@ -24,6 +24,8 @@ test(
         'rep_top',
         'rep_sheet',
         'rep_cluster',
+        'rep_cluster_role',
+        'rep_cluster_refer',
         'rep_layer_draw',
         'rep_cluster_draw',
         'history_rep_cluster',
@@ -194,6 +196,16 @@ test(
       );
       assert.equal((await get('GetHistoryImage', { historyId: 'history', imageType: '9' })).status, 400);
       assert.equal((await get('GetInputValueImage', { repSheetId: '11;DELETE', clusterId: '1' })).status, 400);
+      await client.query('INSERT INTO rep_cluster_refer(rep_sheet_id,cluster_id,group_id) VALUES (11,1,20)');
+      for (const [action, params] of cases.filter(
+        ([action, params]) =>
+          ['GetInputValueImage', 'GetRecordingValue', 'GetHistoryImage'].includes(action) ||
+          (action === 'GetLayerDraw' && params.type === 'cluster'),
+      ))
+        assert.equal((await get(action, params)).status, 404, action + ' restricted cluster');
+      await client.query('INSERT INTO rep_cluster_role(rep_sheet_id,cluster_id,group_id) VALUES (11,1,10)');
+      assert.equal((await get('GetInputValueImage', { repSheetId: '11', clusterId: '1' })).status, 200);
+      await client.query('DELETE FROM rep_cluster_role; DELETE FROM rep_cluster_refer');
       await client.query('UPDATE rep_role SET role_rep_read=0,role_rep_update=1 WHERE rep_top_id=1');
       assert.equal((await get('GetRepTopName', { repTopId: '1' })).status, 200);
       await client.query('UPDATE rep_role SET role_rep_update=0 WHERE rep_top_id=1');

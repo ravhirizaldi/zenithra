@@ -1,7 +1,8 @@
 import type pg from 'pg';
 import { readFile, stat } from 'node:fs/promises';
 import { join } from 'node:path';
-import { clientSettingsDirectory, licenseDate, readLicenseFields } from '../shared/license-counts.js';
+import { licenseDate, readLicenseFields } from '../shared/license-counts.js';
+import { root } from '../config/manager.js';
 import { configuredPath } from '../controllers/manager/system/files.js';
 import { clientError } from '../services/client-xml.js';
 import { element, integer, serialize } from './client-definition-xml.js';
@@ -21,7 +22,7 @@ export async function clientLibraryDirectory(db: Database): Promise<string> {
     const candidate = configuredPath(configured);
     if ((await stat(candidate).catch(() => undefined))?.isDirectory()) return candidate;
   }
-  return join(clientSettingsDirectory() ?? '', 'Library');
+  return join(root, 'SettingFiles', 'xml', 'Library');
 }
 const role = (table: string) => `(NOT EXISTS (SELECT 1 FROM ${table} r WHERE r.document_id=doc.document_id)
   OR EXISTS (SELECT 1 FROM ${table} r JOIN mst_group_affiation a ON a.group_id=r.group_id WHERE r.document_id=doc.document_id AND a.user_id=$1))`;

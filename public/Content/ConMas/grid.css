@@ -1,0 +1,626 @@
+﻿@charset "utf-8";
+/* 共通 */
+table .CenterCol {
+	text-align: center;
+}
+table .LeftCol {
+	text-align: left;
+}
+table .RightCol {
+	text-align: right;
+}
+table .JustifyCol {
+	text-align: justify;
+}
+table .InheritCol {
+	text-align: inherit;
+}
+/* 一覧 */
+.GridCommon {
+	font-family: "メイリオ", Meiryo, Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+	font-size: 12px;
+	background-color: #FFF;
+	width: 100%;
+}
+.GridCommon tr.even {
+	background-color: #F3F3F3;
+}
+.GridCommon tr:hover {
+	background-color: #CCDDF7 !important;
+}
+.GridCommon tr.new {
+	background-color: #FFFFCC;
+}
+.GridCommon tr.history {
+	background-color: #C8BCB5;
+}
+.GridCommon tr.selected {
+	background-color: #FFE5CC;
+}
+
+.GridCommon th,
+.GridCommon td {
+	border-right-width: 1px;
+	border-bottom-width: 1px;
+	border-left-width: 1px;
+	border-top-style: none;
+	border-right-style: solid;
+	border-bottom-style: solid;
+	border-left-style: none;
+	border-right-color: #D6D6D6;
+	border-bottom-color: #CCC;
+	border-left-color: #D6D6D6;
+	padding: 5px;
+	color: #666;
+}
+.GridCommon th {
+	background-color: #D6D6D6;
+	border-bottom-color: #999;
+	padding-top: 10px;
+	color: #333;
+	padding-right: 10px;
+	padding-left: 10px;
+	border-right-color: #999;
+}
+.GridCommon th.sorting {
+	background-color: #87A5C9;
+	color: #FFF;
+}
+.GridCommon th span {
+	display: block;
+	float: left;
+}
+.GridCommon th a.sort {
+	background-image: url(images/grid/sort.png);
+	background-repeat: no-repeat;
+	background-position: right;
+	width: 24px;
+	display: block;
+	float: right;
+	text-indent: -100px;
+	overflow: hidden;
+}
+.GridCommon th a.asc {
+	background-image: url(images/grid/asc.png);
+}
+.GridCommon th a.desc {
+	background-image: url(images/grid/desc.png);
+}
+.GridCommon .checkCol {
+	text-align: center;
+	width: 35px;
+	padding: 0px;
+}
+.GridCommon span.docTitle {
+	font-weight: bold;
+	color: #333;
+}
+.GridCommon .error-message {
+    color: #ff0000;
+}
+.GridCommon a.detailOpen {
+}
+.GridCommon td.status1 {
+	background-image: url(images/grid/grid_status_1.png);
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+.GridCommon td.status2 {
+	background-image: url(images/grid/grid_status_2.png);
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+.GridCommon td.status3 {
+	background-image: url(images/grid/grid_status_3.png);
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+.GridCommon td.status4 {
+	background-image: url(images/grid/grid_status_4.png);
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+.GridCommon td.status5 {
+	background-image: url(images/grid/grid_status_5.png);
+	background-repeat: no-repeat;
+	background-position: center center;
+}
+
+
+/* 情報系 */
+
+.table_information {
+	font-family: "メイリオ", Meiryo, Osaka, "ＭＳ Ｐゴシック", "MS PGothic", sans-serif;
+	font-size: 12px;
+	background-color: #FFF;
+	width: 97%;
+	border-collapse:collapse;
+	margin-bottom: 20px;
+	margin-right: auto;
+	margin-left: auto;
+}
+.table_information th,
+.table_information td {
+	border-collapse:collapse;
+	border: 1px solid #999;
+	padding: 5px;
+}
+.table_information th {
+	background-color: #EBEBD8;
+}
+.table_information .error-message {
+    color: #ff0000;
+}
+table.horizontal th {
+	width: 200px;
+	text-align: right;
+	padding-right: 20px;
+	padding-left: 20px;
+}
+table.verticality th {
+	text-align: center;
+	padding-right: 5px;
+	padding-left: 5px;
+}
+table.verticality th.system_role {
+    background-color: #CCFFFF;
+}
+table.verticality th.manager_role {
+    background-color: #CCFFCC;
+}
+table.verticality th.designer_role {
+    background-color: #FFFFCC;
+}
+table.verticality td.status1
+{
+    background-image: url(images/grid/grid_status_1.png);
+    background-repeat: no-repeat;
+    background-position: 5px center;
+}
+td.status2 {
+	background-image: url(images/grid/grid_status_2.png);
+	background-repeat: no-repeat;
+	background-position: 5px center;
+}
+table.verticality td.status3 {
+	background-image: url(images/grid/grid_status_3.png);
+	background-repeat: no-repeat;
+	background-position: 5px center;
+}
+td.status4 {
+	background-image: url(images/grid/grid_status_4.png);
+	background-repeat: no-repeat;
+	background-position: 5px center;
+}
+td.status5
+{
+    background-image: url(images/grid/grid_status_5.png);
+    background-repeat: no-repeat;
+    background-position: 5px center;
+}
+
+/* Modern Grid View */
+table.grid-view
+{
+    /* Box Model */
+    width: 100%;
+    margin: 1.5em 0;
+    /* Background and Borders */
+    background: #fff;
+    /* Table */
+    border-collapse: collapse;
+}
+
+    table.grid-view thead tr
+    {
+        /* Background and Borders */
+        background: #f6f6f6;
+        border-bottom: 2px solid #e3e3e3;
+    }
+
+        table.grid-view thead tr th
+        {
+            /* Box Model */
+            padding: 8px 10px 6px;
+            /* Fonts */
+            font-size: 14px;
+            font-weight: bold;
+            /* Text */
+            text-align: center;
+            white-space: nowrap;
+            /* Color */
+            color: #666;
+        }
+
+    table.grid-view tbody tr
+    {
+        /* Background and Borders */
+        border-bottom: 1px solid #e3e3e3;
+    }
+
+        table.grid-view tbody tr:nth-child(even)
+        {
+            background: #f6f6f6;
+        }
+
+        table.grid-view tbody tr:hover
+        {
+            /* Background and Borders */
+            background: #eee;
+            /*background: #ddd;*/
+        }
+
+        table.grid-view tbody tr td
+        {
+            /* Box Model */
+            padding: 2px 10px;
+            /* Background and Borders */
+            border: none;
+            /* Fonts */
+            font-size: 12px;
+            font-weight: normal;
+            /* Color */
+            color: #333;
+        }
+
+            table.grid-view tbody tr td.text
+            {
+                /* Text */
+                text-align: left;
+            }
+
+            table.grid-view tbody tr td.icon,
+            table.grid-view tbody tr td.thumbnail
+            {
+                /* Text */
+                text-align: center;
+            }
+
+            table.grid-view tbody tr td.numeric,
+            table.grid-view tbody tr td.date
+            {
+                /* Text */
+                text-align: right;
+            }
+
+    table.grid-view .download-icon
+    {
+        /* Display */
+        display: inline-block;
+        /* Position */
+        position: relative;
+        /* Box Model */
+        width: calc(1em + 2px);
+        height: 1em;
+        /* Background and Borders */
+        border-bottom: 2px solid #666;
+    }
+
+        table.grid-view .download-icon::before
+        {
+            /* Display */
+            display: block;
+            /* Position */
+            position: absolute;
+            top: 0px;
+            left: calc(50% - 1px);
+            /* Box Model */
+            width: 0px;
+            height: 8px;
+            /* Background and Borders */
+            background: #666;
+            border: 1px solid #666;
+            /* Generated Content */
+            content: '';
+        }
+
+        table.grid-view .download-icon::after
+        {
+            /* Display */
+            display: block;
+            /* Position */
+            position: absolute;
+            top: 2px;
+            left: calc(50% - .25em - 1px);
+            /* Box Model */
+            width: .5em;
+            height: .5em;
+            /* Background and Borders */
+            border-top: 2px solid #666;
+            border-right: 2px solid #666;
+            /* Transforms */
+            transform: rotate(135deg);
+            /* Generated Content */
+            content: '';
+        }
+
+        table.grid-view .download-icon:hover,
+        table.grid-view .download-icon:hover::before,
+        table.grid-view .download-icon:hover::after
+        {
+            border-color: #39f;
+        }
+
+    table.grid-view .delete-icon
+    {
+        /* Display */
+        display: inline-block;
+        /* Position */
+        position: relative;
+        /* Box Model */
+        width: calc(1em + 2px);
+        height: calc(1em + 2px);
+    }
+
+        table.grid-view .delete-icon::before
+        {
+            /* Display */
+            display: block;
+            /* Position */
+            position: absolute;
+            top: 0;
+            left: .5em;
+            /* Box Model */
+            width: 0px;
+            height: 1em;
+            /* Background and Borders */
+            background: #666;
+            border: 1px solid #666;
+            /* Transforms */
+            transform: rotate(45deg);
+            /* Generated Content */
+            content: '';
+        }
+
+        table.grid-view .delete-icon::after
+        {
+            /* Display */
+            display: block;
+            /* Position */
+            position: absolute;
+            top: 0;
+            left: .5em;
+            /* Box Model */
+            width: 0px;
+            height: 1em;
+            /* Background and Borders */
+            background: #666;
+            border: 1px solid #666;
+            /* Transforms */
+            transform: rotate(-45deg);
+            /* Generated Content */
+            content: '';
+        }
+
+        table.grid-view .delete-icon:hover::before,
+        table.grid-view .delete-icon:hover::after
+        {
+            /* Background and Borders */
+            background: #39f;
+            border-color: #39f;
+        }
+
+.pagination
+{
+    /* Box Model */
+    margin: 1.5em 0;
+    /* Background and Borders */
+    background: #fff;
+    border: none;
+}
+
+    .pagination *
+    {
+        /* Table */
+        vertical-align: middle;
+    }
+
+    .pagination .skip,
+    .pagination .item,
+    .pagination .size
+    {
+        /* Display */
+        display: inline-table;
+        /* Box Model */
+        margin: 0 1.5em;
+        padding: 0;
+        /* Lists and Counters */
+        list-style: none;
+    }
+
+        .pagination .skip li,
+        .pagination .size li
+        {
+            /* Display */
+            display: table-cell;
+            /* Lists and Counters */
+            list-style: inherit;
+        }
+
+            .pagination .skip li > *,
+            .pagination .item *,
+            .pagination .size li > *
+            {
+                /* Display */
+                display: inline-block;
+                /* Position */
+                position: relative;
+                /* Box Model */
+                height: 1.5em;
+                /* Text */
+                text-align: center;
+                /* Fonts */
+                font-size: 12px;
+                font-weight: normal;
+            }
+
+            .pagination .skip li .first,
+            .pagination .skip li .previous,
+            .pagination .skip li .next,
+            .pagination .skip li .last
+            {
+                /* Box Model */
+                width: 2em;
+                /* Fonts */
+                font-size: 16px;
+            }
+
+            .pagination .skip li .current,
+            .pagination .size li .current
+            {
+                /* Fonts */
+                font-size: 16px;
+                font-weight: bold;
+            }
+
+            .pagination .skip li .specific,
+            .pagination .item > *,
+            .pagination .size li > *
+            {
+                /* Box Model */
+                margin: 0;
+                padding: 0 .5em;
+                /* Color */
+                color: #666;
+            }
+
+            .pagination .skip li a.specific:hover,
+            .pagination .size li a:hover
+            {
+                /* Box Model */
+                margin-bottom: -1px;
+                /* Color */
+                color: #39f;
+                /* Background and Borders */
+                border-bottom: 1px solid #39f;
+            }
+
+            .pagination .skip li a.first:hover,
+            .pagination .skip li a.previous:hover,
+            .pagination .skip li a.next:hover,
+            .pagination .skip li a.last:hover
+            {
+                /* Box Model */
+                margin-bottom: -1px;
+                /* Background and Borders */
+                border-bottom: 1px solid #39f;
+            }
+
+            .pagination .skip li .first::before,
+            .pagination .skip li .first::after,
+            .pagination .skip li .previous::after,
+            .pagination .skip li .next::after,
+            .pagination .skip li .last::before,
+            .pagination .skip li .last::after
+            {
+                /* Display */
+                display: block;
+                /* Position */
+                position: absolute;
+                top: .4em;
+                /* Box Model */
+                width: .5em;
+                height: .5em;
+                /* Background and Borders */
+                border-style: solid;
+                /* Generated Content */
+                content: '';
+            }
+
+            .pagination .skip li .first::before,
+            .pagination .skip li .first::after,
+            .pagination .skip li .previous::after
+            {
+                /* Background and Borders */
+                border-width: 2px 0 0 2px;
+                /* Transforms */
+                transform: rotate(-45deg);
+            }
+
+            .pagination .skip li .next::after,
+            .pagination .skip li .last::before,
+            .pagination .skip li .last::after
+            {
+                /* Background and Borders */
+                border-width: 2px 2px 0 0;
+                /* Transforms */
+                transform: rotate(45deg);
+            }
+
+            .pagination .skip li .first::before
+            {
+                /* Position */
+                left: 1em;
+            }
+
+            .pagination .skip li .first::after
+            {
+                /* Position */
+                left: .5em;
+            }
+
+            .pagination .skip li .previous::after
+            {
+                /* Position */
+                left: .75em;
+            }
+
+            .pagination .skip li .next::after
+            {
+                /* Position */
+                right: .75em;
+            }
+
+            .pagination .skip li .last::before
+            {
+                /* Position */
+                right: 1em;
+            }
+
+            .pagination .skip li .last::after
+            {
+                /* Position */
+                right: .5em;
+            }
+
+            .pagination .skip li span.first::before,
+            .pagination .skip li span.first::after,
+            .pagination .skip li span.previous::after,
+            .pagination .skip li span.next::after,
+            .pagination .skip li span.last::before,
+            .pagination .skip li span.last::after
+            {
+                /* Background and Borders */
+                border-color: #ddd;
+            }
+
+            .pagination .skip li a.first::before,
+            .pagination .skip li a.first::after,
+            .pagination .skip li a.previous::after,
+            .pagination .skip li a.next::after,
+            .pagination .skip li a.last::before,
+            .pagination .skip li a.last::after
+            {
+                /* Background and Borders */
+                border-color: #999;
+            }
+
+            .pagination .skip li a.first:hover::before,
+            .pagination .skip li a.first:hover::after,
+            .pagination .skip li a.previous:hover::after,
+            .pagination .skip li a.next:hover::after,
+            .pagination .skip li a.last:hover::before,
+            .pagination .skip li a.last:hover::after
+            {
+                /* Background and Borders */
+                border-color: #39f;
+            }
+
+            .pagination .item .supplement,
+            .pagination .size li .supplement
+            {
+                /* Fonts */
+                font-size: 10px;
+                /* Color */
+                color: #bbb;
+            }

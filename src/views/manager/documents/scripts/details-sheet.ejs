@@ -1,0 +1,25 @@
+
+    $(function () {
+        // 常に画面アンロック
+        $(document).ajaxStop($.unblockUI);
+
+        $("#MessageWrap .PartialViewMessage").empty();
+        if ($(".PartialViewMessage li").length == 1 &&
+            $(".PartialViewMessage li").css("display") == "none") {
+            $(".PartialViewMessage").css("display", "none");
+        } else {
+            $(".PartialViewMessage").appendTo("#MessageWrap");
+        }
+        if (window.addEventListener) {
+            window.addEventListener('load', function () {
+                var audio = document.getElementById('audio_start');
+                audio.play();
+            }, false);
+        } else if (window.attachEvent) {
+            window.attachEvent('onload', function () {
+                var audio = document.getElementById('audio_start');
+                audio.play();
+            }, false);
+        }
+
+    });

@@ -1,0 +1,108 @@
+
+    $(function () {
+        // 常に画面アンロック
+        $(document).ajaxStop($.unblockUI);
+        $("#MessageWrap .PartialViewMessage").empty();
+        if ($(".PartialViewMessage li").length == 1 &&
+            $(".PartialViewMessage li").css("display") == "none") {
+            $(".PartialViewMessage").css("display", "none");
+        } else {
+            $(".PartialViewMessage").appendTo("#MessageWrap");
+        }
+
+        $('#contentTask').on('click', 'input#searchTask', function () {
+            searchTask();
+        });
+
+        // 読み込み時に一度だけ実行。
+        $("#searchTaskButton").trigger('click');
+
+        // popUp計算
+        $("#contentTask").width(document.documentElement.clientWidth * 0.6);
+        $("#contentTask").height(document.documentElement.clientHeight * 0.8);
+        $(window).on('resize', function () {
+            $("#MainWrap").css("margin-left", $("#SideWrap").width());
+            // popUp計算
+            $("#contentTask").width(document.documentElement.clientWidth * 0.6);
+            $("#contentTask").height(document.documentElement.clientHeight * 0.8);
+        });
+
+        // モーダルウィンドウ表示
+        $('a[rel*=leanModal]').leanModal({ top: 200, closeButton: ".modal_close" });
+    });
+
+    // ※未使用
+    function changeCsvType(csvTypeName) {
+        if (csvTypeName == "CsvAutoType") {
+            $("#CsvAutoType")[0].checked = true;
+            if ($("#CsvDataOutputType").length == 0) {
+                return;
+            }
+            $("#CsvDataOutputType")[0].checked = false;
+        }
+        else if (csvTypeName == "CsvDataOutputType") {
+        $("#CsvAutoType")[0].checked = false ;
+            $("#CsvDataOutputType")[0].checked = true;
+        }
+    };
+
+    function fConmasDisplay(value) {
+        $("#" + value).toggle();
+        return false;
+    };
+
+    function fConMasReportCopy(reportCopyType) {
+        if (confirm('<%= r.ConfirmCopyReport %>')) {
+            fConMasLockView();
+            $("#conmasCopyReportMode").val(reportCopyType);
+            $("#conmasCopyReportType").val($("#conmasCopyReportType")[0].checked);
+            $("#conmasReportCopyForm").trigger('submit');
+            return false;
+        }
+        return false;
+    };
+
+    function delDetailsTop(deleteMessage, mode) {
+        if (confirm(deleteMessage)) {
+            $("#actMode").val(mode)
+            $("#conmasDetailsTopForm").trigger('submit');
+        }
+        return false;
+    };
+
+    // ロック解除
+    function linkUnLock(message) {
+        if (confirm(message))
+        {
+            $('#conmasUnLockForm').trigger('submit');
+        }
+
+        return false;
+    }
+
+    function searchTask() {
+        $("#contentTaskSearch").show();
+        onPopWindow();
+    }
+
+    // タスクIDの選択
+    function fConMasSelectTask(taskId, taskName, taskRemark) {
+        $("#SchData_task_name")[0].value = taskName;
+        $("#SchData_task_remark")[0].value = taskRemark;
+        $("#SchData_task_name").attr("readonly", "true");
+        $("#SchData_task_remark").attr("readonly", "true");
+        $("#SchData_task_id")[0].value = taskId;
+        $("#conmasCloseButton")[0].click();
+        $("#lean_overlay")[0].click();
+    }
+
+    function onPopWindow() {
+        $("#go")[0].click();
+    };
+
+    //検索小窓、ラベル適用小窓の表示/非表示
+    function display(value) {
+        $("#" + value).toggle();
+        return false;
+    };
+

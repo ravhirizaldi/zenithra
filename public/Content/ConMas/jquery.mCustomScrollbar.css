@@ -1,0 +1,21 @@
+#LabelCol .customScrollBox {
+	height: 100%; overflow: hidden; position: relative;
+}
+#LabelCol .customScrollBox .container {
+	top: 0px; width: 240px; float: left; position: relative;
+}
+#LabelCol .customScrollBox .content {
+	clear: both;
+}
+#LabelCol .dragger_container {
+	width: 9px; height: 100%; border-left-color: rgb(255, 255, 255); border-left-width: 1px; border-left-style: solid; float: left; position: relative; cursor: s-resize; background-color: rgb(255, 255, 255);
+}
+#LabelCol .dragger_container:hover {
+	border-left-color: rgb(231, 231, 231); border-left-width: 1px; border-left-style: solid; background-color: rgb(243, 243, 243);
+}
+#LabelCol .dragger {
+	width: 9px; height: 10%; overflow: hidden; position: absolute; cursor: pointer; background-color: rgb(214, 214, 214);
+}
+#LabelCol .dragger_pressed {
+	width: 9px; height: 10%; overflow: hidden; position: absolute; cursor: pointer; background-color: rgb(102, 102, 102);
+}

@@ -1,0 +1,84 @@
+
+    $(function () {
+        $("#MessageWrap .PartialViewMessage").empty();
+        if ($(".PartialViewMessage li").length == 1 &&
+            $(".PartialViewMessage li").css("display") == "none") {
+            $(".PartialViewMessage").css("display", "none");
+        } else {
+            $(".PartialViewMessage").appendTo("#MessageWrap");
+        }
+        fConmasInheritTypeDisplay();
+    });
+
+    
+    function fConMasGroupEditFlgON(cnt, checkId, inputId) {
+        $("#RolePages_" + cnt + "__EditFlg").val("1");
+        $("#" + inputId).val($("#" + checkId)[0].checked);
+    };
+
+    
+    function fConMasGrouphorizontalAllEditFlgON(cnt) {
+        if ($("#ReportMode").val() == "Rep")
+        {
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_read_' + cnt, 'RolePages_' + cnt + '__role_rep_read');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_update_' + cnt, 'RolePages_' + cnt + '__role_rep_update');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_delete_' + cnt, 'RolePages_' + cnt + '__role_rep_delete');
+        }
+        else{
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_inherit_type_' + cnt, 'RolePages_' + cnt + '__role_rep_inherit_type');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_def_read_' + cnt, 'RolePages_' + cnt + '__role_def_read');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_def_update_' + cnt, 'RolePages_' + cnt + '__role_def_update');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_def_delete_' + cnt, 'RolePages_' + cnt + '__role_def_delete');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_read_' + cnt, 'RolePages_' + cnt + '__role_rep_read');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_create_' + cnt, 'RolePages_' + cnt + '__role_rep_create');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_update_' + cnt, 'RolePages_' + cnt + '__role_rep_update');
+            fConMasGroupEditFlgON(cnt, 'conmas_check_role_rep_delete_' + cnt, 'RolePages_' + cnt + '__role_rep_delete');
+        }
+    };
+
+    
+    function fConMasGroupVerticalAllEditFlgON(checkClassName, roleName) {
+        for (var i = 0; i < $("#conmasReportRoleTable input[class=" + checkClassName + "]").length; i++) {
+            fConMasGroupEditFlgON(i, 'conmas_check_role_' + roleName + '_' + i, 'RolePages_' + i + '__role_' + roleName);
+        }
+    };
+
+    
+    function fConMasGroupAllEditFlgON(checkClassName, roleName) {
+        for (var i = 0; i < $("#conmasReportRoleTable input[class=roles_role_rep_read_check]").length; i++) {
+            if ($("#ReportMode").val() == "Rep")
+            {
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_read_' + i, 'RolePages_' + i + '__role_rep_read');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_update_' + i, 'RolePages_' + i + '__role_rep_update');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_delete_' + i, 'RolePages_' + i + '__role_rep_delete');
+            }
+            else{
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_inherit_type_' + i, 'RolePages_' + i + '__role_rep_inherit_type');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_def_read_' + i, 'RolePages_' + i + '__role_def_read');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_def_update_' + i, 'RolePages_' + i + '__role_def_update');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_def_delete_' + i, 'RolePages_' + i + '__role_def_delete');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_read_' + i, 'RolePages_' + i + '__role_rep_read');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_create_' + i, 'RolePages_' + i + '__role_rep_create');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_update_' + i, 'RolePages_' + i + '__role_rep_update');
+                fConMasGroupEditFlgON(i, 'conmas_check_role_rep_delete_' + i, 'RolePages_' + i + '__role_rep_delete');
+            }
+        }
+    };
+
+    function fConmasInheritTypeDisplay()
+    {
+        $('.conmasInheritTypeClass').each(function () {
+            if ($("#ReportMode").val() != "Rep")
+            {
+                if ($("#RoleMode").val() == "0")
+                {
+                    $(this).hide();
+                }
+                else
+                {
+                    $(this).show();
+                }
+            }
+        });
+    };
+

@@ -260,7 +260,7 @@ async function requirePermission(
   return true;
 }
 
-async function loadDirectDocument(db: pg.Pool, key: string, encrypted: boolean): Promise<Xml> {
+async function loadDirectDocument(db: Pick<pg.Pool, 'query'>, key: string, encrypted: boolean): Promise<Xml> {
   const row = (await db.query<{ xml_data: string | null }>('SELECT xml_data FROM mst_direct WHERE key=$1', [key]))
     .rows[0];
   if (!row?.xml_data) return { direct: {} };
@@ -287,7 +287,7 @@ async function saveDirectDocument(
   );
 }
 
-export async function directIsLinked(db: pg.Pool): Promise<boolean> {
+export async function directIsLinked(db: Pick<pg.Pool, 'query'>): Promise<boolean> {
   try {
     const document = await loadDirectDocument(db, 'Setting', true);
     return Boolean(directSetting(document).refreshToken);

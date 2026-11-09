@@ -1,0 +1,41 @@
+<script type="text/javascript"><%- js %></script>
+<div class="PartialViewMessage"></div>
+<div id="DetailTop"><span id="infoTitle"><%= r.ClusterInputHistoryInfo %></span><span id="functionBar"></span></div>
+<div id="DetailSection"><div class="info">
+  <% if (!rows.length) { %><div>履歴なし</div><% } else { %>
+    <div id="topInfo">
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <% for (const name of ['rep_top_id','rep_top_name','rep_top_org','rev_no']) { %><tr><th scope="row"><%= r[name] %></th><td><%= report[name] %></td></tr><% } %>
+      </table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row"><%= r.def_top_id %></th><td><%= definition?.def_top_id %></td></tr>
+        <tr><th scope="row"><%= r.def_top_name %></th><td><%= definition?.def_top_name %></td></tr>
+        <tr><th scope="row"><%= r.report_type %></th><td><%= Number(report.report_type) === 1 ? r.reportTypeSet : r.reportTypeSheet %></td></tr>
+        <tr><th scope="row"><%= r.rep_sheet_count %></th><td><%= report.rep_sheet_count %></td></tr>
+      </table>
+      <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <% for (const [name,value] of [['sys_regist_term',report.sys_regist_term],['sys_regist_user',report.created_by],['sys_regist_time',report.registered],['sys_update_term',report.sys_update_term],['sys_update_user',report.sys_update_user_name],['sys_update_time',report.updated]]) { %><tr><th scope="row"><%= r[name] %></th><td><%= value %></td></tr><% } %>
+      </table>
+    </div>
+    <div class="toggle" onclick="fConMasToggle('conmasCluster');"><h2>▼<%= r.InputHistory %></h2></div>
+    <div><a class="img_output_csv2" href="<%= base %>/InputReport/GetClusterHistoryTopCsv?<%= new URLSearchParams({repTopId:String(report.rep_top_id),sortColumn,sortDirection}) %>" aria-label="CSV">CSV</a></div>
+    <form id="conmasPageForm" method="post" action="<%= base %>/InputReport/DetailsClusterHistoryTop" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure">
+      <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+      <input type="hidden" name="rep_top.rep_top_id" value="<%= report.rep_top_id %>">
+      <input type="hidden" name="PageData.PageIndex" id="PageData_PageIndex" value="<%= index %>">
+      <input type="hidden" name="PageData.SortColumn" id="PageData_SortColumn" value="<%= sortColumn %>">
+      <input type="hidden" name="PageData.SortDirection" id="PageData_SortDirection" value="<%= sortDirection %>">
+      <input type="hidden" name="ActionCommonType" id="ActionCommonType" value="">
+      <%- include('settings-paging',{kind:'history',bottom:false,settings:{pageSizes}}) %>
+      <div id="conmasCluster"><table cellpadding="0" cellspacing="0" class="GridCommon" width="100%">
+        <tr><% for (const [name,label] of headers) { %><th scope="col" class="<%= name === sortColumn ? 'sorting' : '' %>"<% if (name !== 'input_value') { %> style="width:<%= name === 'change_reason' ? '80' : '45' %>px;"<% } %>><span><%= r[label] %></span><a href="#" class="sort<%= name === sortColumn ? ' ' + sortDirection.toLowerCase() : '' %>" onclick="return fConMasPageSort('<%= name %>');" aria-label="<%= r[label] %> (sort)">sort</a></th><% } %></tr>
+        <% rows.forEach((row,rowIndex) => { %><tr class="<%= rowIndex % 2 ? 'odd' : 'even' %>">
+          <td><%= row.updated %></td><td><%= row.sys_update_user %>:<%= row.updated_by %></td><td><%= row.rep_sheet_no %></td><td><%= row.rep_sheet_name %></td><td><%= row.cluster_id %></td><td><%= row.cluster_name %></td>
+          <td><%- include('cluster-value',{row}) %></td><td><%= row.edit_time %></td><td><%= row.edit_user ? row.edit_user + ':' + (row.edit_user_name || '') : '' %></td>
+          <td><%- include('cluster-gps',{row}) %></td><td><%= row.comment_value %></td><td><%= row.change_reason %></td>
+        </tr><% }); %>
+      </table></div>
+      <%- include('settings-paging',{kind:'history',bottom:true,settings:{pageSizes}}) %>
+    </form>
+  <% } %>
+</div></div>

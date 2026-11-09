@@ -1,0 +1,25 @@
+<script type="text/javascript"><%- js %></script>
+<div class="PartialViewMessage"></div>
+<div id="DetailTop"><span id="infoTitle"><%= r.ClusterInputHistoryInfo %></span><span id="functionBar"></span></div>
+<div id="DetailSection"><div class="info">
+  <% if (history.length) { %>
+  <%- include('sheet-preview', {edit: false}) %>
+  <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+    <% for (const name of ['rep_sheet_id','rep_sheet_name','rep_sheet_no']) { %><tr><th scope="row"><%= r[name] %></th><td><%= sheet[name] %></td></tr><% } %>
+  </table>
+  <div style="position:relative; height:100px;">
+    <div style="width:100%;"></div>
+    <div style="float:left;"><% if (previousClusterId < 0) { %><img src="<%= base %>/Content/ConMas/images/detail/preview_prev_d.png" alt="[prev]"><% } else { %><a href="<%= base %>/InputReport/DetailsClusterHistory?repTopId=<%= report.rep_top_id %>&amp;pageIndex=<%= pageIndex %>&amp;clusterId=<%= previousClusterId %>&amp;isLayer=<%= isLayer %>&amp;isInitJudgeDisplay=<%= isInitJudgeDisplay %>" class="img_preview_prev_e" title="Previous" data-ajax="true" data-ajax-update="#content"> </a><% } %></div>
+    <div style="float:left; width:50%;"><table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <tr><th scope="row"><%= r.cluster_id %></th><td><%= clusterId %></td></tr>
+      <% for (const name of ['cluster_name','cluster_type']) { %><tr><th scope="row"><%= r[name] %></th><td><%= history[0][name] %></td></tr><% } %>
+    </table></div>
+    <div style="float:left;"><% if (nextClusterId < 0) { %><img src="<%= base %>/Content/ConMas/images/detail/preview_next_d.png" alt="[next]"><% } else { %><a href="<%= base %>/InputReport/DetailsClusterHistory?repTopId=<%= report.rep_top_id %>&amp;pageIndex=<%= pageIndex %>&amp;clusterId=<%= nextClusterId %>&amp;isLayer=<%= isLayer %>&amp;isInitJudgeDisplay=<%= isInitJudgeDisplay %>" class="img_preview_next_e" title="Next" data-ajax="true" data-ajax-update="#content"> </a><% } %></div>
+    <div style="width:100%; clear:both;"></div>
+  </div>
+  <div class="toggle" onclick="fConMasToggle('conmasCluster');"><h2>▼<%= r.InputHistory %></h2></div>
+  <div id="conmasCluster"><table cellpadding="0" cellspacing="0" class="GridCommon" width="100%">
+    <tr><th scope="col"><%= r.ServerLastUpdateDate %></th><th scope="col"><%= r.sys_update_info %></th><th scope="col"><%= r.display_value %></th><th scope="col"><%= r.DatabaseResource_edit_user %></th><th scope="col"><%= r.DatabaseResource_edit_time %></th><th scope="col"><%= r.DatabaseResource_GPS %></th><th scope="col"><%= r.DatabaseResource_comment %></th><th scope="col"><%= r.change_reason %></th></tr>
+    <% history.forEach((row,index) => { %><tr class="<%= index === 0 ? 'new' : index % 2 ? 'odd' : 'even' %>"><td><%= row.updated %></td><td><%= row.sys_update_user %>:<%= row.updated_by %></td><td><%- include('cluster-value', {row}) %></td><td><%= row.edit_user ? row.edit_user + ':' + (row.edit_user_name || '') : '' %></td><td><%= row.edit_time %></td><td><%- include('cluster-gps', {row}) %></td><td><%= row.comment_value %></td><td><%= row.change_reason %></td></tr><% }); %>
+  </table></div><% } %>
+</div></div>

@@ -140,7 +140,7 @@ Deployed-but-unresolved source classes remain unknown—not proven unavailable. 
 
 ## Original static pages
 
-`/ConMasAPI/Rests/Error.htm`, `/ConMasAPI/Rests/Test/Test.htm` and `/ConMasAPI/Rests/Test/js/jquery-1.7.1.min.js` are served for GET/HEAD from private original resources. The test forms can mutate data and are neither a new console nor an exhaustive support matrix.
+`/ConMasAPI/Rests/Error.htm`, `/ConMasAPI/Rests/Test/Test.htm` and `/ConMasAPI/Rests/Test/js/jquery-1.7.1.min.js` are served for GET/HEAD from verified original copies under `public/ConMasAPI/Rests`; production builds use minified `dist/public` copies. These static pages no longer require a Windows installation path, and their existing allowlist/security checks remain. The test forms can mutate data and are neither a new console nor an exhaustive support matrix.
 
 ## Public source
 

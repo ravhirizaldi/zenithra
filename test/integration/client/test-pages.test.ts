@@ -6,15 +6,21 @@ import type pg from 'pg';
 import { readFile } from 'node:fs/promises';
 import { XMLParser } from 'fast-xml-parser';
 import { registerClientRoutes } from '../../../src/routes/client.js';
+import { minifyHtml } from '../../../src/services/html-minify.js';
+import { createHash } from 'node:crypto';
+import { registerApiRoutes } from '../../../src/routes/api.js';
 
 const parser = new XMLParser({ parseTagValue: false });
 async function fixture(
   run: (origin: string, store: session.MemoryStore, uploads: string[]) => Promise<void>,
   db: pg.Pool | null = null,
+  environment = 'development',
+  api = false,
 ) {
   const app = express(),
     store = new session.MemoryStore(),
     uploads: string[] = [];
+  app.set('env', environment);
   app.use(express.urlencoded({ extended: false }));
   app.use((req, res, next) => {
     res.once('finish', () => {
@@ -22,13 +28,14 @@ async function fixture(
     });
     next();
   });
-  registerClientRoutes(app, db, store);
+  if (api) registerApiRoutes(app, db, store);
+  else registerClientRoutes(app, db, store);
   const server = app.listen(0, '127.0.0.1');
   try {
     await new Promise<void>((resolve) => server.once('listening', resolve));
     const address = server.address();
     assert(address && typeof address !== 'string');
-    await run(`http://127.0.0.1:${address.port}/ConMasWeb/Rests`, store, uploads);
+    await run(`http://127.0.0.1:${address.port}/${api ? 'ConMasAPI' : 'ConMasWeb'}/Rests`, store, uploads);
   } finally {
     await new Promise<void>((resolve, reject) => server.close((error) => (error ? reject(error) : resolve())));
   }
@@ -144,16 +151,13 @@ test('diagnostic Sample uses the source fixed user and DataSet XML, without an a
   }, db);
 });
 
-test('REST static pages serve only whitelisted installed bodies byte-for-byte, with case-insensitive GET/HEAD and no database requirement', async () =>
+test('REST static pages serve only whitelisted project-local bodies byte-for-byte, with case-insensitive GET/HEAD and no database requirement', async () =>
   fixture(async (base) => {
     for (const path of ['Error.htm', 'Test/Test.htm', 'Test/system.htm']) {
       const response = await fetch(`${base}/${path.toUpperCase()}`);
       assert.equal(response.status, 200);
       assert.match(response.headers.get('content-type')!, /text\/html/);
-      assert.deepEqual(
-        Buffer.from(await response.arrayBuffer()),
-        await readFile('/mnt/c/Users/DELL/CONMASSERVER/ConMasWeb/Rests/' + path),
-      );
+      assert.deepEqual(Buffer.from(await response.arrayBuffer()), await readFile('public/ConMasWeb/Rests/' + path));
       const head = await fetch(`${base}/${path}`, { method: 'HEAD' });
       assert.equal(head.status, 200);
       assert.equal(await head.text(), '');
@@ -162,3 +166,63 @@ test('REST static pages serve only whitelisted installed bodies byte-for-byte, w
     }
     assert.equal((await fetch(`${base}/Web.config`)).status, 404);
   }));
+
+test('production native HTML pages minify without changing original files, method gates or XML diagnostics', async () =>
+  fixture(
+    async (base) => {
+      for (const path of ['Error.htm', 'Test/Test.htm', 'Test/system.htm']) {
+        const file = 'public/ConMasWeb/Rests/' + path;
+        const original = await readFile(file, 'utf8');
+        const response = await fetch(`${base}/${path}`);
+        assert.equal(response.status, 200);
+        assert.match(response.headers.get('content-type')!, /text\/html/);
+        const html = await response.text();
+        const expected = (await minifyHtml(original)).replace(/^\uFEFF/, '');
+        assert.equal(
+          createHash('sha256').update(html).digest('hex'),
+          createHash('sha256').update(expected).digest('hex'),
+        );
+        assert.equal((html.match(/<form\b/gi) ?? []).length, (original.match(/<form\b/gi) ?? []).length);
+        assert.equal(await readFile(file, 'utf8'), original);
+        assert.equal(await (await fetch(`${base}/${path}`, { method: 'HEAD' })).text(), '');
+        assert.equal((await fetch(`${base}/${path}`, { method: 'POST' })).status, 405);
+      }
+      const diagnostic = await fetch(`${base}/Test/GetTest.aspx?value=fixture`);
+      assert.match(diagnostic.headers.get('content-type')!, /text\/xml/);
+      assert.equal(await diagnostic.text(), '<ConMas><value>fixture</value></ConMas>');
+    },
+    null,
+    'production',
+  ));
+
+test('separate API static pages minify only production HTML and preserve their existing script and security gates', async () => {
+  for (const environment of ['development', 'production']) {
+    await fixture(
+      async (base) => {
+        for (const path of ['Error.htm', 'Test/Test.htm', 'Test/js/jquery-1.7.1.min.js']) {
+          const original = await readFile('public/ConMasAPI/Rests/' + path);
+          const response = await fetch(`${base}/${path}`);
+          assert.equal(response.status, 200);
+          assert.match(response.headers.get('content-type')!, path.endsWith('.js') ? /javascript/ : /text\/html/);
+          const expected =
+            environment === 'production' && !path.endsWith('.js')
+              ? Buffer.from(await minifyHtml(original.toString('utf8')))
+              : original;
+          const body = Buffer.from(await response.arrayBuffer());
+          assert.equal(
+            createHash('sha256').update(body).digest('hex'),
+            createHash('sha256').update(expected).digest('hex'),
+          );
+          assert.equal(await (await fetch(`${base}/${path}`, { method: 'HEAD' })).text(), '');
+          assert.equal((await fetch(`${base}/${path}`, { method: 'POST' })).status, 405);
+          const blocked = await fetch(`${base}/${path}`, { headers: { origin: 'https://other.invalid' } });
+          assert.equal(blocked.status, 403);
+          assert.match(blocked.headers.get('content-type')!, /text\/xml/);
+        }
+      },
+      null,
+      environment,
+      true,
+    );
+  }
+});

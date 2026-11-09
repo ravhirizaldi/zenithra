@@ -2,7 +2,7 @@
 
 [Project overview](../../README.md) · [Native-client REST](native-rest.md) · [Business API / WebAPI](business-api.md)
 
-Public migration snapshot: **8 November 2026**. Zenithra preserves the original ASPX-style protocols while replacing server behavior with Node.js. These are **not JSON REST endpoints**, and no `/api/v1` prefix is introduced.
+Public migration snapshot: **9 November 2026**. Zenithra preserves the original ASPX-style protocols while replacing server behavior with Node.js. These are **not JSON REST endpoints**, and no `/api/v1` prefix is introduced.
 
 ## Choose the correct application
 

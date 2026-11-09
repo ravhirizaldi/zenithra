@@ -14,6 +14,10 @@ import { clientError } from '../services/client-xml.js';
 import { clientUploadBody } from '../middleware/client-upload.js';
 import { clientTestAction } from '../controllers/client-test.js';
 import { join } from 'node:path';
+import { readFile } from 'node:fs/promises';
+import { productionBuild } from '../config/build.js';
+import { root } from '../config/manager.js';
+import { minifyHtml } from '../services/html-minify.js';
 import { requestFailure } from '../middleware/request-log.js';
 
 export function registerClientRoutes(app: Express, db: pg.Pool | null, store?: session.Store): void {
@@ -33,13 +37,19 @@ export function registerClientRoutes(app: Express, db: pg.Pool | null, store?: s
     next();
   });
   for (const path of ['Error.htm', 'Test/Test.htm', 'Test/system.htm'])
-    router.all('/Rests/' + path, (req, res) => {
+    router.all('/Rests/' + path, async (req, res) => {
       if (!['GET', 'HEAD'].includes(req.method)) {
         res.set('Allow', 'GET, HEAD').status(405).end();
         return;
       }
-      // Whitelist original installed static bodies; do not expose the surrounding installation.
-      res.type('html').sendFile(join('/mnt/c/Users/DELL/CONMASSERVER/ConMasWeb/Rests', path));
+      // Only these project-owned pages are public; production builds contain minified copies.
+      const file = join(root, productionBuild ? 'dist/public' : 'public', 'ConMasWeb/Rests', path);
+      if (!productionBuild && app.get('env') === 'production') {
+        const html = await minifyHtml(await readFile(file, 'utf8'));
+        res.type('html').send(html);
+      } else {
+        res.type('html').sendFile(file);
+      }
     });
   router.use(clientUploadBody);
   router.all(['/Rests/:handler', '/Rests/Test/:handler'], async (req, res) => {

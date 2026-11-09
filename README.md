@@ -306,7 +306,7 @@ pnpm format:check
 pnpm test
 ```
 
-Database-backed checks need private configuration and may otherwise skip; some checks also require excluded original resources. Use isolated fixtures, never customer-data changes. `pnpm build` emits production JavaScript to `dist/`, but building does not establish parity. Do not rebuild, restart or replay live requests just to verify documentation.
+Database-backed checks need private configuration and may otherwise skip; some checks also require excluded original resources. Use isolated fixtures, never customer-data changes. `pnpm build` checks production TypeScript, emits heavily minified server JavaScript with esbuild and generates browser JS/CSS/HTML copies in `dist/public`. Browser JavaScript uses Terser to avoid shared-global helper collisions; public callbacks, diagnostic names and license notices are retained. Rendered EJS HTML, AJAX fragments and inline JS/CSS are minified in production, with entities decoded before JavaScript parsing and safely re-escaped. Readable EJS/public sources, binaries and native XML remain unchanged. Whitespace-sensitive content and template scripts are retained; source maps are not emitted, and unrelated stale output is not deleted. Native/API static allowlists use bundled `public/ConMasWeb/Rests` and `public/ConMasAPI/Rests`, or their `dist/public` copies after a build—not a Windows installation path. `pnpm start` still uses `dist/server.js`. Building does not establish parity. Do not rebuild, restart or replay live requests just to verify documentation.
 
 </details>
 

@@ -1,0 +1,663 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Test Page</title>
+</head>
+<body>
+    <a id="TOP" />
+    <a id="HTTP疎通確認" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>HTTP疎通確認</h2>
+    <table border="2">
+        <tr>
+            <td>
+                <form action="GetTest.aspx" method="get" id="GetForm" name="GetForm" >
+                    GETパラメータをXMLにして返します<br />
+                    <input id="GetParam1" name="GetParam1" type="text" />
+                    <input id="GetParam2" name="GetParam2" type="text" />
+                    <input id="Submit1" type="submit" value="submit" />
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <form action="PostTest.aspx" method="post" id="PostForm" name="PostForm" >
+                    POSTパラメータをXMLにして返します<br />
+                    <input id="PostParam1" name="PostParam1" type="text" />
+                    <input id="PostParam2"name ="PostParam2" type="text" />
+                    <input id="Submit2" type="submit" value="submit" />
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <form action="UploadTest.aspx" method="post" id="UploadForm" name="UploadForm" enctype="multipart/form-data">
+                    アップロードされたXMLを返します<br />
+                    <input id="xmlFile" name="xmlFile" type="file" />
+                    <input id="Submit3" type="submit" value="submit" />
+                </form>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                <form action="SessionTest.aspx" method="post" id="Form1" name="UploadForm">
+                    セッション確立後、最後のリクエストで作成した(成功した)<br />XMLをセッションに保持してあるので、それを返します。<br />
+                    <input id="Submit4" type="submit" value="submit" />
+                </form>
+            </td>
+        </tr>
+    </table>
+    <a id="ログイン" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>ログイン</h2>
+    <form action="../ConMasIReporter.aspx?command=Login" method="post" id="loginForm" name="loginForm" target="loginForm">
+    <table border="2">
+        <tr>
+            <td>user</td>
+            <td><input id="user" name="user" type="text" value="user01" /></td>
+        </tr>
+        <tr>
+            <td>password</td>
+            <td><input id="password" name="password" type="text" value="pass01" /></td>
+        </tr>
+        <tr>
+            <td>client</td>
+            <td><input id="client" name="client" type="text" value="iPad" /></td>
+        </tr>
+        <tr>
+            <td>terminalId</td>
+            <td><input id="terminalId" name="terminalId" type="text" value="LX3_INA_2014" /></td>
+        </tr>
+        <tr>
+            <td>version</td>
+            <td><input id="Text1" name="version" type="text" value="4.3" /></td>
+        </tr>
+        <tr>
+            <td>newPassword</td>
+            <td><input id="newPassword" name="newPassword" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="loginSubmit" type="submit" value="submit" />
+    </form>
+    <br />
+    <h2>ログアウト</h2>
+    <form action="../ConMasIReporter.aspx?command=Logout" method="post" id="Form3" name="logoutForm" target="logoutForm">
+    現在のセッションを解放します。<br />
+    <input id="logoutSubmit" type="submit" value="submit" />
+    </form>
+    <br />
+    <h2>ユーザー情報取得</h2>
+    <form action="../ConMasIReporter.aspx?command=GetUserInfo" method="post" id="getUserInfoForm" name="getUserInfoForm" target="getUserInfoForm">
+    現在のセッション情報を利用するのでパラメーターは無し。<br />
+    <input id="getUserInfoSubmit" type="submit" value="submit" />
+    </form>
+    <br />
+    <h2>端末登録申請</h2>
+    <form action="../ConMasIReporter.aspx?command=RegistTerminal" method="post" id="registTerminalForm" name="registTerminalForm" target="registTerminalForm">
+    現在のセッション情報を利用する。<br />
+    <table border="2">
+        <tr>
+            <td>comment</td>
+            <td><input id="comment" name="comment" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>useBiometrics</td>
+            <td><input id="Text13" name="useBiometrics" type="text" value="0" /></td>
+        </tr>
+    </table>
+    <input id="registTerminalSubmit" type="submit" value="submit" />
+    </form>
+    <br />
+    <h2>端末削除</h2>
+    <form action="../ConMasIReporter.aspx?command=RemoveTerminal" method="post" id="Form7" name="removeTerminalForm" target="removeTerminalForm">
+    現在のセッション情報を利用する。<br />
+    <input id="Submit10" type="submit" value="submit" />
+    </form>
+    <br />
+    <h2>端末登録承認(TEST用)</h2>
+    <form action="../ConMasIReporter.aspx?command=ApprovalTerminal" method="post" id="approvalTerminalForm" name="approvalTerminalForm" target="approvalTerminalForm">
+    ログイン中のユーザーで承認します。<br />
+    <table border="2">
+        <tr>
+            <td>client</td>
+            <td><input id="client" name="client" type="text" value="iPad" /></td>
+        </tr>
+        <tr>
+            <td>terminalId</td>
+            <td><input id="terminalId" name="terminalId" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="approvalTerminalSubmit" type="submit" value="submit" />
+    </form>
+    <a id="ライブラリー一覧" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>ライブラリー一覧</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="listForm" name="listForm" target="listForm">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="GetDefinitionList">定義</option>
+                <option value="GetReportList">帳票</option>
+                <option value="GetLocalReferenceList">共通ライブラリ</option>
+                <option value="GetCalendarList">タスクリスト</option>
+                <option value="GetMasterList">カスタムマスターリスト</option>
+                <option value="GetCustomMasterLabel">カスタムマスターラベルリスト取得</option>
+                <option value="GetMasterRecordList">カスタムマスターレコード取得</option>
+                <option value="GetMasterImage">カスタムマスター画像取得</option>
+                <option value="GetCustomMenuSettings">カスタムメニュー</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>labelId</td>
+            <td><input id="labelId" name="labelId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetLabel</td>
+            <td><input id="itemTargetLabel" name="itemTargetLabel" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetSheet</td>
+            <td><input id="itemTargetSheet" name="itemTargetSheet" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetSet</td>
+            <td><input id="itemTargetSet" name="itemTargetSet" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetBook</td>
+            <td><input id="itemTargetBook" name="itemTargetBook" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>publicStatus</td>
+            <td><input id="publicStatus" name="publicStatus" type="text" value="1" /></td>
+        </tr>
+        <tr>
+            <td>editStatus</td>
+            <td><input id="editStatus" name="editStatus" type="text" value="1" /></td>
+        </tr>
+        <tr>
+            <td>word</td>
+            <td><input id="word" name="word" type="text" value="abc" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetName</td>
+            <td><input id="wordTargetName" name="wordTargetName" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetValue</td>
+            <td><input id="wordTargetValue" name="wordTargetValue" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetRemarks</td>
+            <td><input id="wordTargetRemarks" name="wordTargetRemarks" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetId</td>
+            <td><input id="Text6" name="wordTargetId" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>sortId</td>
+            <td><input id="sortId" name="sortId" type="text" value="name" /></td>
+        </tr>
+        <tr>
+            <td>sortType</td>
+            <td><input id="sortType" name="sortType" type="text" value="asc" /></td>
+        </tr>
+        <tr>
+            <td>year</td>
+            <td><input id="year" name="year" type="text" value="2013" /></td>
+        </tr>
+        <tr>
+            <td>month</td>
+            <td><input id="month" name="month" type="text" value="07" /></td>
+        </tr>
+        <tr><td>↓ユーザーカスタム関連パラメータ↓</td><td></td></tr>
+        <tr>
+            <td>masterId</td>
+            <td><input id="masterId" name="masterId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>masterType</td>
+            <td><input id="masterType" name="masterType" type="text" value="0" /></td>
+        </tr>
+        <tr>
+            <td>defTopId</td>
+            <td><input id="defTopId" name="defTopId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>repTopId</td>
+            <td><input id="repTopId" name="repTopId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>isColumn</td>
+            <td><input id="isColumn" name="isColumn" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>isDeleteTran</td>
+            <td><input id="isDeleteTran" name="isDeleteTran" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>lastDownloadTime</td>
+            <td><input id="lastDownloadTime" name="lastDownloadTime" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>recordId</td>
+            <td><input id="recordId" name="recordId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>fieldSearch</td>
+            <td><input id="fieldSearch" name="fieldSearch" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>startNo</td>
+            <td><input id="startNo" name="startNo" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>max</td>
+            <td><input id="max" name="max" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>fieldNo</td>
+            <td><input id="fieldNo" name="fieldNo" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>ignoreExpire</td>
+            <td><input id="Text2" name="ignoreExpire" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>recordKey</td>
+            <td><input id="Text5" name="recordKey" type="text" value="" /></td>
+        </tr>
+        <tr><td>↑ユーザーカスタム関連パラメータ↑</td><td></td></tr>
+        <tr>
+            <td>libraryType</td>
+            <td><input id="Text7" name="libraryType" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="ListSubmit" type="submit" value="submit" />
+    </form>
+    <a id="定義・帳票取得" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>ライブラリー詳細・定義・帳票</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="detailForm" name="detailForm" target="detailForm">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="GetDefinitionDetail">ライブラリー詳細（定義）</option>
+                <option value="GetReportDetail">ライブラリー詳細（帳票）</option>
+                <option value="GetReportData">帳票データ取得</option>
+                <option value="MakeReportFromDefinition">定義から作成</option>
+                <option value="GetDefinitionData">定義データ取得</option>
+                <option value="GetLocalReference">ドキュメント取得</option>
+                <option value="GetMessageImage">メッセージ画像取得</option>
+                <option value="GetCustomMenuSettings">カスタムメニュー取得旧</option>
+                <option value="GetCustomMultiMenuSettings">カスタムメニュー取得新</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>topId</td>
+            <td><input id="topId" name="topId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>localFileId</td>
+            <td><input id="localFileId" name="localFileId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>messageId</td>
+            <td><input id="Text4" name="messageId" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="detailSubmit" type="submit" value="submit" />
+    </form>
+    <a id="帳票登録" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>帳票登録</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form2" name="registReportForm" target="registReportForm" enctype="multipart/form-data">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="RegistReport" selected>帳票登録</option>
+                <option value="RegistDefinition" selected>定義登録</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>report</td>
+            <td><input id="report" name="report" type="file" /></td>
+        </tr>
+    </table>
+    <input id="registReportSubmit" type="submit" value="submit" />
+    </form>
+    <a id="ロック解除" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>ロック解除</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form4" name="unlockForm" target="unlockForm">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="UnlockReport" selected>帳票ロック解除</option>
+                <option value="UnlockDefinition" selected>定義ロック解除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>topId</td>
+            <td><input id="topId" name="topId" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="unlockSubmit" type="submit" value="submit" />
+    </form>
+    <a id="分割受信" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>ライブラリー詳細・定義・帳票</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form6" name="detailForm" target="detailForm">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="MakeReportFromDefinitionTop">定義から作成(TOP)</option>
+                <option value="MakeReportFromDefinitionSheet">定義から作成(SHEET)</option>
+                <option value="GetReportDataTop">帳票データ取得(TOP)</option>
+                <option value="GetReportDataSheet">帳票データ取得(SHEET)</option>
+                <option value="GetSheetBinaries">帳票画像データ取得(SHEET)</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>topId</td>
+            <td><input id="topId" name="topId" type="text" value="" /></td>
+            <td>sheetNo</td>
+            <td><input id="sheetNo" name="sheetNo" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey1</td>
+            <td><input id="systemKey1" name="systemKey1" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey2</td>
+            <td><input id="systemKey2" name="systemKey2" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey3</td>
+            <td><input id="systemKey3" name="systemKey3" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey4</td>
+            <td><input id="systemKey4" name="systemKey4" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey5</td>
+            <td><input id="systemKey5" name="systemKey5" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>copyReportMode</td>
+            <td><input id="copyReportMode" name="copyReportMode" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="Submit6" type="submit" value="submit" />
+    </form>
+    <a id="分割送信" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>分割送信</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form5" name="registReportForm" target="registReportForm" enctype="multipart/form-data">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="RegistReportTop" selected>帳票登録（トップ）</option>
+                <option value="RegistReportSheet" selected>帳票登録（シート）</option>
+                <option value="RegistReportFinish" selected>帳票登録（完了）</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>report</td>
+            <td><input id="File1" name="report" type="file" /></td>
+        </tr>
+    </table>
+    <input id="Submit5" type="submit" value="submit" />
+    </form>
+    <a id="A1" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>画像取得</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form10" name="GetSheetBinaries" target="GetSheetBinaries">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="GetSheetBinaries">画像取得(SHEET)</option>
+                <option value="GetBackgroundImage">背景PDF取得(TOP)</option>
+                <option value="GetDefinitionExcel">背景Excel取得(TOP)</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>topId</td>
+            <td><input id="topId" name="topId" type="text" value="" /></td>
+            <td>repTopId</td>
+            <td><input id="repTopId" name="repTopId" type="text" value="" /></td>
+            <td>sheetNo</td>
+            <td><input id="sheetNo" name="sheetNo" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="Submit7" type="submit" value="submit" />
+    </form>
+    <a id="ドキュメント登録" />
+    <hr />
+    ｜<a href="#top">TOP</a>
+    ｜<a href="#HTTP疎通確認">HTTP疎通確認</a>
+    ｜<a href="#ログイン">ログイン</a>
+    ｜<a href="#ライブラリー一覧">ライブラリー一覧</a>
+    ｜<a href="#定義・帳票取得">ライブラリー詳細・定義・帳票</a>
+    ｜<a href="#帳票登録">帳票登録</a>
+    ｜<a href="#ロック解除">ロック解除</a>
+    ｜<a href="#分割送信">分割送信</a>
+    <h2>ドキュメント登録</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form11" name="RegistDocumentMaster" target="RegistDocumentMaster" enctype="multipart/form-data">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                <option value="RegistDocumentMaster" selected>ドキュメント登録</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>documentType★</td>
+            <td><input id="documentType" name="documentType" type="text" value="0" /></td>
+        </tr>
+        <tr>
+            <td>definitionId▲</td>
+            <td><input id="definitionId" name="definitionId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>reportId▲</td>
+            <td><input id="reportId" name="reportId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>name▲</td>
+            <td><input id="name" name="name" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>icon</td>
+            <td><input id="icon" name="icon" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>saveType</td>
+            <td><input id="saveType" name="saveType" type="text" value="0" /></td>
+        </tr>
+        <tr>
+            <td>moblieSave</td>
+            <td><input id="moblieSave" name="moblieSave" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>expire</td>
+            <td><input id="expire" name="expire" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>manualDownload</td>
+            <td><input id="manualDownload" name="manualDownload" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>lifeTime</td>
+            <td><input id="lifeTime" name="lifeTime" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>group</td>
+            <td><input id="group" name="group" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>label</td>
+            <td><input id="label" name="label" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>documentUrl</td>
+            <td><input id="documentUrl" name="documentUrl" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>file</td>
+            <td><input id="file" name="file" type="file" /></td>
+        </tr>
+    </table>
+    <input id="Submit8" type="submit" value="submit" />
+    </form>
+    <h2>定義更新日時取得</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="lastUpdateDateList" name="lastUpdateDateList" target="lastUpdateDateList">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                    <option value="GetDefinitionUpdateList">定義更新日時取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>defTopId</td>
+            <td><input id="Text3" name="defTopId" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="SubmitlastUpdateDateList" type="submit" value="submit" />
+    </form>
+    <h2>test</h2>
+    <form action="../ConMasIReporter.aspx" method="post" id="Form8" name="RegistFile" target="RegistFile" enctype="multipart/form-data">
+    <table border="2">
+        <tr>
+            <td>Command</td>
+            <td>
+                <select name="command">
+                    <option value="RegistFile">xx</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>client</td>
+            <td><input id="Text8" name="client" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>terminalId</td>
+            <td><input id="Text9" name="terminalId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>type</td>
+            <td><input id="Text10" name="type" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>sendFileName</td>
+            <td><input id="Text11" name="sendFileName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>dataFile</td>
+            <td><input id="Text12" name="dataFile" type="file" value="" /></td>
+        </tr>
+    </table>
+    <input id="Submit9" type="submit" value="submit" />
+    </form>
+</body>
+</html>

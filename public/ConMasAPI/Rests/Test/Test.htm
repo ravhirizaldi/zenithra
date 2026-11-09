@@ -1,0 +1,3727 @@
+﻿<!DOCTYPE html PUBLIC "-//W3C//DTD XHTML 1.0 Transitional//EN" "http://www.w3.org/TR/xhtml1/DTD/xhtml1-transitional.dtd">
+<html xmlns="http://www.w3.org/1999/xhtml">
+<head>
+    <title>Web API Test Page</title>
+    <style>
+        body
+        {
+            font-size: 13px;
+            font-family: MS UI Gothic;
+        }
+        
+        table
+        {
+            border-collapse: collapse;
+        }
+        
+        th.t_top
+        {
+            border-top: #be1309 4px solid;
+        }
+        
+        th
+        {
+            border-bottom: #e3e3e3 1px;
+            text-align: left;
+            padding: 1px;
+            font-weight: normal;
+        }
+        
+        td.t_top
+        {
+            border-top: #b3b3b3 4px solid;
+        }
+        
+        td
+        {
+            border-bottom: #e3e3e3 1px solid;
+            text-align: left;
+            padding: 1px 4px;
+        }
+
+        h2.common {
+            background-color: #b2bfe1;
+            padding: 0.4em;
+        }
+
+        h2.schedule {
+            background-color: #dd9dbf;
+            padding: 0.4em;
+        }
+
+        h2.custom_master {
+            background-color: #fef4a9;
+            padding: 0.4em;
+        }
+
+        h2.library {
+            background-color: #cbe86b;
+            padding: 0.4em;
+        }
+    </style>
+</head>
+<body>
+    <a name="top" /><a name="ログイン" />
+    <hr />
+
+    <h2 class="common">ログイン</h2>
+    <form action="../APIExecute.aspx?command=Login" method="post" target="loginForm">
+    <table>
+        <tr>
+            <td>
+                user
+            </td>
+            <td>
+                <input name="user" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                password
+            </td>
+            <td>
+                <input name="password" type="password" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="loginSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">ログアウト</h2>
+    <form action="../APIExecute.aspx?command=Logout" method="post" target="logoutForm">
+    現在のセッションを解放します。<br />
+    <input name="logoutSubmit" type="submit" value="送信" />
+    </form>
+    <br />
+    <hr />
+    
+    <h2 class="common">workflow設定可能情報取得</h2>
+    <form action="../APIExecute.aspx?command=GetUserWorkFlow" method="post" target="getUserWorkFlowForm">
+    WebAPIに指定ユーザーの「workflow_enable」設定有無を確認。<br />
+    <input name="workFlowSubmit" type="submit" value="送信" />
+    </form>
+    <br />
+    <hr />
+
+    <h2 class="common">カスタムURLスキーム取得（認証付きアプリ起動まで）</h2>
+    <form action="../APIExecute.aspx?command=GetURLScheme" method="post" target="logoutForm">
+    アプリを起動し、サーバー認証まで行うURLスキーム。（帳票は開かない）
+    <input name="GetURLSchemeSubmit" type="submit" value="送信" />
+    </form>
+    <br />
+    <hr />
+
+    <h2 class="common">各種データー登録</h2>
+    <form action="../APIExecute.aspx" method="post" target="registDataForm" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="RegistUser">RegistUser:ユーザ情報更新</option>
+                    <option value="RegistGroup">RegistGroup:グループ登録</option>
+                    <option value="RegistGroupAffiliation">RegistGroupAffiliation:グループ所属登録</option>
+                    <option value="RegistReportLabelMaster">RegistReportLabelMaster:帳票ラベルマスター登録</option>
+                    <option value="RegistReportLabelDefinition">RegistReportLabelDefinition:帳票ラベル定義登録</option>
+                    <option value="RegistReportLabel">RegistReportLabel:帳票ラベル登録</option>
+                    <option value="RegistDefinitionLabelMaster">RegistDefinitionLabelMaster:定義ラベルマスター登録</option>
+                    <option value="RegistDefinitionLabel">RegistDefinitionLabel:定義ラベル登録</option>
+                    <option value="RegistReportRole">RegistReportRole:帳票権限設定</option>
+                    <option value="0">---------------------------------------------</option>
+                    <option value="RegistTask">RegistTask:タスク登録</option>
+                    <option value="RegistSchedule">RegistSchedule:スケジュール登録</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+    </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">定義権限設定</h2>
+    <form action="../APIExecute.aspx" method="post" target="registDataForm" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="RegistDefinitionRole">RegistDefinitionRole:定義権限設定</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                defRoleMode
+            </td>
+            <td>
+                <select name="defRoleMode">
+                    <option value="0">0:しない</option>
+                    <option value="1">1:反映する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                repRoleMode
+            </td>
+            <td>
+                <select name="repRoleMode">
+                    <option value="0">0:しない</option>
+                    <option value="1">1:反映する</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="Submit1" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">各種データー取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="getDataForm">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="GetGroup">GetGroup:グループ情報取得</option>
+                    <option value="GetGroupAffiliation">GetGroupAffiliation:グループ所属情報取得</option>
+                    <option value="GetReportLabelMaster">GetReportLabelMaster:帳票ラベルマスター取得</option>
+                    <option value="GetReportLabelDefinition">GetReportLabelDefinition:帳票ラベル定義取得</option>
+                    <option value="GetReportLabel">GetReportLabel:帳票ラベル取得</option>
+                    <option value="GetDefinitionLabelMaster">GetDefinitionLabelMaster:定義ラベルマスター取得</option>
+                    <option value="GetDefinitionLabel">GetDefinitionLabel:定義ラベル取得</option>
+                    <option value="GetDefinitionRole">GetDefinitionRole:定義権限取得</option>
+                    <option value="GetReportRole">GetReportRole:帳票権限取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                useAuth
+            </td>
+            <td>
+                <input name="useAuth" type="text" value="0" />
+            </td>
+        </tr>
+    </table>
+    <input name="getDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">ユーザ情報取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="getDataForm">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="GetUser">GetUser:ユーザ情報取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withImprint
+            </td>
+            <td>
+                <input name="withImprint" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withAdmin
+            </td>
+            <td>
+                <input name="withAdmin" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                userId
+            </td>
+            <td>
+                <input name="userId" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="getDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">端末情報取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="getDataForm">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="GetTerminal">GetTerminal:端末情報取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                deleted
+            </td>
+            <td>
+                <select name="deleted">
+                    <option value=""></option>
+                    <option value="0">0:未削除</option>
+                    <option value="1">1:削除済み</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="getDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">選択値情報更新</h2>
+    <form action="../APIExecute.aspx" method="post" target="UpdateSelectItem" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="UpdateSelectItem" selected="selected">UpdateSelectItem:選択値情報更新</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                force
+            </td>
+            <td>
+                <input name="force" type="text" value="false" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit1" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票ダウンロード</h2>
+    <form action="../APIExecute.aspx?" method="post" target="DownloadReport">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DownloadReport">DownloadReport:帳票ダウンロード</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                definition
+            </td>
+            <td>
+                <input name="definition" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                report
+            </td>
+            <td>
+                <input name="report" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelId
+            </td>
+            <td>
+                <input name="labelId" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                publicStatus
+            </td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                editStatus
+            </td>
+            <td>
+                <select name="editStatus">
+                    <option value=""></option>
+                    <option value="0">1:入力前</option>
+                    <option value="1">1:編集中</option>
+                    <option value="2">2:承認待ち</option>
+                    <option value="3">3:差し戻し</option>
+                    <option value="4">4:入力完了</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                reportName
+            </td>
+            <td>
+                <input name="reportName" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                remarks
+            </td>
+            <td>
+                <input name="remarks" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                value
+            </td>
+            <td>
+                <input name="value" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registUser
+            </td>
+            <td>
+                <input name="registUser" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeFrom
+            </td>
+            <td>
+                <input name="registTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeTo
+            </td>
+            <td>
+                <input name="registTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateUser
+            </td>
+            <td>
+                <input name="updateUser" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeFrom
+            </td>
+            <td>
+                <input name="updateTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeTo
+            </td>
+            <td>
+                <input name="updateTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                deleted
+            </td>
+            <td>
+                <input name="deleted" type="text" value="0" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withImage
+            </td>
+            <td>
+                <input name="withImage" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withPDF
+            </td>
+            <td>
+                <input name="withPDF" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withExcel
+            </td>
+            <td>
+                <input name="withExcel" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withPdfLayer
+            </td>
+            <td>
+                <input name="withPdfLayer" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withClusterDetails
+            </td>
+            <td>
+                <input name="withClusterDetails" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="932" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                isCopySheetOutput
+            </td>
+            <td>
+                <select name="isCopySheetOutput">
+                    <option value="false" selected>false:しない</option>
+                    <option value="true">true:する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                layoutType
+            </td>
+            <td>
+                <select name="layoutType">
+                    <option value="0" selected>0:標準フォーマット固定</option>
+                    <option value="1">1:ConMasManagerデーター出力のCSVレイアウト設定を適用</option>
+                    <option value="2">2:自動出力CSVレイアウトを適用</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                isAllRevision
+            </td>
+            <td>
+                <select name="isAllRevision">
+                    <option value="false" selected>false:含めない</option>
+                    <option value="true">true:含める</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                startIndex
+            </td>
+            <td>
+                <input name="startIndex" type="text" value="0" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                executeCount
+            </td>
+            <td>
+                <input name="executeCount" type="text" value="20" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                isReportCurrent
+            </td>
+            <td>
+                <select name="isReportCurrent">
+                    <option value="0" selected>0:全リビジョン取得する</option>
+                    <option value="1">1:最新のみ取得する</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票CSVダウンロード</h2>
+    <form action="../APIExecute.aspx?" method="post" target="DownloadCsv">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DownloadCsv">DownloadCsv:帳票CSVダウンロード</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                report
+            </td>
+            <td>
+                <input name="report" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withImage
+            </td>
+            <td>
+                <input name="withImage" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withPDF
+            </td>
+            <td>
+                <input name="withPDF" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withExcel
+            </td>
+            <td>
+                <input name="withExcel" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withPdfLayer
+            </td>
+            <td>
+                <input name="withPdfLayer" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="932" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">連携ビューCSV取得API</h2>
+    <form action="../APIExecute.aspx?" method="post" target="DownloadReportViewCsv">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DownloadReportViewCsv">DownloadReportViewCsv:連携ビューCSV取得API</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                viewName
+            </td>
+            <td>
+                <input name="viewName" type="text" value="view_report_" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                outputItemType
+            </td>
+            <td>
+                <select name="outputItemType">
+                    <option value="0">0:Manager設定で出力</option>
+                    <option value="1">1:すべての項目を出力</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="932" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                repTopId
+            </td>
+            <td>
+                <input name="repTopId" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                repTopName
+            </td>
+            <td>
+                <input name="repTopName" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                publicStatus
+            </td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                editStatus
+            </td>
+            <td>
+                <select name="editStatus">
+                    <option value=""></option>
+                    <option value="0">1:入力前</option>
+                    <option value="1">1:編集中</option>
+                    <option value="2">2:承認待ち</option>
+                    <option value="3">3:差し戻し</option>
+                    <option value="4">4:入力完了</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterKey
+            </td>
+            <td>
+                <input name="clusterKey" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterValue
+            </td>
+            <td>
+                <input name="clusterValue" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterValueFrom
+            </td>
+            <td>
+                <input name="clusterValueFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterValueTo
+            </td>
+            <td>
+                <input name="clusterValueTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                tableKey
+            </td>
+            <td>
+                <input name="tableKey" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                tableValue
+            </td>
+            <td>
+                <input name="tableValue" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                tableValueFrom
+            </td>
+            <td>
+                <input name="tableValueFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                tableValueTo
+            </td>
+            <td>
+                <input name="tableValueTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                startIndex
+            </td>
+            <td>
+                <input name="startIndex" type="text" value="0" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                executeCount
+            </td>
+            <td>
+                <input name="executeCount" type="text" value="20" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">定義削除</h2>
+    <form action="../APIExecute.aspx?" method="post" target="DeleteDefinition">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DeleteDefinition">DeleteDefinition:定義削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                definition
+            </td>
+            <td>
+                <input name="definition" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelId
+            </td>
+            <td>
+                <input name="labelId" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                publicStatus
+            </td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                definitionName
+            </td>
+            <td>
+                <input name="definitionName" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                remarks
+            </td>
+            <td>
+                <input name="remarks" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registUser
+            </td>
+            <td>
+                <input name="registUser" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeFrom
+            </td>
+            <td>
+                <input name="registTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeTo
+            </td>
+            <td>
+                <input name="registTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateUser
+            </td>
+            <td>
+                <input name="updateUser" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeFrom
+            </td>
+            <td>
+                <input name="updateTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeTo
+            </td>
+            <td>
+                <input name="updateTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                deleted
+            </td>
+            <td>
+                <select name="deleted">
+                    <option value=""></option>
+                    <option value="0">0:未削除定義</option>
+                    <option value="1">1:削除済み定義</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                mode
+            </td>
+            <td>
+                <select name="mode">
+                    <option value="0" selected>0:論理削除</option>
+                    <option value="1">1:物理削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                transactionMode
+            </td>
+            <td>
+                <select name="transactionMode">
+                    <option value="0" selected>0:すべての定義を1トランザクションで削除</option>
+                    <option value="1">1:1定義を1トランザクションで削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                executeCount
+            </td>
+            <td>
+                <input name="executeCount" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票削除</h2>
+    <form action="../APIExecute.aspx?" method="post" target="DeleteReport">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DeleteReport">DeleteReport:帳票削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                definition
+            </td>
+            <td>
+                <input name="definition" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                report
+            </td>
+            <td>
+                <input name="report" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelId
+            </td>
+            <td>
+                <input name="labelId" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                publicStatus
+            </td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                editStatus
+            </td>
+            <td>
+                <select name="editStatus">
+                    <option value=""></option>
+                    <option value="0">1:入力前</option>
+                    <option value="1">1:編集中</option>
+                    <option value="2">2:承認待ち</option>
+                    <option value="3">3:差し戻し</option>
+                    <option value="4">4:入力完了</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                reportName
+            </td>
+            <td>
+                <input name="reportName" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                remarks
+            </td>
+            <td>
+                <input name="remarks" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                value
+            </td>
+            <td>
+                <input name="value" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registUser
+            </td>
+            <td>
+                <input name="registUser" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeFrom
+            </td>
+            <td>
+                <input name="registTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeTo
+            </td>
+            <td>
+                <input name="registTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateUser
+            </td>
+            <td>
+                <input name="updateUser" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeFrom
+            </td>
+            <td>
+                <input name="updateTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeTo
+            </td>
+            <td>
+                <input name="updateTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                deleted
+            </td>
+            <td>
+                <select name="deleted">
+                    <option value=""></option>
+                    <option value="0">0:未削除定義</option>
+                    <option value="1">1:削除済み定義</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                mode
+            </td>
+            <td>
+                <select name="mode">
+                    <option value="0" selected>0:論理削除</option>
+                    <option value="1">1:物理削除</option>
+                </select>
+            </td>
+        </tr>
+
+        <tr>
+            <td>
+                isDeleteLabel
+            </td>
+            <td>
+                <input name="isDeleteLabel" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                transactionMode
+            </td>
+            <td>
+                <select name="transactionMode">
+                    <option value="0" selected>0:すべての定義を1トランザクションで削除</option>
+                    <option value="1">1:1定義を1トランザクションで削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                executeCount
+            </td>
+            <td>
+                <input name="executeCount" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票ファイル取得</h2>
+    <form action="../APIExecute.aspx?" method="post" target="GetReportFile">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="GetReportFile">GetReportFile:帳票ファイル取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                fileType
+            </td>
+            <td>
+                <select name="fileType">
+                    <option value="pdf">PDF</option>
+                    <option value="pdfLayer">レイヤーつきPDF</option>
+                    <option value="excel">Excel</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                report
+            </td>
+            <td>
+                <input name="report" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey1
+            </td>
+            <td>
+                <input name="systemKey1" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey2
+            </td>
+            <td>
+                <input name="systemKey2" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey3
+            </td>
+            <td>
+                <input name="systemKey3" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey4
+            </td>
+            <td>
+                <input name="systemKey4" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey5
+            </td>
+            <td>
+                <input name="systemKey5" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                fileName
+            </td>
+            <td>
+                <input name="fileName" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                pageNo
+            </td>
+            <td>
+                <input name="pageNo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                isInitValueChageDisplay
+            </td>
+            <td>
+                <input name="isInitValueChageDisplay" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">自動帳票作成</h2>
+    <form action="../APIExecute.aspx" method="post" target="AutoGenerate" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="AutoGenerate">AutoGenerate:自動帳票作成</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="xml" selected>XML</option>
+                    <option value="csv">CSV</option>
+                    <option value="csvZip">CSVZIP</option>
+                    <option value="xmlZip">XMLZIP</option>
+                    <option value="csvSimple">簡易CSV</option>
+                    <option value="csvZipSimple">簡易CSVZIP</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                userMode
+            </td>
+            <td>
+                <select name="userMode">
+                    <option value=""></option>
+                    <option value="1">1:作成ユーザー指定モード</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelMode
+            </td>
+            <td>
+                <select name="labelMode">
+                    <option value=""></option>
+                    <option value="1">1:最下層のラベルのみに紐づける</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                defaultMode
+            </td>
+            <td>
+                <select name="defaultMode">
+                    <option value=""></option>
+                    <option value="0">0:定義のデフォルト値セットしない</option>
+                    <option value="1">1:定義のデフォルト値セットする（作成用データに値指定が存在しないクラスターのみ）</option>
+                    <option value="2">2:定義のデフォルト値セットする（作成用データに値が存在し、その入力値が空で指定されているクラスターを含む）</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                thumbnailUpdate
+            </td>
+            <td>
+                <select name="thumbnailUpdate">
+                    <option value="0">0:更新しない</option>
+                    <option value="1" selected>1:更新する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                calculateEnable
+            </td>
+            <td>
+                <select name="calculateEnable">
+                    <option value="0">0:動作させない</option>
+                    <option value="1">1:動作させる</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                customMasterLinkage
+            </td>
+            <td>
+                <select name="customMasterLinkage">
+                    <option value="0">0:連動させない</option>
+                    <option value="1">1:連動させる</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterThreshold
+            </td>
+            <td>
+                <select name="clusterThreshold">
+                    <option value="0">0:動作させない</option>
+                    <option value="1">1:動作させる</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票更新</h2>
+    <form action="../APIExecute.aspx" method="post" target="UpdateReport" enctype="multipart/form-data">
+        <table>
+            <tr>
+                <td>
+                    command
+                </td>
+                <td>
+                    <select name="command">
+                        <option value="UpdateReport">UpdateReport:帳票更新</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    type
+                </td>
+                <td>
+                    <select name="type">
+                        <option value="xml" selected=selected>XML</option>
+                        <option value="csv">CSV</option>
+                        <option value="xmlZip">xmlZip</option>
+                        <option value="csvZip">csvZip</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    dataFile
+                </td>
+                <td>
+                    <input name="dataFile" type="file" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    encoding
+                </td>
+                <td>
+                    <input name="encoding" type="text" value="65001" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    mode
+                </td>
+                <td>
+                    <select name="mode">
+                        <option value=""></option>
+                        <option value="0" selected=selected>0:通常</option>
+                        <option value="1">1:排他強制解除</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    isCompulsive
+                </td>
+                <td>
+                    <select name="isCompulsive">
+                        <option value=""></option>
+                        <option value="1">1:更新可</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    isCabonCopy
+                </td>
+                <td>
+                    <select name="isCabonCopy">
+                        <option value="0" selected=selected>0:カーボンコピーしない</option>
+                        <option value="1">1:カーボンコピーする</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    thumbnailUpdate
+                </td>
+                <td>
+                    <select name="thumbnailUpdate">
+                        <option value="0">0:更新しない</option>
+                        <option value="1" selected=selected>1:更新する</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    userMode
+                </td>
+                <td>
+                    <select name="userMode">
+                        <option value=""></option>
+                        <option value="1">1:作成ユーザー指定モード</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    calculateEnable
+                </td>
+                <td>
+                    <select name="calculateEnable">
+                        <option value="0">0:動作させない</option>
+                        <option value="1">1:動作させる</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    outputFileSetting
+                </td>
+                <td>
+                    <select name="outputFileSetting">
+                        <option value="1">1:定義の設定に従う</option>
+                        <option value="0">0:自動出力しない</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    customMasterLinkage
+                </td>
+                <td>
+                    <select name="customMasterLinkage">
+                        <option value="0">0:連動させない</option>
+                        <option value="1">1:連動させる</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    clusterThreshold
+                </td>
+                <td>
+                    <select name="clusterThreshold">
+                        <option value="0">0:動作させない</option>
+                        <option value="1">1:動作させる</option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">定義一覧取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetDefinitionList">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetDefinitionList">GetDefinitionList:定義一覧取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>labelId</td>
+            <td><input id="labelId" name="labelId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetLabel</td>
+            <td><input id="itemTargetLabel" name="itemTargetLabel" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetSheet</td>
+            <td><input id="itemTargetSheet" name="itemTargetSheet" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetSet</td>
+            <td><input id="itemTargetSet" name="itemTargetSet" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetBook</td>
+            <td><input id="itemTargetBook" name="itemTargetBook" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>publicStatus</td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>word</td>
+            <td><input id="word" name="word" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetName</td>
+            <td><input id="wordTargetName" name="wordTargetName" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetRemarks</td>
+            <td><input id="wordTargetRemarks" name="wordTargetRemarks" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>history</td>
+            <td><input id="history" name="history" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>
+                urlSchemeMode
+            </td>
+            <td>
+                <select name="urlSchemeMode">
+                    <option value="">なし</option>
+                    <option value="1">帳票指定URL（認証なし）</option>
+                    <option value="2">帳票指定URL（認証あり）</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>systemKey1</td>
+            <td><input id="Text32" name="systemKey1" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey2</td>
+            <td><input id="Text33" name="systemKey2" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey3</td>
+            <td><input id="Text34" name="systemKey3" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey4</td>
+            <td><input id="Text35" name="systemKey4" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey5</td>
+            <td><input id="Text36" name="systemKey5" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="ListSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票一覧取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetReportList">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetReportList">GetReportList:帳票一覧取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>labelId</td>
+            <td><input id="Text18" name="labelId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetLabel</td>
+            <td><input id="Text19" name="itemTargetLabel" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetSheet</td>
+            <td><input id="Text20" name="itemTargetSheet" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetSet</td>
+            <td><input id="Text21" name="itemTargetSet" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>itemTargetBook</td>
+            <td><input id="Text22" name="itemTargetBook" type="text" value="true" /></td>
+        </tr>
+        <tr>
+            <td>publicStatus</td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>editStatus</td>
+            <td>
+                <select name="editStatus">
+                    <option value=""></option>
+                    <option value="0">0:入力前</option>
+                    <option value="1">1:編集中</option>
+                    <option value="2">2:承認待ち</option>
+                    <option value="3">3:差し戻し</option>
+                    <option value="4">4:入力完了</option>
+                    <option value="5">5:申請中</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>word</td>
+            <td><input id="Text25" name="word" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetName</td>
+            <td><input id="Text26" name="wordTargetName" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetValue</td>
+            <td><input id="Text27" name="wordTargetValue" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>wordTargetRemarks</td>
+            <td><input id="Text28" name="wordTargetRemarks" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>history</td>
+            <td><input id="Text29" name="history" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>
+                urlSchemeMode
+            </td>
+            <td>
+                <select name="urlSchemeMode">
+                    <option value="">なし</option>
+                    <option value="1">帳票指定URL（認証なし）</option>
+                    <option value="2">帳票指定URL（認証あり）</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeFrom
+            </td>
+            <td>
+                <input name="registTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeTo
+            </td>
+            <td>
+                <input name="registTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeFrom
+            </td>
+            <td>
+                <input name="updateTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeTo
+            </td>
+            <td>
+                <input name="updateTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>systemKey1</td>
+            <td><input name="systemKey1" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey2</td>
+            <td><input name="systemKey2" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey3</td>
+            <td><input name="systemKey3" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey4</td>
+            <td><input name="systemKey4" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey5</td>
+            <td><input name="systemKey5" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>definition</td>
+            <td><input name="definition" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>definitionHistory</td>
+            <td><input name="definitionHistory" type="text" value="false" /></td>
+        </tr>
+    </table>
+    <input id="Submit1" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">定義簡易詳細情報取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetDefinitionDetail">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetDefinitionDetail">GetDefinitionDetail:定義簡易詳細情報取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>topId</td>
+            <td><input id="topId" name="topId" type="text" value="00000" /></td>
+        </tr>
+        <tr>
+            <td>
+                urlSchemeMode
+            </td>
+            <td>
+                <select name="urlSchemeMode">
+                    <option value="">なし</option>
+                    <option value="1">帳票指定URL（認証なし）</option>
+                    <option value="2">帳票指定URL（認証あり）</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input id="detailSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票簡易詳細情報取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetReportDetail">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetReportDetail">GetReportDetail:帳票簡易詳細情報取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>topId</td>
+            <td><input name="topId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>
+                urlSchemeMode
+            </td>
+            <td>
+                <select name="urlSchemeMode">
+                    <option value="">なし</option>
+                    <option value="1">帳票指定URL（認証なし）</option>
+                    <option value="2">帳票指定URL（認証あり）</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>defTopId</td>
+            <td><input name="defTopId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>defTopOrg</td>
+            <td><input name="defTopOrg" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey1</td>
+            <td><input name="systemKey1" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey2</td>
+            <td><input name="systemKey2" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey3</td>
+            <td><input name="systemKey3" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey4</td>
+            <td><input name="systemKey4" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>systemKey5</td>
+            <td><input name="systemKey5" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>ResultType</td>
+            <td>
+                <select name="ResultType">
+                    <option value="1" selected>1:最初の1件のみ</option>
+                    <option value="2">2:全件</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input id="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">ラベル削除</h2>
+    <form action="../APIExecute.aspx" method="post" target="DeleteLabel">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DeleteLabel">DeleteLabel:ラベル削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelType
+            </td>
+            <td>
+                <select name="labelType">
+                    <option value="def">def:定義ラベル</option>
+                    <option value="rep">rep:帳票ラベル</option>
+                    <option value="common_document">common_document:共通図書ラベル</option>
+                    <option value="report_document">report_document:帳票別図書ラベル</option>
+                    <option value="image_document">image_document:フリードロー用画像ラベル</option>
+                    <option value="common_custom_table">common_custom_table:カスタムマスターラベル</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelId
+            </td>
+            <td>
+                <input name="labelId" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelName
+            </td>
+            <td>
+                <input name="labelName" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelNamePath
+            </td>
+            <td>
+                <input name="labelNamePath" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelRemarks
+            </td>
+            <td>
+                <input name="labelRemarks" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeFrom
+            </td>
+            <td>
+                <input name="registTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                registTimeTo
+            </td>
+            <td>
+                <input name="registTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeFrom
+            </td>
+            <td>
+                <input name="updateTimeFrom" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                updateTimeTo
+            </td>
+            <td>
+                <input name="updateTimeTo" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                childDelete
+            </td>
+            <td>
+                <select name="childDelete">
+                    <option value="0">0:削除しない</option>
+                    <option value="1">1:削除する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                autoDelete
+            </td>
+            <td>
+                <select name="autoDelete">
+                    <option value=""></option>
+                    <option value="1">1:削除する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                executeCount
+            </td>
+            <td>
+                <input name="executeCount" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="deleteLabelSubmit" type="submit" value="送信" />
+    </form>
+
+    <hr />
+    <h2 class="common">クラスター値取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetClusterValue">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="GetClusterValue">GetClusterValue:クラスター値取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                report
+            </td>
+            <td>
+                <input name="report" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey1
+            </td>
+            <td>
+                <input name="systemKey1" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey2
+            </td>
+            <td>
+                <input name="systemKey2" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey3
+            </td>
+            <td>
+                <input name="systemKey3" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey4
+            </td>
+            <td>
+                <input name="systemKey4" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                systemKey5
+            </td>
+            <td>
+                <input name="systemKey5" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                sheetNo
+            </td>
+            <td>
+                <input name="sheetNo" type="text" value="1" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterSearchMode
+            </td>
+            <td>
+                <select name="clusterSearchMode">
+                    <option value="index">index:クラスターindex指定</option>
+                    <option value="name">name:クラスター名称指定</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                clusterSearchValue
+            </td>
+            <td>
+                <input name="clusterSearchValue" type="text" value="0" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                valueType
+            </td>
+            <td>
+                <select name="valueType">
+                    <option value="0" selected>0:入力値取得</option>
+                    <option value="1">1:表示値取得</option>
+                    <option value="2">2:サイン取得</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="GetClusterValueSubmit" type="submit" value="送信" />
+    </form>
+
+    <h2 class="common">帳票コピー</h2>
+    <form action="../APIExecute.aspx" method="post" target="getDataForm">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="CopyReport">CopyReport:帳票コピー</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                reportId
+            </td>
+            <td>
+                <input name="reportId" type="text" value="00000" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                copyReportMode
+            </td>
+            <td>
+                <select name="copyReportMode">
+                    <option value="0" selected>0:同一リビジョンの定義から作成する</option>
+                    <option value="1">1::最新の定義から作成する</option>
+                </select>
+            </td>
+        </tr>
+		<tr>
+            <td>
+                clusterThreshold
+            </td>
+            <td>
+                <select name="clusterThreshold">
+                    <option value="0">0:動作させない</option>
+                    <option value="1">1:動作させる</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="getDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">帳票PDFバインド</h2>
+    <form action="../APIExecute.aspx" method="post" target="DownloadMergedPdf" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="WebAPI">WebAPI</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                target
+            </td>
+            <td>
+                <select name="target">
+                    <option value="InputReport">InputReport</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                process
+            </td>
+            <td>
+                <select name="process">
+                    <option value="DownloadMergedPdf">DownloadMergedPdf</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withLayer
+            </td>
+            <td>
+                <select name="withLayer">
+                    <option value="0">0:レイヤーなし</option>
+                    <option value="1">0:レイヤーあり</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="DownloadMergedPdf" type="submit" value="送信" />
+    </form>
+    <hr />
+
+
+    <h2 class="common">ロック取得・解除</h2>
+    <form action="../APIExecute.aspx" method="post" target="getDataForm">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="LockDefinition">LockDefinition:定義ロック取得</option>
+                    <option value="UnlockDefinition">UnlockDefinition:定義ロック解除</option>
+                    <option value="LockReport">LockReport:帳票ロック取得</option>
+                    <option value="UnlockReport">UnlockReport:帳票ロック解除</option>
+                    <option value="LockWorkflow">LockWorkflow:Workflowロック取得</option>
+                    <option value="UnlockWorkflow">UnlockWorkflow:Workflowロック解除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                topId
+            </td>
+            <td>
+                <input name="topId" type="text" value="00000" />
+            </td>
+        </tr>
+    </table>
+    <input name="getDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">バインダー作成</h2>
+    <form action="../APIExecute.aspx" method="post" target="CreateBinder" enctype="multipart/form-data">
+        <table>
+            <tr>
+                <td>
+                    command
+                </td>
+                <td>
+                    <select name="command">
+                        <option value="CreateBinder">CreateBinder:バインダー作成</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    binderMasterId
+                </td>
+                <td>
+                    <input name="binderMasterId" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    binderName
+                </td>
+                <td>
+                    <input name="binderName" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    type
+                </td>
+                <td>
+                    <select name="type">
+                        <option value="xml" selected=selected>xml</option>
+                        <option value="csv">csv</option>
+                        <option value="xmlZip">xmlZip</option>
+                        <option value="csvZip">csvZip</option>
+                        <option value="csvSimple">csvSimple</option>
+                        <option value="csvZipSimple">csvZipSimple</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    dataFile
+                </td>
+                <td>
+                    <input name="dataFile" type="file" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    createLabel
+                </td>
+                <td>
+                    <select name="createLabel">
+                        <option value="0">0:作成しない</option>
+                        <option value="1" selected=selected>1:作成する</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    upperLabelId
+                </td>
+                <td>
+                    <input name="upperLabelId" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    labelIconId
+                </td>
+                <td>
+                    <input name="labelIconId" type="text" value="1" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    reportFromDate
+                </td>
+                <td>
+                    <input name="reportFromDate" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    reportToDate
+                </td>
+                <td>
+                    <input name="reportToDate" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    excludeType
+                </td>
+                <td>
+                    <input name="excludeType" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    excludeWeek
+                </td>
+                <td>
+                    <input name="excludeWeek" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    excludeDate
+                </td>
+                <td>
+                    <input name="excludeDate" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    calculateEnable
+                </td>
+                <td>
+                    <select name="calculateEnable">
+                        <option value="0">0:動作させない</option>
+                        <option value="1">1:動作させる</option>
+                    </select>
+                </td>
+            </tr>
+			<tr>
+                <td>
+                    clusterThreshold
+                </td>
+                <td>
+                    <select name="clusterThreshold">
+                        <option value="0">0:動作させない</option>
+                        <option value="1">1:動作させる</option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="common">仕訳表作成</h2>
+    <form action="../APIExecute.aspx" method="post" target="CreateSortedReport">
+        <table>
+            <tr>
+                <td>
+                    command
+                </td>
+                <td>
+                    <select name="command">
+                        <option value="CreateSortedReport">CreateSortedReport:仕訳表作成</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    reportId
+                </td>
+                <td>
+                    <input name="reportId" type="text" value="" />
+                </td>
+            </tr>
+            <tr>
+                <td>
+                    editStatusMode
+                </td>
+                <td>
+                    <select name="editStatusMode">
+                        <option value="0">0:完了帳票のみ実行可能</option>
+                        <option value="1">1:すべてのステータスで実行可能</option>
+                    </select>
+                </td>
+            </tr>
+        </table>
+        <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="schedule">タスク取得</h2>
+    <form action="../APIExecute.aspx" method="post" id="GetTask" name="GetTask" target="GetTask">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetTask">GetTask:タスク取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>type</td>
+            <td>
+                <select name="type">
+                <option value="csv">csv</option>
+                <option value="xml" selected>xml</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>encoding</td>
+            <td>
+                <input name="encoding" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>taskId</td>
+            <td><input name="taskId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>taskName</td>
+            <td><input name="taskName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>taskRemark</td>
+            <td><input name="taskRemark" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>scheduleId</td>
+            <td><input name="scheduleId" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="scheduleFormSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="schedule">スケジュール取得</h2>
+    <form action="../APIExecute.aspx" method="post" id="GetSchedule" name="GetSchedule" target="GetSchedule">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetSchedule">GetSchedule:スケジュール取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>type</td>
+            <td>
+                <select name="type">
+                <option value="csv">csv</option>
+                <option value="xml" selected>xml</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>encoding</td>
+            <td>
+                <input name="encoding" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>scheduleId</td>
+            <td><input name="scheduleId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>repTopId</td>
+            <td><input name="repTopId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>repTopName</td>
+            <td><input name="repTopName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>defTopId</td>
+            <td><input name="defTopId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>publicStatus</td>
+            <td>
+                <select name="publicStatus">
+                    <option value=""></option>
+                    <option value="1">1:テスト</option>
+                    <option value="2">2:公開</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>editStatus</td>
+            <td>
+                <select name="editStatus">
+                    <option value=""></option>
+                    <option value="0">1:入力前</option>
+                    <option value="1">1:編集中</option>
+                    <option value="2">2:承認待ち</option>
+                    <option value="3">3:差し戻し</option>
+                    <option value="4">4:入力完了</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>taskId</td>
+            <td><input name="taskId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>taskName</td>
+            <td><input name="taskName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>taskRemark</td>
+            <td><input name="taskRemark" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>groupId</td>
+            <td><input name="groupId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>userId</td>
+            <td><input name="userId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>userName</td>
+            <td><input name="userName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>startDate</td>
+            <td><input name="startDate" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>endDate</td>
+            <td><input name="endDate" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>reportType</td>
+            <td><input name="reportType" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>inputType</td>
+            <td><input name="inputType" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>startType</td>
+            <td><input name="startType" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel1</td>
+            <td><input name="commentLabel1" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel2</td>
+            <td><input name="commentLabel2" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel3</td>
+            <td><input name="commentLabel3" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel4</td>
+            <td><input name="commentLabel4" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel5</td>
+            <td><input name="commentLabel5" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel6</td>
+            <td><input name="commentLabel6" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel7</td>
+            <td><input name="commentLabel7" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel8</td>
+            <td><input name="commentLabel8" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel9</td>
+            <td><input name="commentLabel9" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>commentLabel10</td>
+            <td><input name="commentLabel10" type="text" value="" /></td>
+        </tr>
+         <tr>
+            <td>comment1</td>
+            <td><input name="comment1" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment2</td>
+            <td><input name="comment2" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment3</td>
+            <td><input name="comment3" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment4</td>
+            <td><input name="comment4" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment5</td>
+            <td><input name="comment5" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment6</td>
+            <td><input name="comment6" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment7</td>
+            <td><input name="comment7" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment8</td>
+            <td><input name="comment8" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment9</td>
+            <td><input name="comment9" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>comment10</td>
+            <td><input name="comment10" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>projectCode</td>
+            <td><input name="projectCode" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>projectName</td>
+            <td><input name="projectName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>orderCode</td>
+            <td><input name="orderCode" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>orderName</td>
+            <td><input name="orderName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>processCode</td>
+            <td><input name="processCode" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>processName</td>
+            <td><input name="processName" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="Submit3" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="schedule">スケジュール一括削除</h2>
+    <form action="../APIExecute.aspx" method="post" target="DeleteSchedule">
+        <table>
+            <tr>
+                <td>command</td>
+                <td>
+                    <select name="command">
+                        <option value="DeleteSchedule">DeleteSchedule:スケジュール一括削除</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>scheduleId</td>
+                <td><input name="scheduleId" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>repTopId</td>
+                <td><input name="repTopId" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>repTopName</td>
+                <td><input name="repTopName" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>defTopId</td>
+                <td><input name="defTopId" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>publicStatus</td>
+                <td>
+                    <select name="publicStatus">
+                        <option value=""></option>
+                        <option value="1">1:テスト</option>
+                        <option value="2">2:公開</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>editStatus</td>
+                <td>
+                    <select name="editStatus">
+                        <option value=""></option>
+                        <option value="0">1:入力前</option>
+                        <option value="1">1:編集中</option>
+                        <option value="2">2:承認待ち</option>
+                        <option value="3">3:差し戻し</option>
+                        <option value="4">4:入力完了</option>
+                    </select>
+                </td>
+            </tr>
+            <tr>
+                <td>taskId</td>
+                <td><input name="taskId" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>taskName</td>
+                <td><input name="taskName" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>taskRemark</td>
+                <td><input name="taskRemark" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>groupId</td>
+                <td><input name="groupId" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>userId</td>
+                <td><input name="userId" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>userName</td>
+                <td><input name="userName" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>startDate</td>
+                <td><input name="startDate" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>endDate</td>
+                <td><input name="endDate" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>reportType</td>
+                <td><input name="reportType" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>inputType</td>
+                <td><input name="inputType" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>startType</td>
+                <td><input name="startType" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel1</td>
+                <td><input name="commentLabel1" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel2</td>
+                <td><input name="commentLabel2" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel3</td>
+                <td><input name="commentLabel3" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel4</td>
+                <td><input name="commentLabel4" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel5</td>
+                <td><input name="commentLabel5" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel6</td>
+                <td><input name="commentLabel6" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel7</td>
+                <td><input name="commentLabel7" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel8</td>
+                <td><input name="commentLabel8" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel9</td>
+                <td><input name="commentLabel9" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>commentLabel10</td>
+                <td><input name="commentLabel10" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment1</td>
+                <td><input name="comment1" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment2</td>
+                <td><input name="comment2" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment3</td>
+                <td><input name="comment3" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment4</td>
+                <td><input name="comment4" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment5</td>
+                <td><input name="comment5" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment6</td>
+                <td><input name="comment6" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment7</td>
+                <td><input name="comment7" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment8</td>
+                <td><input name="comment8" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment9</td>
+                <td><input name="comment9" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>comment10</td>
+                <td><input name="comment10" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>projectCode</td>
+                <td><input name="projectCode" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>projectName</td>
+                <td><input name="projectName" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>orderCode</td>
+                <td><input name="orderCode" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>orderName</td>
+                <td><input name="orderName" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>processCode</td>
+                <td><input name="processCode" type="text" value="" /></td>
+            </tr>
+            <tr>
+                <td>processName</td>
+                <td><input name="processName" type="text" value="" /></td>
+            </tr>
+        </table>
+    <input id="Submit4" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="schedule">祝日取得</h2>
+    <form action="../APIExecute.aspx" method="post" id="GetHoliday" name="GetHoliday" target="GetHoliday">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetHoliday">GetHoliday:祝日取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>type</td>
+            <td>
+                <select name="type">
+                <option value="csv">csv</option>
+                <option value="xml" selected>xml</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>encoding</td>
+            <td>
+                <input name="encoding" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>from</td>
+            <td>
+                <input name="from" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>to</td>
+            <td>
+                <input name="to" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input id="Submit5" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="schedule">祝日登録</h2>
+    <form action="../APIExecute.aspx" method="post" target="RegistHoliday" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="RegistHoliday">RegistHoliday:祝日登録</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="932" />
+            </td>
+        </tr>
+    </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="schedule">祝日削除</h2>
+    <form action="../APIExecute.aspx" method="post" target="DeleteHoliday" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DeleteHoliday">DeleteHoliday:祝日削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                from
+            </td>
+            <td>
+                <input name="from" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                to
+            </td>
+            <td>
+                <input name="to" type="text" value="" />
+            </td>
+        </tr>
+    </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスター登録</h2>
+    <form action="../APIExecute.aspx" method="post" target="registDataForm" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="ImportCustomMaster">ImportCustomMaster:カスタムマスター登録</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                type
+            </td>
+            <td>
+                <select name="type">
+                    <option value="csv">CSV</option>
+                    <option value="csvZip">CSVZIP</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                dataFile
+            </td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                labelMode
+            </td>
+            <td>
+                <select name="labelMode">
+                    <option value=""></option>
+                    <option value="1">1:最下層のラベルのみに紐づける</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input name="registDataSubmit" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスターダウンロード</h2>
+    <form action="../APIExecute.aspx?" method="post" target="DownloadReport">
+    <table>
+        <tr>
+            <td>
+                command
+            </td>
+            <td>
+                <select name="command">
+                    <option value="DownloadCustomMaster">DownloadCustomMaster:カスタムマスターダウンロード</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>
+                masterId
+            </td>
+            <td>
+                <input name="masterId" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                masterKey
+            </td>
+            <td>
+                <input name="masterKey" type="text" value="" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                withImage
+            </td>
+            <td>
+                <input name="withImage" type="text" value="false" />
+            </td>
+        </tr>
+        <tr>
+            <td>
+                encoding
+            </td>
+            <td>
+                <input name="encoding" type="text" value="65001" />
+            </td>
+        </tr>
+    </table>
+    <input name="Submit2" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスターラベルリスト取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetCustomMasterLabel">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetCustomMasterLabel">GetCustomMasterLabel:カスタムマスターラベルリスト取得</option>
+                </select>
+            </td>
+        </tr>
+    </table>
+    <input id="customMasterFormSubmit" type="submit" value="送信"" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスターリスト取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetMasterList">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetMasterList">GetMasterList:カスタムマスターリスト取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>masterId</td>
+            <td><input name="masterId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>masterKey</td>
+            <td><input name="masterKey" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>lastDownloadTime</td>
+            <td><input name="lastDownloadTime" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>ignoreExpire</td>
+            <td><input name="ignoreExpire" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td>isColumn</td>
+            <td><input name="isColumn" type="text" value="false" /></td>
+        </tr>
+
+    </table>
+    <input id="Submit6" type="submit" value="送信"" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスターレコードリスト取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetMasterRecordList">
+    <table>
+        <tr>
+            <td />
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetMasterRecordList">GetMasterRecordList:カスタムマスターレコードリスト取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td />
+            <td>masterId</td>
+            <td><input name="masterId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>masterKey</td>
+            <td><input name="masterKey" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>recordId</td>
+            <td><input name="recordId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>recordKey</td>
+            <td><input name="recordKey" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>fieldSearch</td>
+            <td><input name="fieldSearch" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>lastDownloadTime</td>
+            <td><input name="lastDownloadTime" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>isDeleteTran</td>
+            <td><input name="isDeleteTran" type="text" value="false" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>startNo</td>
+            <td><input name="startNo" type="text" value="0" /></td>
+        </tr>
+    </table>
+    <input id="Submit7" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスター画像取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="GetMasterImage">
+    <table >
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="GetMasterImage">GetMasterImage:カスタムマスター画像取得</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>recordId</td>
+            <td><input name="recordId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>fieldNo</td>
+            <td><input name="fieldNo" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="Submit8" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="custom_master">カスタムマスター全レコード削除</h2>
+    <form action="../APIExecute.aspx" method="post" target="DeleteMasterRecordAll">
+    <table>
+        <tr>
+            <td>command</td>
+            <td>
+                <select name="command">
+                <option value="DeleteMasterRecordAll">DeleteMasterRecordAll:カスタムマスター全レコード削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>masterId</td>
+            <td><input name="masterId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>masterKey</td>
+            <td><input name="masterKey" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input id="Submit9" type="submit" value="送信" />
+    </form>
+    <hr />
+
+    <h2 class="library">図書一覧取得</h2>
+    <form action="../APIExecute.aspx" method="post" target="DocumentList">
+    <table>
+        <tr>
+            <td />
+            <td>command</td>
+            <td><input name="command" type="text" value="WebAPI" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>target</td>
+            <td><input name="target" type="text" value="Library" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>process</td>
+            <td><input name="process" type="text" value="DocumentList" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>documentType</td>
+            <td>
+                <select name="documentType">
+                <option value="0">0:共通ドキュメント</option>
+                <option value="1">1:帳票別ドキュメント</option>
+                <option value="2">2:フリードロー用画像</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td />
+            <td>scopeOfLabel</td>
+            <td>
+                <select name="scopeOfLabel">
+                <option value="0">0:すべて</option>
+                <option value="1">1:ラベルなし</option>
+                <option value="2">2:ラベル指定</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td />
+            <td>scopeOfExpiration</td>
+            <td>
+                <select name="scopeOfExpiration">
+                <option value="0">0:期限切れを取得しない</option>
+                <option value="1">1:期限切れも取得する</option>
+                <option value="2">2:期限切れのみ取得する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td />
+            <td>labelPath</td>
+            <td><input name="labelPath" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>documentName</td>
+            <td><input name="documentName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>storageMode</td>
+            <td>
+                <select name="storageMode" disabled="disabled">
+                <option value="0">0:ファイルシステム</option>
+                <option value="1">1:URL</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>mobileSave</td>
+            <td>
+                <select name="mobileSave" disabled="disabled">
+                <option value="0">0:しない</option>
+                <option value="1">1:する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>userFirstCreated</td>
+            <td><input name="userFirstCreated" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>dateFirstCreatedFrom</td>
+            <td><input name="dateFirstCreatedFrom" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>dateFirstCreatedTo</td>
+            <td><input name="dateFirstCreatedTo" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>userLastModified</td>
+            <td><input name="userLastModified" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>dateLastModifiedFrom</td>
+            <td><input name="dateLastModifiedFrom" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>dateLastModifiedTo</td>
+            <td><input name="dateLastModifiedTo" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>limitOfList</td>
+            <td><input name="limitOfList" type="text" value="20" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>skipOver</td>
+            <td><input name="skipOver" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input name="submit" type="submit" value="送信"" />
+    </form>
+    <hr />
+
+    <h2 class="library">図書ファイルダウンロード・削除</h2>
+    <form action="../APIExecute.aspx" method="post" target="DocumentDownload">
+    <table>
+        <tr>
+            <td />
+            <td>command</td>
+            <td><input name="command" type="text" value="WebAPI" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>target</td>
+            <td><input name="target" type="text" value="Library" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>process</td>
+            <td>
+                <select name="process">
+                <option value="DocumentDownload">DocumentDownload:ダウンロード</option>
+                <option value="DocumentDeletion">DocumentDeletion:削除</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td />
+            <td>documentType</td>
+            <td>
+                <select name="documentType">
+                <option value="0">0:共通ドキュメント</option>
+                <option value="1">1:帳票別ドキュメント</option>
+                <option value="2">2:フリードロー用画像</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td />
+            <td>documentId</td>
+            <td><input name="documentId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td><input type="checkbox" name="activation" /></td>
+            <td>labelPath</td>
+            <td><input name="labelPath" type="text" value="" disabled="disabled" /></td>
+        </tr>
+        <tr>
+            <td />
+            <td>documentName</td>
+            <td><input name="documentName" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input name="submit" type="submit" value="送信"" />
+    </form>
+    <hr />
+
+    <h2 class="library">図書登録</h2>
+    <form action="../APIExecute.aspx" method="post" target="DocumentRegistration" enctype="multipart/form-data">
+    <table>
+        <tr>
+            <td>command</td>
+            <td><input name="command" type="text" value="WebAPI" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td>target</td>
+            <td><input name="target" type="text" value="Library" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td>process</td>
+            <td><input name="process" type="text" value="DocumentRegistration" readonly="readonly" /></td>
+        </tr>
+        <tr>
+            <td>documentType</td>
+            <td>
+                <select name="documentType">
+                <option value="0">0:共通ドキュメント</option>
+                <option value="1">1:帳票別ドキュメント</option>
+                <option value="2">2:フリードロー用画像</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>labelPath</td>
+            <td><input name="labelPath" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>labelIcon</td>
+            <td><input name="labelIcon" type="text" value="6" /></td>
+        </tr>
+        <tr>
+            <td>documentName</td>
+            <td><input name="documentName" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>storageMode</td>
+            <td>
+                <select name="storageMode">
+                <option value="0">0:ファイルシステム</option>
+                <option value="1">1:URL</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>iconType</td>
+            <td>
+                <select name="iconType">
+                <option value="URL">URL</option>
+                <option value="PDF">PDF</option>
+                <option value="Excel">Excel</option>
+                <option value="PowerPoint">PowerPoint</option>
+                <option value="Word">Word</option>
+                <option value="XVL">XVL</option>
+                <option value="MOVIE">MOVIE</option>
+                <option value="PHOTO">PHOTO</option>
+                <option value="SOUND">SOUND</option>
+                <option value="OTHERS">OTHERS</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>dataFile</td>
+            <td>
+                <input name="dataFile" type="file" />
+            </td>
+        </tr>
+        <tr>
+            <td>documentUrl</td>
+            <td><input name="documentUrl" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>mobileSave</td>
+            <td>
+                <select name="mobileSave">
+                <option value="0">0:しない</option>
+                <option value="1">1:する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>manualDownload</td>
+            <td>
+                <select name="manualDownload">
+                <option value="0">0:無効</option>
+                <option value="1">1:有効</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>lifeTime</td>
+            <td><input name="lifeTime" type="text" value="0" /></td>
+        </tr>
+        <tr>
+            <td>expire</td>
+            <td><input name="expire" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>useInOtherApp</td>
+            <td>
+                <select name="useInOtherApp">
+                <option value="0">0:しない</option>
+                <option value="1">1:する</option>
+                </select>
+            </td>
+        </tr>
+        <tr>
+            <td>definitionId</td>
+            <td><input name="definitionId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>reportId</td>
+            <td><input name="reportId" type="text" value="" /></td>
+        </tr>
+        <tr>
+            <td>groupId</td>
+            <td><input name="groupId" type="text" value="" /></td>
+        </tr>
+    </table>
+    <input name="submit" type="submit" value="送信"" />
+    </form>
+    <hr />
+
+    <script type="text/javascript" src="js/jquery-1.7.1.min.js"></script>
+    <script type="text/javascript">
+        $(function () {
+            $('input[type="checkbox"][name="activation"]').change(function () {
+                var target = $(this).parent().next().next().children();
+                if ($(this).attr('checked')) {
+                    target.removeAttr('disabled');
+                } else {
+                    target.attr('disabled', 'disabled');
+                }
+            });
+        });
+    </script>
+</body>
+</html>

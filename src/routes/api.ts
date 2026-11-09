@@ -2,10 +2,7 @@ import { Router, type Express, type Response } from 'express';
 import type session from 'express-session';
 import type pg from 'pg';
 import { join } from 'node:path';
-import { readFile } from 'node:fs/promises';
-import { productionBuild } from '../config/build.js';
 import { root } from '../config/manager.js';
-import { minifyHtml } from '../services/html-minify.js';
 import { apiBase, apiConfiguration } from '../config/api.js';
 import { apiSession } from '../middleware/api-session.js';
 import { createNativeUploadBody } from '../middleware/client-upload.js';
@@ -37,17 +34,14 @@ export function registerApiRoutes(app: Express, db: pg.Pool | null, store?: sess
     next();
   });
   for (const path of ['Error.htm', 'Test/Test.htm', 'Test/js/jquery-1.7.1.min.js'])
-    router.all('/Rests/' + path, async (req, res) => {
+    router.all('/Rests/' + path, (req, res) => {
       if (!['GET', 'HEAD'].includes(req.method)) {
         res.set('Allow', 'GET, HEAD').status(405).end();
         return;
       }
-      const file = join(root, productionBuild ? 'dist/public' : 'public', 'ConMasAPI/Rests', path);
-      if (!path.endsWith('.js') && !productionBuild && app.get('env') === 'production') {
-        res.type('html').send(await minifyHtml(await readFile(file, 'utf8')));
-      } else {
-        res.type(path.endsWith('.js') ? 'application/javascript' : 'html').sendFile(file);
-      }
+      res
+        .type(path.endsWith('.js') ? 'application/javascript' : 'html')
+        .sendFile(join(root, 'public/ConMasAPI/Rests', path));
     });
   router.use(createNativeUploadBody(apiConfiguration().maxRequestBytes, (req) => Boolean(req.session.apiAccount)));
   router.all('/Rests/:handler', async (req, res) => {

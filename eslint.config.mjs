@@ -7,7 +7,7 @@ import tseslint from 'typescript-eslint';
 export default defineConfig([
   globalIgnores(['node_modules/**', 'dist/**', 'legacy/**', 'public/**', 'logs/**', '.env*']),
   {
-    files: ['src/**/*.ts', 'test/**/*.ts', 'scripts/**/*.ts', 'eslint.config.mjs'],
+    files: ['src/**/*.ts', 'test/**/*.ts', 'eslint.config.mjs'],
     extends: [js.configs.recommended, tseslint.configs.recommended, prettier],
     languageOptions: { globals: globals.node },
     rules: {

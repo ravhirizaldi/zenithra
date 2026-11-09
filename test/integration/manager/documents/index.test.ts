@@ -28,7 +28,6 @@ import { createApp as runtimeApp } from '../../../../src/app.js';
 import { registerDocumentController } from '../../../../src/controllers/manager/documents/index.js';
 import { createPageRenderer } from '../../../../src/services/manager/page.js';
 import { labelPermissions } from '../../../../src/models/manager/labels/index.js';
-import { createHtmlViewEngine, minifyHtml } from '../../../../src/services/html-minify.js';
 
 const common = [
   ['DEFAULT_PUBLIC_STATUS_REPORT', 'DEFAULT', '2'],
@@ -598,9 +597,7 @@ test('Documents uses project-owned EJS scripts and original controls/resources, 
   assert.match(locked, /locked\.png/);
   assert.doesNotMatch(locked, /type="checkbox" id="Cbx"/);
   for (const page of [html, custom, list, locked]) {
-    const minified = await minifyHtml(page);
-    assert(minified.length < page.length);
-    for (const script of minified.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
+    for (const script of page.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
       assert.doesNotThrow(() => new Script(script[1]));
   }
 });
@@ -752,7 +749,7 @@ test('Manager root/login landing, Documents AJAX, session restoration, CSRF and 
       '',
     );
     assert.equal((await fetch(base + '/DefReport', { headers: { cookie } })).status, 503);
-    app.engine('ejs', createHtmlViewEngine(true));
+    app.set('env', 'production');
     for (const path of ['/', '/InputReport', '/InputReport/Index']) {
       const response = await fetch(base + path, { headers: { cookie } });
       assert.equal(response.status, 200);
@@ -761,9 +758,9 @@ test('Manager root/login landing, Documents AJAX, session restoration, CSRF and 
       for (const script of html.matchAll(/<script\b[^>]*>([\s\S]*?)<\/script>/gi))
         assert.doesNotThrow(() => new Script(script[1]));
     }
-    const minifiedAjax = await post('/InputReport/IndexList', { __RequestVerificationToken: 'fixture-token' });
-    assert.equal(minifiedAjax.status, 200);
-    assert.match(await minifiedAjax.text(), /RepReportList/);
+    const productionAjax = await post('/InputReport/IndexList', { __RequestVerificationToken: 'fixture-token' });
+    assert.equal(productionAjax.status, 200);
+    assert.match(await productionAjax.text(), /RepReportList/);
   } finally {
     await close(server);
     store.clear();

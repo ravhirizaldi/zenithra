@@ -4,18 +4,17 @@ import { tmpdir } from 'node:os';
 import { join, sep } from 'node:path';
 import { test } from 'node:test';
 import { pathToFileURL } from 'node:url';
-import { build } from 'esbuild';
+import ts from 'typescript';
 
-test('production build minifies JavaScript without breaking ESM paths, exports or diagnostic names', async () => {
-  const { scripts, devDependencies } = JSON.parse(await readFile('package.json', 'utf8'));
-  assert.equal(
-    scripts.build,
-    'tsc --noEmit && esbuild "src/**/*.ts" --outbase=src --outdir=dist --platform=node --format=esm --target=es2022 --minify --keep-names --legal-comments=none --define:__CONMAS_MINIFY__=true && tsx scripts/minify-assets.ts',
-  );
-  assert.equal(devDependencies.esbuild, '0.28.2');
+test('production build uses plain TypeScript without minification or browser asset processing', async () => {
+  const { scripts, dependencies, devDependencies } = JSON.parse(await readFile('package.json', 'utf8'));
+  assert.equal(scripts.build, 'tsc');
+  assert.equal(devDependencies.esbuild, undefined);
+  assert.equal(devDependencies.terser, undefined);
+  assert.equal(dependencies['html-minifier-terser'], undefined);
   assert.equal(scripts.start, 'node dist/server.js');
 
-  const directory = await mkdtemp(join(tmpdir(), 'conmas-minified-build-'));
+  const directory = await mkdtemp(join(tmpdir(), 'conmas-plain-build-'));
   try {
     await mkdir(join(directory, 'src', 'nested'), { recursive: true });
     await mkdir(join(directory, 'test'));
@@ -24,20 +23,17 @@ test('production build minifies JavaScript without breaking ESM paths, exports o
     await writeFile(
       join(directory, 'src', 'server.ts'),
       `
-      import { fileURLToPath } from 'node:url';
       import { calculate, FixtureError } from './nested/helper.js';
       export { calculate } from './nested/helper.js';
       export const result = await Promise.resolve(calculate(20));
       export const diagnosticName = new FixtureError().constructor.name;
-      export const projectRoot = fileURLToPath(new URL('../', import.meta.url));
-      declare const __CONMAS_MINIFY__: boolean;
-      export const minifyOutput = typeof __CONMAS_MINIFY__ !== 'undefined' && __CONMAS_MINIFY__;
+      export const projectRoot = new URL('../', import.meta.url).href;
     `,
     );
     await writeFile(
       join(directory, 'src', 'nested', 'helper.ts'),
       `
-      /*! BUILD_COMMENT_MUST_NOT_SHIP */
+      /*! BUILD_COMMENT_REMAINS */
       export class FixtureError extends Error {}
       export function calculate(input: number) {
         const descriptiveLocalValue = input + 1;
@@ -45,33 +41,34 @@ test('production build minifies JavaScript without breaking ESM paths, exports o
       }
     `,
     );
-    await build({
-      absWorkingDir: directory,
-      entryPoints: ['src/**/*.ts'],
-      outbase: 'src',
-      outdir: 'dist',
-      platform: 'node',
-      format: 'esm',
-      target: 'es2022',
-      minify: true,
-      keepNames: true,
-      legalComments: 'none',
-      define: { __CONMAS_MINIFY__: 'true' },
+    const config = ts.readConfigFile('tsconfig.json', ts.sys.readFile);
+    assert.equal(config.error, undefined);
+    const options = ts.convertCompilerOptionsFromJson(config.config.compilerOptions, process.cwd());
+    assert.equal(options.errors.length, 0);
+    const program = ts.createProgram([join(directory, 'src/server.ts')], {
+      ...options.options,
+      rootDir: join(directory, 'src'),
+      outDir: join(directory, 'dist'),
+      types: [],
     });
+    assert.equal(ts.getPreEmitDiagnostics(program).length, 0);
+    assert.equal(program.emit().emitSkipped, false);
     const files = (await readdir(join(directory, 'dist'), { recursive: true })).sort();
     assert.deepEqual(files, ['nested', join('nested', 'helper.js'), 'server.js'].sort());
     for (const file of ['server.js', join('nested', 'helper.js')]) {
       const code = await readFile(join(directory, 'dist', file), 'utf8');
-      assert.equal(code.trim().split('\n').length, 1);
-      assert.doesNotMatch(code, /BUILD_COMMENT_MUST_NOT_SHIP|descriptiveLocalValue|sourceMappingURL/);
+      assert(code.trim().split('\n').length > 1);
+      assert.doesNotMatch(code, /sourceMappingURL/);
     }
+    const helper = await readFile(join(directory, 'dist/nested/helper.js'), 'utf8');
+    assert.match(helper, /BUILD_COMMENT_REMAINS/);
+    assert.match(helper, /descriptiveLocalValue/);
     const emitted = await import(pathToFileURL(join(directory, 'dist', 'server.js')).href);
     assert.equal(emitted.result, 42);
     assert.equal(emitted.calculate(0), 2);
     assert.equal(emitted.calculate.name, 'calculate');
     assert.equal(emitted.diagnosticName, 'FixtureError');
-    assert.equal(emitted.projectRoot, directory + sep);
-    assert.equal(emitted.minifyOutput, true);
+    assert.equal(emitted.projectRoot, pathToFileURL(directory + sep).href);
   } finally {
     await rm(directory, { recursive: true, force: true });
   }

@@ -4,7 +4,6 @@ import path from 'node:path';
 import pg from 'pg';
 import type session from 'express-session';
 import { base, root } from './config/manager.js';
-import { productionBuild } from './config/build.js';
 import { configureSession, requireSession } from './middleware/manager/session.js';
 import { registerSystemMiddleware } from './middleware/manager/system.js';
 import { registerAccountController } from './controllers/manager/account/index.js';
@@ -17,7 +16,6 @@ import { clientError } from './services/client-xml.js';
 import { apiBase } from './config/api.js';
 import { apiRequestError, registerApiRoutes } from './routes/api.js';
 import { managerResourceLocals } from './config/manager/resources.js';
-import { createHtmlViewEngine } from './services/html-minify.js';
 import type { ConsoleRequest } from './services/server-console.js';
 
 export function createApp(
@@ -31,7 +29,6 @@ export function createApp(
   const app = express();
   const authEnabled = enableAuth;
   app.disable('x-powered-by');
-  app.engine('ejs', createHtmlViewEngine(productionBuild || app.get('env') === 'production'));
   app.set('view engine', 'ejs');
   app.set('views', path.join(root, 'src/views'));
   Object.assign(app.locals, managerResourceLocals);
@@ -45,7 +42,7 @@ export function createApp(
   registerClientRoutes(app, database);
   registerApiRoutes(app, database);
   configureSession(app, database, authEnabled, sessionStore);
-  const publicRoot = path.join(root, productionBuild ? 'dist/public' : 'public');
+  const publicRoot = path.join(root, 'public');
   app.use(`${base}/Content`, express.static(path.join(publicRoot, 'Content'), { fallthrough: false }));
   app.use(`${base}/Scripts`, express.static(path.join(publicRoot, 'Scripts'), { fallthrough: false }));
   app.use(`${base}/branding`, express.static(path.join(publicRoot, 'branding'), { fallthrough: false }));

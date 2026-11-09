@@ -6,8 +6,6 @@ import type pg from 'pg';
 import { readFile } from 'node:fs/promises';
 import { XMLParser } from 'fast-xml-parser';
 import { registerClientRoutes } from '../../../src/routes/client.js';
-import { minifyHtml } from '../../../src/services/html-minify.js';
-import { createHash } from 'node:crypto';
 import { registerApiRoutes } from '../../../src/routes/api.js';
 
 const parser = new XMLParser({ parseTagValue: false });
@@ -167,23 +165,17 @@ test('REST static pages serve only whitelisted project-local bodies byte-for-byt
     assert.equal((await fetch(`${base}/Web.config`)).status, 404);
   }));
 
-test('production native HTML pages minify without changing original files, method gates or XML diagnostics', async () =>
+test('production native HTML pages preserve original bytes, method gates and XML diagnostics', async () =>
   fixture(
     async (base) => {
       for (const path of ['Error.htm', 'Test/Test.htm', 'Test/system.htm']) {
         const file = 'public/ConMasWeb/Rests/' + path;
-        const original = await readFile(file, 'utf8');
+        const original = await readFile(file);
         const response = await fetch(`${base}/${path}`);
         assert.equal(response.status, 200);
         assert.match(response.headers.get('content-type')!, /text\/html/);
-        const html = await response.text();
-        const expected = (await minifyHtml(original)).replace(/^\uFEFF/, '');
-        assert.equal(
-          createHash('sha256').update(html).digest('hex'),
-          createHash('sha256').update(expected).digest('hex'),
-        );
-        assert.equal((html.match(/<form\b/gi) ?? []).length, (original.match(/<form\b/gi) ?? []).length);
-        assert.equal(await readFile(file, 'utf8'), original);
+        assert.deepEqual(Buffer.from(await response.arrayBuffer()), original);
+        assert.deepEqual(await readFile(file), original);
         assert.equal(await (await fetch(`${base}/${path}`, { method: 'HEAD' })).text(), '');
         assert.equal((await fetch(`${base}/${path}`, { method: 'POST' })).status, 405);
       }
@@ -195,7 +187,7 @@ test('production native HTML pages minify without changing original files, metho
     'production',
   ));
 
-test('separate API static pages minify only production HTML and preserve their existing script and security gates', async () => {
+test('separate API static pages preserve original HTML/script bytes and security gates in every environment', async () => {
   for (const environment of ['development', 'production']) {
     await fixture(
       async (base) => {
@@ -204,15 +196,8 @@ test('separate API static pages minify only production HTML and preserve their e
           const response = await fetch(`${base}/${path}`);
           assert.equal(response.status, 200);
           assert.match(response.headers.get('content-type')!, path.endsWith('.js') ? /javascript/ : /text\/html/);
-          const expected =
-            environment === 'production' && !path.endsWith('.js')
-              ? Buffer.from(await minifyHtml(original.toString('utf8')))
-              : original;
           const body = Buffer.from(await response.arrayBuffer());
-          assert.equal(
-            createHash('sha256').update(body).digest('hex'),
-            createHash('sha256').update(expected).digest('hex'),
-          );
+          assert.deepEqual(body, original);
           assert.equal(await (await fetch(`${base}/${path}`, { method: 'HEAD' })).text(), '');
           assert.equal((await fetch(`${base}/${path}`, { method: 'POST' })).status, 405);
           const blocked = await fetch(`${base}/${path}`, { headers: { origin: 'https://other.invalid' } });

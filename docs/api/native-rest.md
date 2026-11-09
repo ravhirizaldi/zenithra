@@ -134,7 +134,7 @@ Generic Library registration is **not** the unimplemented mapped `DocumentRegist
 | `/ConMasWeb/Rests/Test/Test.htm`         | GET/HEAD           | Original forms; can issue writes.                      |
 | `/ConMasWeb/Rests/Test/system.htm`       | GET/HEAD           | Original forms; can issue writes.                      |
 
-The static bodies ship as verified original copies under `public/ConMasWeb/Rests`; production builds serve minified copies from `dist/public`. They no longer require a Windows installation path. The existing GET/HEAD allowlist and security checks remain; the original forms can issue writes and are not an exhaustive test console. Diagnostic handlers are not additional mapped business commands; do not call them mid-authenticated workflow.
+The static bodies ship as verified original copies under `public/ConMasWeb/Rests`, served byte-for-byte in every environment, including production. They no longer require a Windows installation path. The existing GET/HEAD allowlist and security checks remain; the original forms can issue writes and are not an exhaustive test console. Diagnostic handlers are not additional mapped business commands; do not call them mid-authenticated workflow.
 
 ## Recognized but not migrated
 

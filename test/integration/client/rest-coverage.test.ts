@@ -69,6 +69,10 @@ test('REST inventory retains all source commands, direct pages and GeneralProces
     if (command.node) assert(readFileSync(join(root, command.node), 'utf8').includes(command.name), command.name);
   }
   assert.equal(inventory.commands.find((command) => command.name === 'RegistDefinition')?.status, 'partial');
+  assert.equal(
+    inventory.commands.find((command) => command.name === 'GetDefinitionUpdateList')?.status,
+    'local-path-implemented',
+  );
   assert.equal(inventory.commands.find((command) => command.name === 'DocumentRegistration')?.status, undefined);
   assert.equal(inventory.commands.find((command) => command.name === 'GetUserId')?.status, 'scope-excluded');
   assert.equal(

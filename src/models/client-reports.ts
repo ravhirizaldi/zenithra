@@ -3,6 +3,7 @@ import { clientError } from '../services/client-xml.js';
 import { validClientVersion } from '../config/client.js';
 import { zipBuffer } from '../controllers/manager/system/files.js';
 import { type DefinitionActor, query, queryDocument, rowElement } from './client-definitions.js';
+import { reportApplicantLocked } from './client-report-lock.js';
 import {
   type XmlNode,
   child,
@@ -69,6 +70,7 @@ async function clusterPermissions(
   actor: ReportActor,
   definition: boolean,
   forceReadOnly: boolean,
+  appliedReadOnly: boolean,
 ): Promise<void> {
   if (actor.userId === 'conmasadmin') return;
   const params = { sheet_id: integerField(sheet, definition ? 'defSheetId' : 'repSheetId'), user_id: actor.userId };
@@ -80,10 +82,40 @@ async function clusterPermissions(
   if (!denied.size && !hidden.size && !forceReadOnly) return;
   for (const cluster of children(must(sheet, 'clusters'), 'cluster')) {
     const id = field(cluster, 'clusterId');
-    if (forceReadOnly || denied.has(id) || (hidden.has(id) && unrestricted.has(id))) replace(cluster, 'readOnly', '1');
+    const blocked = denied.has(id) || (hidden.has(id) && unrestricted.has(id));
+    if (!definition) {
+      if (blocked) replace(cluster, 'applyLock', '0');
+      else if (appliedReadOnly && optionalField(cluster, 'readOnly') === '0') replace(cluster, 'applyLock', '1');
+      else if (optionalField(cluster, 'readOnly') === '1') replace(cluster, 'applyLock', '0');
+    }
+    if (forceReadOnly || blocked) replace(cluster, 'readOnly', '1');
     else if (optionalField(cluster, 'readOnly') !== '1') replace(cluster, 'readOnly', '0');
     if (hidden.has(id) && (denied.has(id) || unrestricted.has(id))) replace(cluster, 'hide', '1');
   }
+}
+
+async function initialReportHistory(db: Pick<pg.Pool, 'query'>, id: number) {
+  const rows: Record<string, unknown>[] = [];
+  for (const [kind, condition, direction] of [
+    ['initial', 'h.init_history_input=1', 'DESC'],
+    ['next', "h.init_history_input<>1 AND h.verified<>'1'", 'ASC'],
+    ['approval', "h.cluster_type IN ('Create','Inspect','Approve') AND h.input_value='4'", 'ASC'],
+  ])
+    rows.push(
+      ...(
+        await db.query(
+          `SELECT DISTINCT ON (h.rep_sheet_id,h.cluster_id) $2::text AS kind,h.rep_sheet_id,h.cluster_id,h.input_value,h.display_value,h.verified,
+      COALESCE(length(h.image_file),0) AS image_file_length,COALESCE(length(h.binary_file),0) AS binary_file_length,
+      COALESCE(length(h.binary_file_win),0) AS binary_file_length_win,h.binary_file_type,
+      COALESCE(length(h.recording_file),0) AS recording_file_length,
+      h.approver||to_char(h.approver_date,'YYYYMMDDHH24MISS') AS input_approval_value
+      FROM history_rep_cluster h JOIN rep_sheet s USING(rep_sheet_id)
+      WHERE s.rep_top_id=$1 AND ${condition} ORDER BY h.rep_sheet_id,h.cluster_id,h.history_regist_time ${direction}`,
+          [id, kind],
+        )
+      ).rows,
+    );
+  return rows;
 }
 
 // ReportBiz's tablet pipeline is distinct from Designer GetDefinitionData (which acquires a definition lock).
@@ -181,6 +213,7 @@ export async function getReportDownload(
       forceReadOnly = false;
     if (!definition) {
       if (Number(data.edit_refer_status) === 4 && !copy) {
+        replace(top, 'editStatus', '4');
         readOnly = 1;
         forceReadOnly = true;
       }
@@ -188,9 +221,10 @@ export async function getReportDownload(
         readOnly = 1;
         forceReadOnly = true;
       }
-      // shortcut: applicant locks/referenced-cluster substitution are not yet ported; refuse those downloads rather than permit unauthorized editing.
-      if (text(data.use_applicant_lock) === '1')
-        throw new ReportUnsupported('Applicant-lock report retrieval is not implemented.', 'report_applicant_lock');
+      if (readOnly < 1 && (await reportApplicantLocked(client, topId, actor.userId, copy))) {
+        readOnly = 1;
+        forceReadOnly = true;
+      }
     }
     replace(top, 'locked', '0');
     replace(top, 'readOnly', String(readOnly));
@@ -217,12 +251,13 @@ export async function getReportDownload(
     for (let index = 1; index <= 5; index++) mapping['systemKey' + index] = 'system_key' + index;
     for (const [name, column] of Object.entries(mapping))
       if (data[column] !== undefined && data[column] !== null) replace(top, name, text(data[column]));
+    if (setting('IPAD_SETTING', 'USE_APPLICANT_LOCK') === '1') replace(top, 'useApplicantLock', '1');
     if (!text(data.report_copy_enable)) replace(top, 'isReportCopy', '1');
     if (!text(data.mobile_edit_type)) replace(top, 'mobileEditType', '0');
     if (!child(top, 'noNeedToFillOutMode')) replace(top, 'noNeedToFillOutMode', '0');
     if (setting('IPAD_SETTING', 'SAVE_LOCAL_CAMERA_IMAGE') === '1') replace(top, 'saveLocalCameraImage', '1');
     const history = setting('HISTORY_SETTING', 'ENABLE');
-    if (definition && ['1', '2'].includes(history)) {
+    if (['1', '2'].includes(history)) {
       replace(top, 'useInputHistory', history);
       replace(
         top,
@@ -231,7 +266,9 @@ export async function getReportDownload(
       );
     }
     remove(top, 'useInitInputJudgeParameters');
-    if (data.use_init_input_judge_parameters) content(top).push(root(data.use_init_input_judge_parameters));
+    if (Number(optionalField(top, 'useInputHistory')) > 0) {
+      if (data.use_init_input_judge_parameters) content(top).push(root(data.use_init_input_judge_parameters));
+    } else remove(top, 'useInitInputJudge');
     if (definition) {
       replace(top, 'repTopId', '');
       replace(top, 'defTopOrg', text(data.top_org_id));
@@ -272,6 +309,8 @@ export async function getReportDownload(
         [topId],
       )
     ).rows;
+    const initial =
+      !definition && optionalField(top, 'useInitInputJudge') === '1' ? await initialReportHistory(client, topId) : [];
     for (const sheet of children(must(top, 'sheets'), 'sheet')) {
       const image = images.find((row) => String(row.sheet_no) === field(sheet, 'sheetNo'));
       const stored = storedSheets.find(
@@ -304,7 +343,81 @@ export async function getReportDownload(
           ).rows.map((row) => rowElement('reference', row)),
         ),
       );
-      await clusterPermissions(client, section, sheet, actor, definition, forceReadOnly);
+      if (!definition) {
+        const rows = (
+          await client.query(
+            `SELECT cluster_id,verified,comment_value,comment_input_parameters,edit_user,edit_user_name,edit_time,gps_lat,gps_lon,gps_alt
+            FROM rep_cluster WHERE rep_sheet_id=$1`,
+            [integerField(sheet, 'repSheetId')],
+          )
+        ).rows;
+        for (const cluster of children(must(sheet, 'clusters'), 'cluster')) {
+          const row = rows.find((row) => String(row.cluster_id) === field(cluster, 'clusterId'));
+          if (!row) continue;
+          replace(cluster, 'verified', text(row.verified));
+          remove(cluster, 'comment');
+          if (row.comment_value || row.comment_input_parameters)
+            content(cluster).push(
+              element('comment', [
+                ...(row.comment_value ? [element('value', text(row.comment_value))] : []),
+                ...(row.comment_input_parameters
+                  ? [element('inputParameters', text(row.comment_input_parameters))]
+                  : []),
+              ]),
+            );
+          for (const [name, column] of Object.entries({
+            editUser: 'edit_user',
+            editUserName: 'edit_user_name',
+            editTime: 'edit_time',
+          }))
+            if (row[column]) replace(cluster, name, text(row[column]));
+          if (row.gps_lat) {
+            remove(cluster, 'gps');
+            content(cluster).push(
+              element(
+                'gps',
+                ['lat', 'lon', 'alt'].map((name) => element(name, text(row['gps_' + name]))),
+              ),
+            );
+          }
+        }
+      }
+      for (const cluster of children(must(sheet, 'clusters'), 'cluster')) {
+        if (!definition && child(cluster, 'applyLock')) replace(cluster, 'applyLock', '0');
+        remove(cluster, 'initValue');
+        const type = field(cluster, 'type');
+        const history = initial.filter(
+          (row) =>
+            String(row.rep_sheet_id) === optionalField(sheet, 'repSheetId') &&
+            String(row.cluster_id) === field(cluster, 'clusterId'),
+        );
+        let first = history.find((row) => row.kind === 'initial');
+        if (!first || type === 'Action') continue;
+        if (['Approve', 'Create', 'Inspect'].includes(type)) {
+          const approval = history.find((row) => row.kind === 'approval');
+          if (approval) replace(cluster, 'initValue', text(approval.input_approval_value));
+          continue;
+        }
+        const column =
+          type === 'MultipleChoiceNumber'
+            ? 'display_value'
+            : ['FixedText', 'FreeDraw'].includes(type)
+              ? first.binary_file_type === 'Windows'
+                ? 'binary_file_length_win'
+                : 'binary_file_length'
+              : ['Image', 'DrawingImage', 'FreeText'].includes(type)
+                ? 'image_file_length'
+                : type === 'AudioRecording'
+                  ? 'recording_file_length'
+                  : 'input_value';
+        const empty = ['input_value', 'display_value'].includes(column)
+          ? text(first[column]) === ''
+          : text(first[column]) === '0';
+        if (setting('CONMAS_FUNCTION', 'INITIAL_VALUE_CHANGE_DISPLAY_TYPE') === '1' && first.verified === '1' && empty)
+          first = history.find((row) => row.kind === 'next');
+        if (first) replace(cluster, 'initValue', text(first[column]));
+      }
+      await clusterPermissions(client, section, sheet, actor, definition, readOnly >= 1, forceReadOnly);
     }
     if (lock && !definition && !copy && readOnly < 1) {
       await client.query('BEGIN');

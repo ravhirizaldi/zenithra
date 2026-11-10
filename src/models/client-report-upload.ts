@@ -12,15 +12,19 @@ import { directIsLinked } from '../controllers/manager/system/direct.js';
 import { setReportAuditFields, setReportName } from './client-report-name.js';
 import { createReportAutoLabels, updateReportAutoLabels } from './client-report-labels.js';
 import { checkReportTables, reportTableValue, saveReportTables } from './client-report-tables.js';
+import { reportApplicantLocked } from './client-report-lock.js';
+import { documentAdministratorId } from './manager/documents/details.js';
 import {
   child,
   children,
+  content,
   element,
   field,
   integer,
   integerField,
   must,
   optionalField,
+  remove,
   replace,
   root,
   serialize,
@@ -97,14 +101,21 @@ export async function checkReportSaveFeatures(
       'report_binder_mapping',
       integerField(top, 'defTopId'),
     );
-  for (const name of [
-    'useApplicantLock',
-    'useInputHistory',
-    'useChangeReason',
-    'journalizingDefTopId',
-    'useInitInputJudge',
-    'useAutoNumbering',
-  ]) {
+  const systemHistory = (
+    await db.query(
+      "SELECT com_value FROM mst_common WHERE com_key='HISTORY_SETTING' AND com_name='ENABLE' AND com_index=0",
+    )
+  ).rows[0]?.com_value;
+  if (['1', '2'].includes(optionalField(top, 'useInputHistory')) || ['1', '2'].includes(systemHistory)) {
+    const trigger = await db.query(
+      `SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid
+      WHERE t.tgrelid='rep_cluster'::regclass AND NOT t.tgisinternal AND t.tgenabled IN ('O','A')
+      AND p.proname='func_rep_cluster_trigger' AND (t.tgtype::int & 21)=21`,
+    );
+    if (!trigger.rowCount)
+      throw new ReportUnsupported('Report history trigger is unavailable.', 'report_history_trigger');
+  }
+  for (const name of ['journalizingDefTopId', 'useAutoNumbering']) {
     const value = optionalField(top, name);
     if (value && !['0', '-1'].includes(value))
       throw new ReportUnsupported('Report feature is not implemented: ' + name, 'report_feature_' + name);
@@ -286,6 +297,7 @@ export async function beginReportUpload(
   if (typeof source === 'string') return source;
   const sourceTop = must(root(source.xml), 'top');
   if (integerField(sourceTop, 'defTopId') !== defId) return clientError(2);
+  if (!definition && field(sourceTop, 'editStatus') === '4') return clientError(1110, 'Report completed.');
   if (!definition && field(sourceTop, 'readOnly') === '1') return clientError(3);
   await checkReportSaveFeatures(db, sourceTop, field(top, 'editStatus'));
   const directory = await mkdtemp(join(tmpdir(), 'conmas-report-'));
@@ -352,6 +364,9 @@ export async function stageReportSheet(
       target = children(must(original, 'clusters'), 'cluster').find((node) => integerField(node, 'clusterId') === id);
     if (seen.has(id) || !target) return invalid(seen.has(id) ? 'duplicate_cluster' : 'unknown_cluster', 2, id);
     seen.add(id);
+    for (const name of ['verified', 'isHidden'])
+      if (child(cluster, name) && !['', '0', '1'].includes(field(cluster, name)))
+        return invalid('invalid_cluster_flag', 2, id, name);
     if (optionalField(target, 'readOnly') === '1' || optionalField(target, 'hide') === '1')
       return invalid('cluster_permission', 3, id);
   }
@@ -517,6 +532,10 @@ async function commitReportUpload(
     const document = root(source.xml),
       top = must(document, 'top'),
       submitted = root(upload.top);
+    if (!upload.definition && field(top, 'editStatus') === '4') {
+      await client.query('ROLLBACK');
+      return clientError(1110, 'Report completed.');
+    }
     if (!upload.definition && field(top, 'readOnly') === '1') {
       await client.query('ROLLBACK');
       return clientError(3);
@@ -667,6 +686,47 @@ async function commitReportUpload(
           await client.query('ROLLBACK');
           return clientError(3);
         }
+        if (
+          optionalField(top, 'useChangeReason') === '1' &&
+          optionalField(cluster, 'changeReasonValue') &&
+          ![
+            'Calculate',
+            'IfFunction',
+            'TimeCalculate',
+            'MCNCalculate',
+            'Registration',
+            'RegistrationDate',
+            'LatestUpdate',
+            'LatestUpdateDate',
+            'Gps',
+            'Action',
+          ].includes(field(target, 'type')) &&
+          optionalField(target, 'editUser') === optionalField(cluster, 'editUser')
+        ) {
+          const editDate = (node: XmlNode) => {
+            try {
+              return reportTableValue(
+                element('cluster', [
+                  element('type', 'Date'),
+                  element(
+                    'value',
+                    optionalField(node, 'editTime')
+                      .trim()
+                      .replace(/(\d{2}:\d{2}:\d{2})\.\d+$/, '$1'),
+                  ),
+                ]),
+                'D',
+                actor.cultureName || 'en-US',
+              );
+            } catch (error) {
+              // CheckedChangeReson uses TryParse; an unfamiliar date cannot suppress the submitted reason.
+              if (error instanceof ReportUnsupported && error.code === 'report_table_date_format') return null;
+              throw error;
+            }
+          };
+          const previous = editDate(target);
+          if (previous && previous === editDate(cluster)) remove(cluster, 'changeReasonValue');
+        }
         merge(target, cluster, [
           'value',
           'displayValue',
@@ -677,8 +737,17 @@ async function commitReportUpload(
           'gpsLat',
           'gpsLon',
           'gpsAlt',
+          'verified',
+          'changeReasonValue',
+          'pinValue',
+          'isHidden',
           ...remarkValues,
         ]);
+        for (const name of ['comment', 'gps'])
+          if (child(cluster, name)) {
+            remove(target, name);
+            content(target).push(root(serialize(must(cluster, name))));
+          }
         // ReportBiz persists the client's Calculate formula/result; ordinary saves do not recalculate it on the server.
         if (field(target, 'type') === 'Calculate' && optionalField(cluster, 'function'))
           replace(target, 'function', field(cluster, 'function'));
@@ -818,32 +887,61 @@ async function commitReportUpload(
               applicant_comment: optionalField(cluster, 'applicantComment'),
             }
           : {};
+        const submittedCluster = children(must(incoming, 'clusters'), 'cluster').find(
+          (node) => integerField(node, 'clusterId') === clusterId,
+        );
+        const extra: Record<string, unknown> = {};
+        if (submittedCluster) {
+          for (const [name, column] of Object.entries({
+            editUser: 'edit_user',
+            editUserName: 'edit_user_name',
+            editTime: 'edit_time',
+            gpsLat: 'gps_lat',
+            gpsLon: 'gps_lon',
+            gpsAlt: 'gps_alt',
+            changeReasonValue: 'change_reason',
+            verified: 'verified',
+            pinValue: 'pin_value',
+            isHidden: 'is_hidden',
+          }))
+            if (child(submittedCluster, name)) {
+              const raw = field(submittedCluster, name);
+              extra[column] = name === 'editTime' ? raw || null : raw;
+            }
+          for (const [name, columns] of [
+            ['comment', { value: 'comment_value', inputParameters: 'comment_input_parameters' }],
+            ['gps', { lat: 'gps_lat', lon: 'gps_lon', alt: 'gps_alt' }],
+          ] as const) {
+            const node = child(submittedCluster, name);
+            if (node)
+              for (const [fieldName, column] of Object.entries(columns))
+                if (child(node, fieldName)) extra[column] = field(node, fieldName);
+          }
+        }
+        if (['FixedText', 'FreeDraw'].includes(type) && (upload.definition || stage.files[prefix + '_value'])) {
+          extra[actor.platform === 'Windows' ? 'binary_file_win' : 'binary_file'] = ink;
+          extra.binary_file_type = actor.platform === 'Windows' ? 'Windows' : '';
+        }
         const clusterSql = (sql.cluster as unknown as Record<string, Record<string, string>>)[
           upload.definition ? 'insert' : 'update'
-        ][kind].replace(/\{[01]\}/g, '');
+        ][kind]
+          .replace(
+            '{0}',
+            Object.keys(extra)
+              .map((name) => `, ${name}${upload.definition ? '' : ' = :' + name}`)
+              .join(''),
+          )
+          .replace(
+            '{1}',
+            upload.definition
+              ? Object.keys(extra)
+                  .map((name) => ', :' + name)
+                  .join('')
+              : '',
+          );
+        // The original trigger must see values, metadata and binaries in one row operation.
         if (upload.definition || changed.has(number + ',' + clusterId))
-          await query(client, clusterSql, { ...params, ...approvalParams });
-        if (
-          children(must(incoming, 'clusters'), 'cluster').some((node) => integerField(node, 'clusterId') === clusterId)
-        )
-          await client.query(
-            'UPDATE rep_cluster SET edit_user=$3,edit_user_name=$4,edit_time=$5,gps_lat=$6,gps_lon=$7,gps_alt=$8 WHERE rep_sheet_id=$1 AND cluster_id=$2',
-            [
-              sheetId,
-              clusterId,
-              optionalField(cluster, 'editUser') || null,
-              optionalField(cluster, 'editUserName') || null,
-              optionalField(cluster, 'editTime') || null,
-              optionalField(cluster, 'gpsLat') || null,
-              optionalField(cluster, 'gpsLon') || null,
-              optionalField(cluster, 'gpsAlt') || null,
-            ],
-          );
-        if (['FixedText', 'FreeDraw'].includes(type) && (upload.definition || stage.files[prefix + '_value']))
-          await client.query(
-            `UPDATE rep_cluster SET ${actor.platform === 'Windows' ? 'binary_file_win' : 'binary_file'}=$3,binary_file_type=$4 WHERE rep_sheet_id=$1 AND cluster_id=$2`,
-            [sheetId, clusterId, ink, actor.platform === 'Windows' ? 'Windows' : ''],
-          );
+          await query(client, clusterSql, { ...params, ...approvalParams, ...extra });
         await saveDrawImages(client, sql, stage.files, 'cluster', sheetId, clusterId, audit);
         if (['Image', 'DrawingImage', 'FreeText', 'FixedText'].includes(type)) {
           replace(cluster, 'value', '');
@@ -959,19 +1057,28 @@ async function commitReportUpload(
     const labelActor = { userId: actor.userId, userName: user, terminalId: actor.terminalId };
     if (upload.definition) await createReportAutoLabels(client, top, labelActor, now);
     else await updateReportAutoLabels(client, previousTop, top, labelActor, now, true);
-    if (unlock)
+    const applicantLocked =
+      (await reportApplicantLocked(client, id, actor.userId)) && actor.userId !== (await documentAdministratorId());
+    if (unlock || applicantLocked)
       await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1 AND (user_id=$2 OR sys_regist_term=$3)', [
         id,
         actor.userId,
         actor.terminalId,
       ]);
-    else if (!locks.length)
+    else if (!locks.length && optionalField(top, 'lockMode') !== '1')
       await client.query(
         'INSERT INTO rep_lock (rep_top_id,user_id,sys_regist_term,sys_regist_user,sys_regist_time,sys_update_term,sys_update_user,sys_update_time) VALUES ($1,$2,$3,$2,$4,$3,$2,$4)',
         [id, actor.userId, actor.terminalId, now],
       );
+    const result = clientError(0, [
+      'repTopId=' + id,
+      'applicantLock=' + Number(applicantLocked),
+      ...['registUser', 'registUserName', 'registTime', 'updateUser', 'updateUserName', 'updateTime', 'repTopName'].map(
+        (name) => name + '=' + optionalField(top, name),
+      ),
+    ]);
     await client.query('COMMIT');
-    upload.result = clientError(0);
+    upload.result = result;
     return upload.result;
   } catch (error) {
     await client.query('ROLLBACK');

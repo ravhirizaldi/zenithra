@@ -15,6 +15,7 @@ import {
 } from '../models/client-definitions.js';
 import { clientError } from '../services/client-xml.js';
 import { requestFailure } from '../middleware/request-log.js';
+import { getDefinitionUpdateList } from '../models/client-definition-updates.js';
 
 export async function clientDefinitionAction(
   db: pg.Pool,
@@ -25,6 +26,7 @@ export async function clientDefinitionAction(
   if (
     ![
       'GetDefinitionList',
+      'GetDefinitionUpdateList',
       'GetReportList',
       'GetReportDetail',
       'GetDefinitionData',
@@ -37,6 +39,18 @@ export async function clientDefinitionAction(
   const account = req.session.clientAccount;
   if (!account) {
     res.send(clientError(5, 'no session.'));
+    return true;
+  }
+  if (command === 'GetDefinitionUpdateList') {
+    try {
+      const terminal = await clientTerminal(db, account);
+      res.send(
+        terminal.code !== 0 ? clientError(3) : await getDefinitionUpdateList(db, clientParameter(req, 'defTopId')),
+      );
+    } catch (error) {
+      requestFailure(res, error);
+      res.send(clientError(-1, 'server error.'));
+    }
     return true;
   }
   const terminal = await clientTerminal(db, account);

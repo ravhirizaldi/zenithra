@@ -1,8 +1,8 @@
 <div align="center">
 
 <h1>Zenithra</h1>
-<p><strong>A new foundation. The same behavior first.</strong></p>
-<p>Migrating i-Reporter’s .NET server applications to Node.js and TypeScript.</p>
+<p><strong>Same mission. New machinery. More freedom.</strong></p>
+<p>Recreating i-Reporter’s workflows with different code and a different composition.</p>
 
 <p>
   <img alt="Phase: migration" src="https://img.shields.io/badge/phase-migration-2563eb?style=flat-square">
@@ -12,327 +12,72 @@
 
 <p><code>Node.js</code> &nbsp; / &nbsp; <code>Strict TypeScript</code> &nbsp; / &nbsp; <code>Express</code> &nbsp; / &nbsp; <code>EJS</code> &nbsp; / &nbsp; <code>PostgreSQL</code></p>
 
-<p><a href="#architecture">Architecture</a> &nbsp; · &nbsp; <a href="#migration-by-the-numbers">Numbers</a> &nbsp; · &nbsp; <a href="#migration-progress">Progress</a> &nbsp; · &nbsp; <a href="#next-milestones">Next milestones</a> &nbsp; · &nbsp; <a href="#api-documentation">API docs</a> &nbsp; · &nbsp; <a href="#development">Development</a></p>
+<p><a href="#why-zenithra">Why</a> &nbsp; · &nbsp; <a href="#where-it-stands">Progress</a> &nbsp; · &nbsp; <a href="#what-remains">Remaining work</a> &nbsp; · &nbsp; <a href="docs/api/README.md">API guide</a> &nbsp; · &nbsp; <a href="DEVELOPMENT.md">Development</a></p>
 
 </div>
 
 ---
 
-## The migration contract
+## Why Zenithra?
 
-**Match the original before changing it.** Zenithra is currently a compatibility migration, not a redesign. The installed .NET application remains the reference for default behavior, layout, JavaScript, CSS, icons, permissions, licensing, errors and persistence. Existing Designer and device clients should retain their wire contracts.
+**A customer’s reporting workflow should not dictate their server operating system.** Zenithra is building a new foundation for familiar forms, reports, approvals and integrations—so customers can eventually run the product on non-Windows servers, including Linux, without losing the workflows they rely on.
 
-<table>
-  <tr>
-    <th align="left">01 / Preserve</th>
-    <th align="left">02 / Verify</th>
-    <th align="left">03 / Evolve</th>
-  </tr>
-  <tr>
-    <td>Reproduce the original workflows, screens and side effects in the new stack.</td>
-    <td>Check behavior, transactions, protocol responses and visual acceptance separately.</td>
-    <td>Introduce intentional design and functional changes only after parity is verified.</td>
-  </tr>
-</table>
+The long-term ambition is an independently maintained product, free of CIMTOPS/ConMas runtime dependencies. **That is the destination, not today’s release.** The migration still relies on parts of a legally obtained original installation, private settings/query XML and the compatible database schema. Original clients and bundled assets also remain in use; this repository does not make proprietary components freely licensed.
 
-## Architecture
+> **Same goals. Different code. Different composition.** Preserve the experience first; earn the freedom to evolve it next.
 
-```mermaid
-flowchart TB
-    Browser["Browser"] --> Manager
-    Devices["Designer / Windows / Android / iPad"] --> Native
-    Integrations["Business integrations"] --> API
+## The approach
 
-    subgraph Zenithra["Zenithra · Node.js / TypeScript / Express"]
-        Manager["Manager · /ConMasManager<br/>Web interface / own session"]
-        Native["Native REST · /ConMasWeb<br/>XML and binary / own session"]
-        API["Business API · /ConMasAPI<br/>XML and binary / own session"]
-        Views["EJS rendering<br/>91 templates and partials"]
-        Business["Models and shared business logic<br/>Validation / permissions / transactions"]
-        Manager --> Views
-        Manager --> Business
-        Native --> Business
-        API --> Business
-    end
+| 01 / Preserve                                                     | 02 / Recompose                                                        | 03 / Become independent                                                        |
+| :---------------------------------------------------------------- | :-------------------------------------------------------------------- | :----------------------------------------------------------------------------- |
+| Match workflows, original UI, permissions, errors and saved data. | Replace .NET server behavior with Node.js, TypeScript and PostgreSQL. | Remove remaining platform/vendor dependencies after compatibility is verified. |
 
-    Business --> Database[("PostgreSQL")]
-    Business --> Files["Report binaries and local files"]
-    Views --> Assets["Bundled original CSS, JavaScript and images"]
-    Business -.-> Originals["Private installation settings and query XML"]
-    Business -.-> Originals
+Today’s work is **server-side**. Designer, Windows, Android and iPad clients retain their original wire contracts; their application migration has not started. Intentional redesigns come after the compatibility baseline, not instead of it.
 
-    classDef surface fill:#eff6ff,stroke:#2563eb,color:#172554
-    classDef core fill:#f0fdfa,stroke:#0f766e,color:#134e4a
-    classDef private fill:#fffbeb,stroke:#b45309,color:#78350f
-    class Manager,Native,API surface
-    class Views,Business,Database core
-    class Files,Originals private
-    class Assets core
-```
+## Where it stands
 
-Three application surfaces share selected business helpers and storage—not authentication sessions. The original .NET installation is the compatibility reference, not a fourth public application bundled in this repository.
+<sub>Recounted 10 November 2026 · Registration and implementation paths, not a completion score</sub>
 
-## Migration by the numbers
+| Surface                         | Current evidence                                                                 | Remaining boundary                                                                                              |
+| :------------------------------ | :------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
+| **Manager** · `/ConMasManager`  | **270 / 461** source action signatures registered; **91** EJS templates/partials | **191** signatures unregistered; 5 of 11 tabs reachable, none complete                                          |
+| **Native REST** · `/ConMasWeb`  | **24 local + 27 partial** mapped commands; 7 local GeneralProcess operations     | **11** mapped commands unimplemented; 1 command scope-excluded; advanced branches remain                        |
+| **Business API** · `/ConMasAPI` | **35 partial** mapped commands; 7 partial GeneralProcess operations              | **62** supplied mapped commands unimplemented; 12 additional mappings not supplied by the original installation |
 
-<sub>Rechecked: 10 November 2026 · Source actions, installed templates, current route registration and reviewed command inventories</sub>
+Manager’s baseline spans **17 controllers / 321 distinct action paths**. Native REST has **63** mapped commands; the business API has **109**, of which **97** have supplied targets. Each API has **8** separately counted GeneralProcess operations. Direct-only pages are additional work, not duplicate commands.
 
-<table>
-  <tr>
-    <th align="left">Surface</th>
-    <th align="left">Functions / actions inventoried</th>
-    <th align="left">Current migration state</th>
-    <th align="left">Views / pages</th>
-  </tr>
-  <tr>
-    <td><strong>Manager</strong><br><code>/ConMasManager</code></td>
-    <td><strong>461</strong> action signatures<br><strong>321</strong> distinct action paths<br><strong>17</strong> source controllers</td>
-    <td><strong>270</strong> source signatures have matching Node routes<br><strong>191</strong> remain unregistered<br><strong>5 / 11</strong> menu tabs reachable; none claimed complete</td>
-    <td><strong>252</strong> installed Razor templates<br><strong>91</strong> current Node EJS templates/partials</td>
-  </tr>
-  <tr>
-    <td><strong>Native-client REST</strong><br><code>/ConMasWeb</code></td>
-    <td><strong>63</strong> mapped commands<br><strong>8</strong> GeneralProcess operations</td>
-    <td>Mapped commands: <strong>23</strong> local paths, <strong>27</strong> partial, <strong>12</strong> unimplemented, <strong>1</strong> scope-excluded<br>GeneralProcess: <strong>7</strong> local paths, <strong>1</strong> unimplemented</td>
-    <td><strong>74</strong> installed ASPX entry pages<br><strong>3</strong> static HTM pages<br><strong>0</strong> EJS views; XML/binary API</td>
-  </tr>
-  <tr>
-    <td><strong>Business API / WebAPI</strong><br><code>/ConMasAPI</code></td>
-    <td><strong>109</strong> mapped commands<br><strong>97</strong> mapped targets actually supplied<br><strong>8</strong> GeneralProcess operations</td>
-    <td>Mapped commands: <strong>35</strong> partial, <strong>62</strong> unimplemented, <strong>12</strong> not supplied by the original installation<br>GeneralProcess: <strong>7</strong> partial, <strong>1</strong> unimplemented</td>
-    <td><strong>109</strong> deployed ASPX entry pages, including direct-only pages and dispatcher<br><strong>2</strong> HTM pages + <strong>1</strong> static JS asset<br><strong>0</strong> EJS views; XML/binary API</td>
-  </tr>
-</table>
+Registered routes include blocked shells and explicit unsupported responses. Local paths are not exhaustive compatibility; templates include partials, not just screens. There is **no verified overall completion percentage**.
 
-**How to read these counts:** “Function” here means a public action signature or mapped command—not every internal helper. GET/POST overloads count separately. Manager registration includes blocked shells and explicit unsupported handlers; it is **not** 270 completed functions. Razor/EJS totals include partials and layouts, so **91 / 252 is not a screen-completion ratio**. Same-name API pages are alternate entry points, not extra commands. GeneralProcess operations are counted separately; unavailable targets and scope exclusions are not completed work.
+### Working foundations
 
-<details>
-<summary><strong>Manager breakdown · actions, registration gaps and original views</strong></summary>
+- **Documents:** list/detail navigation, Basic and sheet views, input history/downloads, label/permission editors, guarded metadata saves, lifecycle controls and populated PDF previews.
+- **Manager tools:** System management/settings, Labels, ordinary Library workflows and CSV Data Output paths.
+- **Native clients:** standard form/report transfers, definition update checks, ordinary report copying and master/catalog/library paths. Report finish commits required data transactionally; history/change reasons, initial-input baselines and applicant locks now have isolated regression coverage.
+- **Business integrations:** selected account, list/import/master and shared GeneralProcess paths, with separate sessions and contracts.
 
-| Controller / area             | Source actions | Registered | Unregistered | Original Razor templates |
-| :---------------------------- | -------------: | ---------: | -----------: | -----------------------: |
-| Account                       |              8 |          4 |            4 |                        8 |
-| Doc. Import / AutoGenerate    |             14 |          1 |           13 |                        5 |
-| Binder                        |             11 |          1 |           10 |                        9 |
-| Common / shared actions       |             28 |          8 |           20 |                       19 |
-| Master Manager / CustomMaster |             14 |          1 |           13 |                        6 |
-| Custom menu                   |             11 |          1 |           10 |                        4 |
-| Data Output                   |             18 |         18 |            0 |                        9 |
-| Forms / DefReport             |             71 |          6 |           65 |                       40 |
-| FreeDrawOnly                  |              1 |          0 |            1 |                        0 |
-| Help                          |              8 |          0 |            8 |                        1 |
-| **Documents / InputReport**   |         **67** |     **30** |       **37** |                   **31** |
-| Labels                        |             10 |         10 |            0 |                        5 |
-| Library                       |             19 |         19 |            0 |                        9 |
-| Schedule                      |              8 |          1 |            7 |                        4 |
-| Standard dialogs              |              3 |          0 |            3 |                        1 |
-| System                        |            169 |        169 |            0 |                       86 |
-| SystemGoogleAuthCallback      |              1 |          1 |            0 |                        0 |
-| **Controller totals**         |        **461** |    **270** |      **191** |                  **237** |
+## What remains
 
-Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **91** EJS files are independently counted from `src/views/manager/`; shared dialogs may serve multiple controllers. Four registered DefReport signatures serve Documents label/permission editors only; Forms remains blocked. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
+- [ ] **Finish report saves:** numbering, journalizing, binder/pin/deferred work and required output/notification pipelines. Unsupported effects must fail before success.
+- [ ] **Complete Documents:** cluster/binary editing, approval/copy/completion, remaining lifecycle effects and PDF audit-trail/layout/font parity.
+- [ ] **Close Manager gaps:** remaining System, Labels, Library and Data Output branches, permissions/licensing, locale and original-screen parity. Six other tabs remain blocked.
+- [ ] **Finish supplied APIs:** remaining mapped/direct handlers, newest-revision copying, merged PDF, authentication continuations and cross-device compatibility.
+- [ ] **Prove portability and independence:** replace remaining installation-specific runtime dependencies and verify non-Windows deployment; rebuild client applications as separate future work.
+- [ ] **Accept the real experience:** manual UI and unchanged-device testing across complete workflows, not just successful requests.
 
-Across Manager, **140 paths lack at least one source signature; 135 have no registered handler**. Within Documents, **30 / 67 signatures are registered and 37 remain unregistered**. Registered partial/error handlers count too, so these figures do not measure completed workflows.
+Scope excludes AD/MEID authentication/provider continuations and Manager’s External system linkage settings subtree. Shared user/device/license and MeID management, optional PDF license upload and native GetEdgeOCRCertificate remain in scope. Proven vendor-unsupplied features are tracked separately, never counted as completed.
 
-The registration check constructs the app with a throw-on-query/connect database stub and inspects routes: **zero database calls, no listener, no live-server requests**. Native/API status labels come from reviewed command inventories checked against the current configuration; they are not a fresh end-to-end acceptance result.
+> **Not a drop-in replacement yet.** Passing tests, HTTP 200 responses and one working device workflow do not establish full behavior, visual parity or production readiness.
 
-The current Documents detail/PDF check passed **87 affected tests**, source/test typecheck, full lint and formatting, including sequential-page and Unicode-font regressions. These checks use isolated fixtures; no application rebuild/restart, live-server requests or automated browser/client acceptance was performed.
+## Explore
 
-</details>
-
-## Migration progress
-
-<sub>Snapshot: 10 November 2026 · Current priority: full Manager Documents area</sub>
-
-### Server-side indicators
-
-<table>
-  <tr>
-    <th align="left">Component</th>
-    <th align="left">Approximate indicator</th>
-    <th align="left">What the percentage measures</th>
-  </tr>
-  <tr>
-    <td><strong>Manager server</strong></td>
-    <td><strong>≈59%</strong> route registration</td>
-    <td>270 / 461 source action signatures have matching Node routes. Includes partial, blocked and explicitly unsupported handlers—not completed workflows.</td>
-  </tr>
-  <tr>
-    <td><strong>Native REST server</strong></td>
-    <td><strong>≈81%</strong> with local or partial paths</td>
-    <td>(23 local + 27 partial) / 62 in-scope mapped commands have some migrated implementation. The single scope-excluded command is omitted; direct-only handlers and GeneralProcess are tracked separately.</td>
-  </tr>
-  <tr>
-    <td><strong>Business API / WebAPI server</strong></td>
-    <td><strong>≈36%</strong> with partial paths</td>
-    <td>35 / 97 supplied mapped commands have partial implementations. Twelve unavailable targets are omitted; direct-only handlers and GeneralProcess are tracked separately.</td>
-  </tr>
-</table>
-
-**These are coverage indicators, not “percent finished.”** Manager uses the full source-action baseline; native REST and the business API use their respective eligible mapped commands. Their denominators and maturity differ, so they are not averaged into an overall server-completion score. Full behavior, UI parity, permissions, licensing and acceptance remain unfinished.
-
-### Client application migration
-
-| Application     | Migration | Current state                                                         |
-| :-------------- | --------: | :-------------------------------------------------------------------- |
-| **Windows app** |    **0%** | Application migration not started; original client remains unchanged. |
-| **Android app** |    **0%** | Application migration not started; original client remains unchanged. |
-| **Designer**    |    **0%** | Application migration not started; original client remains unchanged. |
-
-Working server communication with an existing client does **not** mean that client application has been migrated. Current implementation work is server-side; these 0% figures describe the separate client applications, not server endpoint coverage.
-
-### Feature-level progress
-
-**All areas below remain partial.** “Available” identifies implemented paths, not full feature parity. There is no verified overall completion percentage yet.
-
-<table>
-  <tr>
-    <th align="left">Area</th>
-    <th align="left">Available in the migration</th>
-    <th align="left">Still to finish</th>
-  </tr>
-  <tr>
-    <td><strong>Documents</strong><br><sub>Active priority</sub></td>
-    <td>Index and detail navigation; Basic and normal-sheet detail views; cluster/report history with CSV/ZIP downloads; label/permission editors; guarded settings/metadata saves; shared automatic labels; tasks, detail delete/restore/unlock, protected media/FreeDraw and populated report PDF previews.</td>
-    <td>Actual cluster/binary editing and history writes; completion/numbering, approval and Manager copying; PDF audit-trail appendices and complete layout/font parity; output/notification delivery; remaining lifecycle effects and complete visual/locale parity.</td>
-  </tr>
-  <tr>
-    <td><strong>System</strong></td>
-    <td>Management/settings modules, users, groups, devices, imports/exports, licensing/storage controls, Webhook settings and logs.</td>
-    <td>Remaining import branches, optional PDF-license integration and exhaustive permission, licensing and screen parity.</td>
-  </tr>
-  <tr>
-    <td><strong>Labels</strong></td>
-    <td>Seven modes, hierarchy, create/edit/delete, permissions, copying and shared selectors.</td>
-    <td>Shared layout, locale, selector edge cases and manual UI acceptance.</td>
-  </tr>
-  <tr>
-    <td><strong>Library</strong></td>
-    <td>Ordinary file/URL/image workflows, replacement/rollback, labels/roles, downloads and IRFD image/text/GPS extraction.</td>
-    <td>FreeDraw registration/locks, linked forms/reports and remaining behavior, audit and UI branches.</td>
-  </tr>
-  <tr>
-    <td><strong>Data Output</strong></td>
-    <td>Form/report selection, saved layouts, confirmation and ordinary CSV ZIP export.</td>
-    <td>Cooperation views, automatic output, PDF/Excel/image bundles and special sheet/field branches.</td>
-  </tr>
-  <tr>
-    <td><strong>Native-client REST</strong></td>
-    <td>Standard form/report transfers, transactional saves, ordinary copying, masters, catalog/library and selected GeneralProcess workflows.</td>
-    <td>Remaining commands, direct handlers, advanced report pipelines, merged PDF and exhaustive client/locale compatibility.</td>
-  </tr>
-  <tr>
-    <td><strong>Business API</strong></td>
-    <td>Account, list/import/master paths and shared GeneralProcess workflows.</td>
-    <td>Many mapped commands and branches; the separate RegistDocument command and unresolved deployed-source gaps.</td>
-  </tr>
-</table>
-
-> **Not a drop-in replacement yet.** Unfinished workflows may explicitly reject requests. Registered routes, HTTP 200 responses and passing tests are not evidence of complete behavioral or visual parity. Other Manager tabs remain blocked rather than being presented as finished.
-
-**Documents details and populated PDF previews can now be viewed**, including Basic information, sheets and input history. PDF output overlays stored values/images/signatures/markers and DrawingImage pins onto the original background, applies cluster permissions and requested layers, maps sparse/added sheets and inserts stored FreeDraw pages for whole-report output. The shared viewer preserves original embed/close behavior. The user approved the open-source PDF engine without the commercial Apryse/Syncfusion engine-license gate; ConMas licensing and report permissions remain unchanged. Configure `PDF_SETTING/FONT_FILE_PATH` for Unicode fonts on hosts without the installed Windows CJK fonts. Audit-trail appendices and unsupported date formats still fail explicitly, and full visual/font parity remains unverified. Editing remains limited: unchanged cluster controls allow guarded metadata saves, while actual cluster changes and unfinished downstream effects fail before commit. Approval, copying and completion remain migration work.
-
-## Next milestones
-
-- [ ] **Finish Documents editing end to end** — complete Basic, sheet/cluster/binary/history writes and their required transactional side effects.
-- [ ] **Complete approval, copy, completion and output** — preserve report state, numbering, permissions, binaries and downstream effects before reporting success; finish PDF special-output/layout parity and remaining Index lifecycle behavior.
-- [ ] **Accept the original UI** — recheck tables, headers, menus, assets, dialogs and locale against the installed application; manual Edge UAT at 80% zoom remains outstanding.
-- [ ] **Resume Library and Data Output** — close their remaining branch and workflow gaps after the full Documents priority.
-- [ ] **Close native/API compatibility gaps** — finish remaining supplied commands and verify unchanged client contracts.
-- [ ] **Consider redesigns** — only after the compatibility baseline is verified.
-
-## Application surfaces
-
-| Application            | Base path        | Compatibility boundary                            |
-| :--------------------- | :--------------- | :------------------------------------------------ |
-| **Manager**            | `/ConMasManager` | Web management and document workflows             |
-| **Native-client REST** | `/ConMasWeb`     | Designer, Windows, Android and iPad communication |
-| **Business API**       | `/ConMasAPI`     | Separate business API sessions and contracts      |
-
-These are separate application surfaces, not aliases. Migration scope excludes AD/MEID authentication and the Manager External system linkage settings subtree; shared user/device/license management and native GetEdgeOCRCertificate remain in scope.
-
-## API documentation
-
-**[Public API guide](docs/api/README.md)** — exact URL paths, calling conventions, authentication boundaries and migration limits.
-
-| Guide                                             | Entry URL                                            | Documented migration paths                                                                      |
-| :------------------------------------------------ | :--------------------------------------------------- | :---------------------------------------------------------------------------------------------- |
-| [Native-client REST](docs/api/native-rest.md)     | `/ConMasWeb/Rests/ConMasIReporter.aspx?command=NAME` | 23 local + 27 partial mapped commands, 7 local GeneralProcess operations and direct diagnostics |
-| [Business API / WebAPI](docs/api/business-api.md) | `/ConMasAPI/Rests/APIExecute.aspx?command=NAME`      | 35 partial mapped commands and 7 partial shared GeneralProcess operations                       |
-
-Both guides also show direct `/Rests/NAME.aspx` URLs and distinguish migrated paths from recognized-but-unimplemented endpoints. These are protocol guides, not claims of complete parity. Private source evidence, installation settings and customer data are not published.
-
-## Development
-
-<details>
-<summary><strong>Local setup and prerequisites</strong></summary>
-
-A fresh clone includes the original runtime CSS, JavaScript and images under `public/Content` and `public/Scripts`, plus the original database base backups under `database/`. It is **not fully self-contained**: some compatibility paths still load private installation settings and query XML; workstation-specific paths are not fully portable yet. Manager UI templates are project-owned EJS.
-
-Required:
-
-- Node.js supporting the project's `node --watch` workflow and pnpm **10.30.3**.
-- PostgreSQL 16 with a compatible schema and authorized data; see the [database bootstrap guide](database/README.md) for the included original base backups.
-- Your own legally obtained original installation and required private settings/resources.
-- A private `.env` based on [`.env.example`](.env.example), with database access, a strong session secret and your installation's compatibility keys.
-
-After those prerequisites are prepared:
-
-```sh
-pnpm install --frozen-lockfile
-pnpm dev
-```
-
-Manager login: `http://127.0.0.1:3000/ConMasManager/Account/LogOn`.
-
-Do not start another server on an occupied port. Sessions and unfinished transfer staging are process-local; restarting can interrupt them.
-
-**Database preparation is separate.** The [database bootstrap guide](database/README.md) documents restoring the supplied plain-SQL base backups into new databases. Review `pnpm db:prepare` before applying the additional Node schema changes. `pnpm import:samples` writes forms/documents and is not a setup shortcut for customer databases.
-
-**Uploaded Library files** default to `SettingFiles/xml/Library/<document_id>` under this project root, independently of the installed reference settings and the shell's working directory. An existing explicit `LIBRARY/BASE_FOLDER` database setting still overrides that default. Runtime Library files are Git-ignored; back them up with the active databases. Multipart uploads and report staging use Node's `os.tmpdir()` on Windows/Linux, rather than a hardcoded `/tmp` path.
-
-**English UI text** is grouped in `src/config/manager/<area>/resources.ts`. Shared header/navbar text uses `shared/resources.ts`; Documents retains its own resources. `src/config/manager/resources.ts` provides the common resource context for full pages and AJAX partials. Language switching is not enabled.
-
-**Manager branding:** Zenithra Hub uses generated PNG assets in `public/branding/`. The logo, header, navigation and login-button treatment are applied by the Node-owned `public/manager-theme.css`; original vendor assets are preserved.
-
-</details>
-
-<details>
-<summary><strong>Checks and acceptance boundaries</strong></summary>
-
-```sh
-pnpm typecheck
-pnpm lint
-pnpm format:check
-pnpm test
-```
-
-Database-backed checks need private configuration and may otherwise skip; some checks also require excluded original resources. Use isolated fixtures, never customer-data changes. `pnpm build` uses plain TypeScript (`tsc`) to emit readable server JavaScript into `dist/`; tests are excluded. There is no additional build-time or runtime minification on `main`, including production EJS HTML, AJAX fragments and inline JS/CSS. All environments serve original bundled assets from `public/`; native/API static allowlists use `public/ConMasWeb/Rests` and `public/ConMasAPI/Rests`, not Windows installation paths. The previous minified implementation is preserved on the `minification` branch at `d365ac6`. Existing output is not deleted, and a running app or prior build does not change until the user rebuilds/restarts it. `pnpm start` still uses `dist/server.js`. Building does not establish parity. Do not rebuild, restart or replay live requests just to verify documentation.
-
-</details>
-
-<details>
-<summary><strong>Source layout</strong></summary>
-
-```text
-src/
-  config/         Configuration readers
-  controllers/    Request handlers
-  middleware/     Authentication and request security
-  models/         Business logic and persistence
-  routes/         Route registration
-  services/       Rendering and application services
-  shared/         Shared protocol utilities
-  views/          EJS templates
-test/             Layer-specific and integration checks
-config/           Native-client and business-API configuration
-public/           Original runtime assets and Node preview styles
-database/         Original base SQL backups and provenance
-```
-
-Manager MVC stays layer-first: `src/controllers/manager/<menu>/`, `src/models/manager/<menu>/` and `src/views/manager/<menu>/`.
-
-</details>
+| Start here                                        | What you’ll find                                                        |
+| :------------------------------------------------ | :---------------------------------------------------------------------- |
+| [Development](DEVELOPMENT.md)                     | Prerequisites, setup, architecture, storage and verification boundaries |
+| [API guide](docs/api/README.md)                   | Application boundaries, sessions and protocol conventions               |
+| [Native-client REST](docs/api/native-rest.md)     | Original Designer/device command paths and current limits               |
+| [Business API / WebAPI](docs/api/business-api.md) | Separate integration commands and unfinished branches                   |
+| [Database bootstrap](database/README.md)          | Original base backups, provenance and safe preparation                  |
 
 ---
 
-<sub><strong>Source and original bootstrap files.</strong> This repository includes the migration implementation, templates, configuration, tests, original runtime web assets and the two supplied database base backups. Vendor executables, licenses, decompiled projects, private evidence, live customer data, other backups and credentials remain local and Git-ignored. Included originals retain their licensing terms. Use only installations and data you are authorized to access. Zenithra is an independent project, not an official i-Reporter release; publication grants no rights to proprietary components.</sub>
+<sub>Zenithra is an independent project, not an official CIMTOPS/i-Reporter release. Included original assets and base database files retain their licensing terms. Vendor executables, licenses, decompiled sources, private evidence, credentials and live customer data stay local and Git-ignored. Use only installations and data you are authorized to access.</sub>

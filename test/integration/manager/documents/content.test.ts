@@ -859,13 +859,19 @@ test(
         },
       );
       await t.test(
-        'applicant lock follows system enablement and deregulation without an administrator bypass',
+        'applicant lock follows report/system enablement and deregulation without a retrieval administrator bypass',
         async () => {
           await client.query(
             "UPDATE rep_top SET use_applicant_lock=1 WHERE rep_top_id=1; INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES ('IPAD_SETTING','USE_APPLICANT_LOCK','1',20),('IPAD_SETTING','APPLICANT_LOCK_TYPE','0',21)",
           );
           assert.equal(await documentApplicantLocked(db, 1, 'fixture'), true);
           assert.equal(await documentApplicantLocked(db, 1, 'other'), false);
+          await client.query("UPDATE mst_common SET com_value='0' WHERE com_name='USE_APPLICANT_LOCK'");
+          assert.equal(await documentApplicantLocked(db, 1, 'fixture'), true);
+          await client.query(
+            "UPDATE rep_top SET use_applicant_lock=0 WHERE rep_top_id=1; UPDATE mst_common SET com_value='1' WHERE com_name='USE_APPLICANT_LOCK'",
+          );
+          assert.equal(await documentApplicantLocked(db, 1, 'fixture'), true);
           await client.query(
             "UPDATE mst_common SET com_value='1' WHERE com_name='APPLICANT_LOCK_TYPE'; UPDATE rep_cluster SET applicant='fixture' WHERE cluster_id=4",
           );
@@ -875,6 +881,7 @@ test(
           await client.query('UPDATE rep_top SET edit_refer_status=4 WHERE rep_top_id=1');
           assert.equal(await documentApplicantLocked(db, 1, 'fixture'), false);
           await client.query('UPDATE rep_top SET edit_refer_status=1,use_applicant_lock=0 WHERE rep_top_id=1');
+          await client.query("UPDATE mst_common SET com_value='0' WHERE com_name='USE_APPLICANT_LOCK'");
         },
       );
       await t.test(

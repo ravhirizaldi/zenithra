@@ -31,35 +31,38 @@ The values above are placeholders. Windows uses **`client=iPad&platform=Windows`
 
 Most commands require an authenticated, approved terminal; `DownloadReportList`, `PickOutReportTopData` and GeneralProcess have separate rules. `GetAuthenticationType` handles standard discovery without a login. Login/password/settings branches are incomplete; new-password login requests remain unsupported. AD/MEID authentication is excluded.
 
-## Mapped commands with local paths — 23
+## Mapped commands with local paths — 24
 
 “Local” is not a full-parity or all-device acceptance claim. Additional branch/permission/licensing work can remain.
 
-| Command                    | Direct URL                                         | Request  | Local behavior                                                           |
-| :------------------------- | :------------------------------------------------- | :------- | :----------------------------------------------------------------------- |
-| Logout                     | `/ConMasWeb/Rests/Logout.aspx`                     | POST     | Clear native identity/session.                                           |
-| ApprovalTerminal           | `/ConMasWeb/Rests/ApprovalTerminal.aspx`           | POST     | Terminal approval path with its existing gates.                          |
-| UnlockReport               | `/ConMasWeb/Rests/UnlockReport.aspx`               | POST     | Report unlock.                                                           |
-| GetSheetBackgroundImage    | `/ConMasWeb/Rests/GetSheetBackgroundImage.aspx`    | GET/POST | Stored sheet background image.                                           |
-| GetLocalReferenceList      | `/ConMasWeb/Rests/GetLocalReferenceList.aspx`      | GET/POST | Accessible library/reference metadata.                                   |
-| GetLocalReference          | `/ConMasWeb/Rests/GetLocalReference.aspx`          | GET/POST | Authorized reference binary/preview.                                     |
-| GetCalendarList            | `/ConMasWeb/Rests/GetCalendarList.aspx`            | GET/POST | Calendar/schedule metadata.                                              |
-| GetCustomMasterLabel       | `/ConMasWeb/Rests/GetCustomMasterLabel.aspx`       | GET/POST | Custom-master label metadata.                                            |
-| GetLicense                 | `/ConMasWeb/Rests/GetLicense.aspx`                 | GET/POST | Effective encrypted license download.                                    |
-| GetUser                    | `/ConMasWeb/Rests/GetUser.aspx`                    | GET/POST | User export with original options.                                       |
-| GetCustomMenuSettings      | `/ConMasWeb/Rests/GetCustomMenuSettings.aspx`      | GET/POST | Menu ZIP/settings.                                                       |
-| GetMessageImage            | `/ConMasWeb/Rests/GetMessageImage.aspx`            | GET/POST | Message image binary.                                                    |
-| GetVoiceGrammar            | `/ConMasWeb/Rests/GetVoiceGrammar.aspx`            | GET/POST | Definition/report voice grammar with license gates.                      |
-| GetVoiceCommonGrammar      | `/ConMasWeb/Rests/GetVoiceCommonGrammar.aspx`      | GET/POST | Common voice grammar.                                                    |
-| GetCustomMultiMenuSettings | `/ConMasWeb/Rests/GetCustomMultiMenuSettings.aspx` | GET/POST | Multi-menu ZIP/settings.                                                 |
-| DownloadReportList         | `/ConMasWeb/Rests/DownloadReportList.aspx`         | GET/POST | Assigned auto-download report list.                                      |
-| PickOutReportTopData       | `/ConMasWeb/Rests/PickOutReportTopData.aspx`       | GET/POST | Report-top inquiry with selected properties.                             |
-| GetDesignerInstallerUrl    | `/ConMasWeb/Rests/GetDesignerInstallerUrl.aspx`    | GET/POST | Installer URL lookup; does not migrate Designer.                         |
-| RemoveTerminal             | `/ConMasWeb/Rests/RemoveTerminal.aspx`             | POST     | Session terminal removal path.                                           |
-| UnlockDocument             | `/ConMasWeb/Rests/UnlockDocument.aspx`             | POST     | Library/document unlock.                                                 |
-| GetDocumentInfo            | `/ConMasWeb/Rests/GetDocumentInfo.aspx`            | GET/POST | Common/image/FreeDraw document metadata.                                 |
-| IdentifyApprover           | `/ConMasWeb/Rests/IdentifyApprover.aspx`           | POST     | Approver identification check, not a complete Manager approval workflow. |
-| GetAuthenticationType      | `/ConMasWeb/Rests/GetAuthenticationType.aspx`      | GET/POST | Standard authentication discovery.                                       |
+| Command                    | Direct URL                                         | Request  | Local behavior                                                               |
+| :------------------------- | :------------------------------------------------- | :------- | :--------------------------------------------------------------------------- |
+| Logout                     | `/ConMasWeb/Rests/Logout.aspx`                     | POST     | Clear native identity/session.                                               |
+| GetDefinitionUpdateList    | `/ConMasWeb/Rests/GetDefinitionUpdateList.aspx`    | GET/POST | Comma-separated `defTopId`; published/current validity and deletion markers. |
+| ApprovalTerminal           | `/ConMasWeb/Rests/ApprovalTerminal.aspx`           | POST     | Terminal approval path with its existing gates.                              |
+| UnlockReport               | `/ConMasWeb/Rests/UnlockReport.aspx`               | POST     | Report unlock.                                                               |
+| GetSheetBackgroundImage    | `/ConMasWeb/Rests/GetSheetBackgroundImage.aspx`    | GET/POST | Stored sheet background image.                                               |
+| GetLocalReferenceList      | `/ConMasWeb/Rests/GetLocalReferenceList.aspx`      | GET/POST | Accessible library/reference metadata.                                       |
+| GetLocalReference          | `/ConMasWeb/Rests/GetLocalReference.aspx`          | GET/POST | Authorized reference binary/preview.                                         |
+| GetCalendarList            | `/ConMasWeb/Rests/GetCalendarList.aspx`            | GET/POST | Calendar/schedule metadata.                                                  |
+| GetCustomMasterLabel       | `/ConMasWeb/Rests/GetCustomMasterLabel.aspx`       | GET/POST | Custom-master label metadata.                                                |
+| GetLicense                 | `/ConMasWeb/Rests/GetLicense.aspx`                 | GET/POST | Effective encrypted license download.                                        |
+| GetUser                    | `/ConMasWeb/Rests/GetUser.aspx`                    | GET/POST | User export with original options.                                           |
+| GetCustomMenuSettings      | `/ConMasWeb/Rests/GetCustomMenuSettings.aspx`      | GET/POST | Menu ZIP/settings.                                                           |
+| GetMessageImage            | `/ConMasWeb/Rests/GetMessageImage.aspx`            | GET/POST | Message image binary.                                                        |
+| GetVoiceGrammar            | `/ConMasWeb/Rests/GetVoiceGrammar.aspx`            | GET/POST | Definition/report voice grammar with license gates.                          |
+| GetVoiceCommonGrammar      | `/ConMasWeb/Rests/GetVoiceCommonGrammar.aspx`      | GET/POST | Common voice grammar.                                                        |
+| GetCustomMultiMenuSettings | `/ConMasWeb/Rests/GetCustomMultiMenuSettings.aspx` | GET/POST | Multi-menu ZIP/settings.                                                     |
+| DownloadReportList         | `/ConMasWeb/Rests/DownloadReportList.aspx`         | GET/POST | Assigned auto-download report list.                                          |
+| PickOutReportTopData       | `/ConMasWeb/Rests/PickOutReportTopData.aspx`       | GET/POST | Report-top inquiry with selected properties.                                 |
+| GetDesignerInstallerUrl    | `/ConMasWeb/Rests/GetDesignerInstallerUrl.aspx`    | GET/POST | Installer URL lookup; does not migrate Designer.                             |
+| RemoveTerminal             | `/ConMasWeb/Rests/RemoveTerminal.aspx`             | POST     | Session terminal removal path.                                               |
+| UnlockDocument             | `/ConMasWeb/Rests/UnlockDocument.aspx`             | POST     | Library/document unlock.                                                     |
+| GetDocumentInfo            | `/ConMasWeb/Rests/GetDocumentInfo.aspx`            | GET/POST | Common/image/FreeDraw document metadata.                                     |
+| IdentifyApprover           | `/ConMasWeb/Rests/IdentifyApprover.aspx`           | POST     | Approver identification check, not a complete Manager approval workflow.     |
+| GetAuthenticationType      | `/ConMasWeb/Rests/GetAuthenticationType.aspx`      | GET/POST | Standard authentication discovery.                                           |
+
+`GetDefinitionUpdateList` requires a native session and approved terminal. Supply literal comma-separated int32 IDs in `defTopId`, not `topId`; `defTopOrg` is ignored by the supplied server contract. Results use `conmas/tops/top` with requested `defTopId`, `lastUpdateDate`, `useDateType` and optional `deleted`. Timestamps use the original Windows decoder's canonical `yyyy/MM/dd HH:mm:ss` form rather than locale-dependent text. Missing/empty IDs return XML code 2; malformed IDs/server errors return code -1, both at HTTP 200. Published revisions, validity/deletion quirks and empty-all-unknown results follow source; this read-only endpoint writes no reports or definitions. Installed-device acceptance remains separate.
 
 ## Partially migrated mapped commands — 27
 
@@ -101,7 +104,9 @@ Most commands require an authenticated, approved terminal; `DownloadReportList`,
 - Designer definition uploads use the **first multipart file**. Do not apply report named-part assumptions to them.
 - Native multipart requests use a **1,000,000,000-byte total limit**; this is not proof of tested large-file acceptance.
 - `copy=1` ordinary report copying has local implementation; `copyReportMode=1` newest-revision copying remains unsupported. URL-scheme/createReportMode/ResultType definition variants also remain unsupported.
-- Advanced numbering/history/applicant-lock/binder/output/notification branches remain incomplete. Configured unsupported effects can reject a save before commit rather than be silently omitted.
+- Supported saves persist history/change reasons, verification flags, comments/GPS and complete binary snapshots through the original database trigger. History-enabled saves reject a missing/disabled trigger. Initial-input baselines and report/system applicant locks are applied on retrieval and rechecked before finish.
+- Completed reports reject uploads with XML code `1110` and remark `Report completed.`. Successful finish returns `repTopId`, `applicantLock`, registration/update actor/name/time and `repTopName` remarks only after commit; repeated finish returns the committed result.
+- Numbering, journalizing, binder/pin/deferred work and output/notification pipelines remain incomplete. Configured unsupported effects reject a save before commit rather than be silently omitted. Exhaustive history/approval/locale and installed-device acceptance remain unverified.
 
 ## GeneralProcess — seven local operations
 
@@ -138,9 +143,9 @@ The static bodies ship as verified original copies under `public/ConMasWeb/Rests
 
 ## Recognized but not migrated
 
-These **12 mapped commands** are not working implementations. Their direct URLs follow `/ConMasWeb/Rests/NAME.aspx`, and the dispatcher recognizes their names:
+These **11 mapped commands** are not working implementations. Their direct URLs follow `/ConMasWeb/Rests/NAME.aspx`, and the dispatcher recognizes their names:
 
-`GetDefinitionUpdateList`, `GetReportData`, `GetDefinitionPreview`, `MakeReportFromDefinition`, `RegistReport`, `GetEdgeOCRCertificate`, `RegistDocumentMaster`, `PutLog`, `RegistFile`, `GetReportFile`, `DocumentRegistration`, `GetDocumentList`.
+`GetReportData`, `GetDefinitionPreview`, `MakeReportFromDefinition`, `RegistReport`, `GetEdgeOCRCertificate`, `RegistDocumentMaster`, `PutLog`, `RegistFile`, `GetReportFile`, `DocumentRegistration`, `GetDocumentList`.
 
 Direct-only `FollowLogin.aspx`, `GetReportPreview.aspx`, `EditReport.aspx` and `Test/Uploader.aspx`, all below `/ConMasWeb/Rests/`, remain unfinished. `EditReport` and `Test/Uploader` have unresolved original classes; they are not proven removed features. Mapped `GetUserId` is authentication-scope-excluded, not implemented.
 

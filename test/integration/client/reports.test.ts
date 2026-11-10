@@ -31,6 +31,7 @@ import {
   beginReportUpload,
   cleanupReportUpload,
   finishReportUpload,
+  checkReportSaveFeatures,
   stageReportSheet,
   stageReportFreeDrawInfo,
   stageReportFreeDraw,
@@ -41,6 +42,7 @@ import { mkdtemp, writeFile, rm, stat, readFile, readdir } from 'node:fs/promise
 import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { requestLog } from '../../../src/middleware/request-log.js';
+import { reportApplicantLocked } from '../../../src/models/client-report-lock.js';
 import { setTimeout } from 'node:timers/promises';
 
 const enabled = { skip: !process.env.DATABASE_URL },
@@ -804,6 +806,198 @@ test(
     }),
 );
 
+test(
+  'finish returns original registration/applicant remarks and releases a new applicant-locked report even with unlock=0',
+  enabled,
+  async () =>
+    fixture(async (db, connection) => {
+      const directory = await mkdtemp('/tmp/opencode/report-lock-finish-');
+      let upload: ReportUpload | undefined;
+      const file = async (xml: string): Promise<Express.Multer.File> => {
+        const path = join(directory, 'report');
+        await writeFile(path, xml);
+        return { fieldname: 'report', path, size: Buffer.byteLength(xml) } as Express.Multer.File;
+      };
+      try {
+        await connection.query('UPDATE pg_temp.def_top SET use_applicant_lock=1,xml_data=$1', [
+          xml.replace(
+            '<name>Text</name><type>KeyboardText</type><value>saved text</value>',
+            '<name>Text</name><type>Approve</type><value>2</value><applicant>windows-fixture</applicant>',
+          ),
+        ]);
+        await connection.query(
+          "UPDATE pg_temp.def_cluster SET cluster_type='Approve' WHERE cluster_id=0; INSERT INTO pg_temp.def_cluster_role(def_sheet_id,cluster_id,group_id) VALUES(10,0,5)",
+        );
+        const top =
+          '<conmas><top><defTopId>1</defTopId><repTopId/><repTopName>Applied &amp; saved</repTopName><editStatus>1</editStatus><sheets/></top></conmas>';
+        upload = (await beginReportUpload(db, actor, [await file(top)])) as ReportUpload;
+        assert.equal(typeof upload, 'object');
+        await stageReportSheet(db, actor, upload, [
+          await file('<conmas><sheet><defSheetId>10</defSheetId><sheetNo>1</sheetNo><clusters/></sheet></conmas>'),
+        ]);
+        const response = await finishReportUpload(db, actor, upload, false);
+        const result = parser.parse(response).conmas.error;
+        assert.equal(result.code, '0');
+        const remarks = result.remarks.remark as string[];
+        assert.equal(remarks.length, 9);
+        assert(remarks.includes('repTopId=100'));
+        assert(remarks.includes('applicantLock=1'));
+        assert(remarks.includes('registUser=windows-fixture'));
+        assert(remarks.includes('registUserName=Windows fixture'));
+        assert(remarks.includes('repTopName=Applied & saved'));
+        assert.match(
+          remarks.find((text) => text.startsWith('registTime='))!,
+          /^registTime=\d{4}\/\d{2}\/\d{2} \d{2}:\d{2}:\d{2}$/,
+        );
+        assert.equal((await connection.query('SELECT 1 FROM pg_temp.rep_lock WHERE rep_top_id=100')).rowCount, 0);
+        assert.equal(await finishReportUpload(db, actor, structuredClone(upload), false), response);
+        assert.equal(
+          parser.parse(
+            (await beginReportUpload(db, actor, [
+              await file(top.replace('<repTopId/>', '<repTopId>100</repTopId>')),
+            ])) as string,
+          ).conmas.error.code,
+          '3',
+        );
+      } finally {
+        await cleanupReportUpload(upload);
+        await rm(directory, { recursive: true, force: true });
+      }
+    }),
+);
+
+test(
+  'initial-input downloads preserve source text/binary/approval baselines and verified-empty replacement rules',
+  enabled,
+  async () =>
+    fixture(async (db, connection) => {
+      await connection.query('CREATE TEMP TABLE history_rep_cluster (LIKE public.history_rep_cluster INCLUDING ALL)');
+      const types = [
+        'KeyboardText',
+        'MultipleChoiceNumber',
+        'FixedText',
+        'FreeDraw',
+        'Image',
+        'DrawingImage',
+        'FreeText',
+        'AudioRecording',
+        'Action',
+        'Approve',
+        'Create',
+        'Inspect',
+        'KeyboardText',
+        'KeyboardText',
+        'KeyboardText',
+        'KeyboardText',
+      ];
+      const clusters = types
+        .map(
+          (type, id) =>
+            `<cluster><sheetNo>1</sheetNo><clusterId>${id}</clusterId><name>Initial ${id}</name><type>${type}</type><value/><displayValue/><readOnly>0</readOnly><initValue>stale</initValue></cluster>`,
+        )
+        .join('');
+      await connection.query(
+        'UPDATE pg_temp.rep_top SET xml_data=$1,use_input_history=2,use_init_input_judge=1,use_init_input_judge_parameters=$2',
+        [
+          xml.replace(/<clusters>[\s\S]*?<\/clusters>/, '<clusters>' + clusters + '</clusters>'),
+          '<useInitInputJudgeParameters><color>fixture</color></useInitInputJudgeParameters>',
+        ],
+      );
+      await connection.query(
+        "INSERT INTO pg_temp.mst_common(com_id,com_key,com_name,com_value) VALUES(-201,'CONMAS_FUNCTION','INITIAL_VALUE_CHANGE_DISPLAY_TYPE','0'); DELETE FROM pg_temp.rep_cluster_role; DELETE FROM pg_temp.rep_cluster_refer",
+      );
+      for (const [id, type] of types.entries()) {
+        if (id !== 14)
+          await connection.query(
+            `INSERT INTO pg_temp.history_rep_cluster(history_id,rep_sheet_id,cluster_id,cluster_type,init_history_input,verified,input_value,display_value,binary_file_type,history_regist_time,approver,approver_date)
+          VALUES($1,20,$2,$3,1,$4,$5,'',$6,'2026-11-09 12:00:00',$7,'2026-11-09 13:00:00')`,
+            [
+              String(id) + '-initial',
+              id,
+              type,
+              id === 15 ? null : id >= 9 && id <= 11 ? '0' : '1',
+              id === 12 ? '0' : id === 9 ? '2' : id === 10 ? '3' : id === 11 ? '4' : '',
+              id === 2 ? 'Windows' : '',
+              id === 11 ? 'inspector' : null,
+            ],
+          );
+        if (id !== 13)
+          await connection.query(
+            `INSERT INTO pg_temp.history_rep_cluster(history_id,rep_sheet_id,cluster_id,cluster_type,init_history_input,verified,input_value,display_value,binary_file_type,binary_file_win,binary_file,image_file,recording_file,history_regist_time,approver,approver_date)
+          VALUES($1,20,$2,$3,0,'0',$4,'next choice',$5,$6,$7,$8,$9,'2026-11-10 12:00:00','reviewer','2026-11-10 13:04:09')`,
+            [
+              String(id) + '-next',
+              id,
+              type,
+              id === 9 ? '4' : 'next input',
+              id === 2 ? 'Windows' : '',
+              Buffer.alloc(3),
+              Buffer.alloc(4),
+              Buffer.alloc(5),
+              Buffer.alloc(6),
+            ],
+          );
+      }
+      await connection.query(
+        "INSERT INTO pg_temp.history_rep_cluster(history_id,rep_sheet_id,cluster_id,cluster_type,init_history_input,verified,input_value,history_regist_time) VALUES('older-initial',20,0,'KeyboardText',1,'0','obsolete','2026-11-08 12:00:00')",
+      );
+      const download = async () =>
+        parser.parse(((await getReportDownload(db, actor, { topId: '2' }, false, false)) as ReportDownload).xml).conmas
+          .top;
+      let top = await download();
+      assert.equal(top.useInitInputJudgeParameters.color, 'fixture');
+      let values = top.sheets.sheet.clusters.cluster.map((cluster: { initValue?: string }) => cluster.initValue);
+      assert.deepEqual(values, [
+        '',
+        '',
+        '0',
+        '0',
+        '0',
+        '0',
+        '0',
+        '0',
+        undefined,
+        'reviewer20261110130409',
+        undefined,
+        'inspector20261109130000',
+        '0',
+        '',
+        undefined,
+        '',
+      ]);
+      await connection.query(
+        "UPDATE pg_temp.mst_common SET com_value='1' WHERE com_name='INITIAL_VALUE_CHANGE_DISPLAY_TYPE'",
+      );
+      top = await download();
+      values = top.sheets.sheet.clusters.cluster.map((cluster: { initValue?: string }) => cluster.initValue);
+      assert.deepEqual(values, [
+        'next input',
+        'next choice',
+        '3',
+        '4',
+        '5',
+        '5',
+        '5',
+        '6',
+        undefined,
+        'reviewer20261110130409',
+        undefined,
+        'inspector20261109130000',
+        '0',
+        undefined,
+        undefined,
+        '',
+      ]);
+      await connection.query('UPDATE pg_temp.rep_top SET use_input_history=0');
+      top = await download();
+      assert.equal(top.useInitInputJudge, undefined);
+      assert.equal(top.useInitInputJudgeParameters, undefined);
+      assert(
+        top.sheets.sheet.clusters.cluster.every((cluster: { initValue?: string }) => cluster.initValue === undefined),
+      );
+    }),
+);
+
 test('cooperation value conversion keeps decimal precision, nulls invalid dates and refuses unsupported formats', () => {
   const cluster = (type: string, value: string) =>
     root(`<cluster><type>${type}</type><value>${value}</value><inputParameters/></cluster>`);
@@ -832,6 +1026,304 @@ test('cooperation value conversion keeps decimal precision, nulls invalid dates 
   assert.equal(reportTableValue(cluster('Calculate', 'not a date'), 'D'), null);
   assert.throws(() => reportTableValue(cluster('InputNumeric', '1'), 'N', 'de-DE'), ReportUnsupported);
 });
+
+test(
+  'history saves use the original trigger once per cluster, including metadata/binaries, and roll back together',
+  enabled,
+  async () =>
+    fixture(async (db, connection) => {
+      const directory = await mkdtemp('/tmp/opencode/report-history-');
+      let upload: ReportUpload | undefined;
+      const file = async (name: string, data: string): Promise<Express.Multer.File> => {
+        const path = join(directory, name);
+        await writeFile(path, data);
+        return { fieldname: name, path, size: Buffer.byteLength(data) } as Express.Multer.File;
+      };
+      const top =
+        '<conmas><top><defTopId>1</defTopId><repTopId/><repTopName>History</repTopName><editStatus>1</editStatus><sheets/></top></conmas>';
+      const incoming = (clusters: string) =>
+        `<conmas><sheet><defSheetId>10</defSheetId><sheetNo>1</sheetNo><clusters>${clusters}</clusters></sheet></conmas>`;
+      const text = (value: string, details = '') =>
+        `<cluster><clusterId>0</clusterId><value>${value}</value><displayValue>${value}</displayValue>${details}</cluster>`;
+      const history = async () =>
+        (await connection.query('SELECT * FROM pg_temp.history_rep_cluster ORDER BY history_id')).rows;
+      try {
+        await connection.query(
+          'UPDATE pg_temp.def_top SET use_input_history=2,use_change_reason=1,use_init_input_judge=1',
+        );
+        await assert.rejects(
+          beginReportUpload(db, actor, [await file('report', top)]),
+          (error) => error instanceof ReportUnsupported && error.code === 'report_history_trigger',
+        );
+        for (const table of ['history_rep_cluster', 'rep_cluster_store', 'rep_cluster_approval'])
+          await connection.query(`CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING ALL)`);
+        await connection.query(`CREATE TEMP SEQUENCE history_rep_cluster_seq; CREATE TEMP SEQUENCE rep_cluster_store_seq;
+        SET search_path=pg_temp,pg_catalog;
+        CREATE TRIGGER fixture_report_history AFTER INSERT OR UPDATE OR DELETE ON pg_temp.rep_cluster FOR EACH ROW EXECUTE FUNCTION public.func_rep_cluster_trigger();
+        INSERT INTO pg_temp.mst_common(com_id,com_key,com_name,com_value,com_index) VALUES
+          (-201,'HISTORY_SETTING','ENABLE','0',0),(-202,'HISTORY_SETTING','SELECT_MODE','0',1),(-203,'IMAGE_SAVE_SETTING','IMAGE_STORE_MODE','1',1);
+        UPDATE pg_temp.def_role SET role_rep_update=1;`);
+        upload = (await beginReportUpload(db, actor, [await file('report', top)])) as ReportUpload;
+        assert.equal(typeof upload, 'object');
+        assert.equal(
+          parser.parse(
+            await stageReportSheet(db, actor, upload, [
+              await file('cluster_1_value', 'first ink'),
+              await file('cluster_1_displayValue', 'first preview'),
+              await file('cluster_2_sound', 'first sound'),
+              await file(
+                'report',
+                incoming(
+                  text(
+                    'first',
+                    '<verified>0</verified><changeReasonValue>first reason</changeReasonValue><comment><value>first comment</value><inputParameters>Color=1</inputParameters></comment><gps><lat>1.2</lat><lon>3.4</lon><alt>5</alt></gps><editUser>editor</editUser><editUserName>Editor</editUserName><editTime>2026/11/10 12:00:00</editTime>',
+                  ) +
+                    '<cluster><clusterId>1</clusterId><value/><verified>0</verified><editUser>artist</editUser><editTime>2026/11/10 12:00:01</editTime></cluster><cluster><clusterId>2</clusterId><value/><fileExtension>wav</fileExtension><editUser>speaker</editUser></cluster>',
+                ),
+              ),
+            ]),
+          ).conmas.error.code,
+          '0',
+        );
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+        const first = await history();
+        for (const clusterId of [0, 1, 2]) {
+          const rows = first.filter((row) => row.cluster_id === clusterId);
+          assert.equal(rows.length, 1);
+          assert.equal(Number(rows[0].init_history_input), 1);
+          assert.equal(rows[0].history_type, 'I');
+        }
+        const initial = first.find((row) => row.cluster_id === 0)!;
+        assert.equal(initial.comment_value, 'first comment');
+        assert.equal(initial.comment_input_parameters, 'Color=1');
+        assert.equal(initial.change_reason, 'first reason');
+        assert.equal(initial.edit_user, 'editor');
+        assert.equal(initial.gps_lat, '1.2');
+        assert.equal(first.find((row) => row.cluster_id === 1)!.binary_file_win.toString(), 'first ink');
+        assert.equal(first.find((row) => row.cluster_id === 1)!.image_file.toString(), 'first preview');
+        assert.equal(first.find((row) => row.cluster_id === 2)!.recording_file.toString(), 'first sound');
+        assert.equal(
+          (await connection.query('SELECT count(*)::int AS count FROM pg_temp.rep_cluster_store')).rows[0].count,
+          1,
+        );
+        await cleanupReportUpload(upload);
+        upload = (await beginReportUpload(db, actor, [
+          await file('report', top.replace('<repTopId/>', '<repTopId>100</repTopId>')),
+        ])) as ReportUpload;
+        const before = (await connection.query('SELECT xml_data FROM pg_temp.rep_top WHERE rep_top_id=100')).rows[0]
+          .xml_data;
+        await stageReportSheet(db, actor, upload, [
+          await file('cluster_1_value', 'second ink'),
+          await file('cluster_1_displayValue', 'second preview'),
+          await file(
+            'report',
+            incoming(
+              text('second', '<changeReasonValue>corrected</changeReasonValue>') +
+                '<cluster><clusterId>1</clusterId><value/></cluster>',
+            ),
+          ),
+        ]);
+        const failing = {
+          ...db,
+          connect: async () => ({
+            query: async (sql: string, values?: unknown[]) => {
+              if (sql.startsWith('DELETE FROM rep_lock WHERE rep_top_id='))
+                throw new Error('Fixture failure after history.');
+              return connection.query(sql, values);
+            },
+            release() {},
+          }),
+        } as unknown as pg.Pool;
+        await assert.rejects(finishReportUpload(failing, actor, upload), /Fixture failure after history/);
+        assert.equal(upload.result, undefined);
+        assert.deepEqual(await history(), first);
+        assert.equal(
+          (await connection.query('SELECT xml_data FROM pg_temp.rep_top WHERE rep_top_id=100')).rows[0].xml_data,
+          before,
+        );
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+        const second = (await history()).filter((row) => row.history_type === 'U');
+        assert.equal(second.length, 2);
+        const updated = second.find((row) => row.cluster_id === 0)!;
+        assert.equal(updated.old_input_value, 'first');
+        assert.equal(updated.input_value, 'second');
+        assert.equal(updated.change_reason, 'corrected');
+        assert.equal(updated.comment_value, 'first comment');
+        assert.equal(updated.edit_user, 'editor');
+        assert.equal(updated.gps_lat, '1.2');
+        assert.equal(Number(updated.init_history_input), 0);
+        assert.equal(second.find((row) => row.cluster_id === 1)!.binary_file_win.toString(), 'second ink');
+        assert.equal(second.find((row) => row.cluster_id === 1)!.old_binary_file_win.toString(), 'first ink');
+        const downloaded = (await getReportDownload(db, actor, { topId: '100' }, false, false)) as ReportDownload;
+        const saved = parser.parse(downloaded.xml).conmas.top.sheets.sheet.clusters.cluster[0];
+        assert.equal(saved.verified, '0');
+        assert.equal(saved.comment.value, 'first comment');
+        assert.equal(saved.gps.lat, '1.2');
+        assert.equal(saved.editUser, 'editor');
+        assert.equal(saved.initValue, 'first');
+        const count = (await history()).length;
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+        assert.equal((await history()).length, count);
+        await connection.query(
+          "UPDATE pg_temp.mst_common SET com_value='2' WHERE com_name='ENABLE'; UPDATE pg_temp.rep_top SET use_input_history=0 WHERE rep_top_id=100",
+        );
+        const global = (await getReportDownload(db, actor, { topId: '100' }, false, false)) as ReportDownload;
+        assert.equal(parser.parse(global.xml).conmas.top.useInputHistory, '2');
+        for (const [mode, verified, expected] of [
+          ['1', '0', 0],
+          ['2', '0', 0],
+          ['2', '1', 1],
+          ['0', '1', 1],
+        ]) {
+          await cleanupReportUpload(upload);
+          await connection.query("UPDATE pg_temp.mst_common SET com_value=$1 WHERE com_name='SELECT_MODE'", [mode]);
+          upload = (await beginReportUpload(db, actor, [
+            await file('report', top.replace('<repTopId/>', '<repTopId>100</repTopId>')),
+          ])) as ReportUpload;
+          const beforeCount = (await history()).length;
+          await stageReportSheet(db, actor, upload, [
+            await file(
+              'report',
+              incoming(
+                text(
+                  'second',
+                  `<verified>${verified}</verified><editUser>editor</editUser><editTime>2026/11/10 12:00:00</editTime><changeReasonValue>stale resent reason</changeReasonValue>`,
+                ),
+              ),
+            ),
+          ]);
+          assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+          assert.equal((await history()).length - beforeCount, Number(expected));
+          assert.equal(
+            (
+              await connection.query(
+                'SELECT change_reason FROM pg_temp.rep_cluster WHERE rep_sheet_id=200 AND cluster_id=0',
+              )
+            ).rows[0].change_reason,
+            'corrected',
+          );
+        }
+        await cleanupReportUpload(upload);
+        await connection.query("UPDATE pg_temp.mst_common SET com_value='1' WHERE com_name='ENABLE'");
+        upload = (await beginReportUpload(db, actor, [
+          await file('report', top.replace('<repTopId/>', '<repTopId>100</repTopId>')),
+        ])) as ReportUpload;
+        const beforeBinary = (await history()).length;
+        assert.equal(
+          parser.parse(
+            await stageReportSheet(db, actor, upload, [
+              await file('report', incoming(text('', '<verified>invalid</verified>'))),
+            ]),
+          ).conmas.error.code,
+          '2',
+        );
+        await stageReportSheet(db, actor, upload, [
+          await file('cluster_1_value', 'text-only-history ink'),
+          await file('cluster_1_displayValue', 'text-only-history preview'),
+          await file('report', incoming('<cluster><clusterId>1</clusterId><value/></cluster>')),
+        ]);
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '0');
+        assert.equal((await history()).length, beforeBinary);
+        assert.equal(
+          (
+            await connection.query(
+              'SELECT binary_file_win FROM pg_temp.rep_cluster WHERE rep_sheet_id=200 AND cluster_id=1',
+            )
+          ).rows[0].binary_file_win.toString(),
+          'text-only-history ink',
+        );
+        await connection.query('ALTER TABLE pg_temp.rep_cluster DISABLE TRIGGER fixture_report_history');
+        await assert.rejects(
+          checkReportSaveFeatures(db, must(root(global.xml), 'top')),
+          (error) => error instanceof ReportUnsupported && error.code === 'report_history_trigger',
+        );
+      } finally {
+        await cleanupReportUpload(upload);
+        await rm(directory, { recursive: true, force: true });
+      }
+    }),
+);
+
+test(
+  'native applicant locks honor either enablement, role-free approvals, deregulation and finish-time rechecks',
+  enabled,
+  async () =>
+    fixture(async (db, connection) => {
+      const directory = await mkdtemp('/tmp/opencode/report-applicant-');
+      let upload: ReportUpload | undefined;
+      const file = async (xml: string): Promise<Express.Multer.File> => {
+        const path = join(directory, 'report');
+        await writeFile(path, xml);
+        return { fieldname: 'report', path, size: Buffer.byteLength(xml) } as Express.Multer.File;
+      };
+      const top =
+        '<conmas><top><defTopId>1</defTopId><repTopId>2</repTopId><repTopName>Locked</repTopName><editStatus>1</editStatus><sheets/></top></conmas>';
+      const download = async () =>
+        parser.parse(((await getReportDownload(db, actor, { topId: '2' }, false, false)) as ReportDownload).xml).conmas
+          .top;
+      try {
+        await connection.query(`INSERT INTO pg_temp.rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_value) VALUES (20,4,'Approve','2');
+        INSERT INTO pg_temp.rep_cluster_role(rep_sheet_id,cluster_id,group_id) VALUES (20,4,5);
+        INSERT INTO pg_temp.mst_common(com_id,com_key,com_name,com_value) VALUES (-201,'IPAD_SETTING','USE_APPLICANT_LOCK','0'),(-202,'IPAD_SETTING','APPLICANT_LOCK_TYPE','0');
+        UPDATE pg_temp.rep_top SET use_applicant_lock=1;`);
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId), true);
+        const locked = await download();
+        assert.equal(locked.readOnly, '1');
+        assert.equal(locked.sheets.sheet.clusters.cluster[0].applyLock, '1');
+        assert.equal(locked.sheets.sheet.clusters.cluster[3].applyLock, '0');
+        assert.equal(
+          parser.parse((await beginReportUpload(db, actor, [await file(top)])) as string).conmas.error.code,
+          '3',
+        );
+        await connection.query(
+          "UPDATE pg_temp.rep_top SET use_applicant_lock=0; UPDATE pg_temp.mst_common SET com_value='1' WHERE com_name='USE_APPLICANT_LOCK'",
+        );
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId), true);
+        assert.equal((await download()).useApplicantLock, '1');
+        await connection.query(
+          "UPDATE pg_temp.mst_common SET com_value='1' WHERE com_name='APPLICANT_LOCK_TYPE'; INSERT INTO pg_temp.rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_value,applicant) VALUES(20,5,'Approve','3','windows-fixture')",
+        );
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId), false);
+        await connection.query("UPDATE pg_temp.rep_cluster SET applicant='other' WHERE cluster_id=5");
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId), true);
+        await connection.query("UPDATE pg_temp.rep_cluster SET input_value='2' WHERE cluster_id=5");
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId), false);
+        assert.equal((await download()).readOnly, '0');
+        upload = (await beginReportUpload(db, actor, [await file(top)])) as ReportUpload;
+        assert.equal(typeof upload, 'object');
+        await stageReportSheet(db, actor, upload, [
+          await file('<conmas><sheet><defSheetId>10</defSheetId><sheetNo>1</sheetNo><clusters/></sheet></conmas>'),
+        ]);
+        const before = (await connection.query('SELECT xml_data FROM pg_temp.rep_top WHERE rep_top_id=2')).rows[0]
+          .xml_data;
+        await connection.query("UPDATE pg_temp.mst_common SET com_value='0' WHERE com_name='APPLICANT_LOCK_TYPE'");
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '3');
+        assert.equal(upload.result, undefined);
+        assert.equal(
+          (await connection.query('SELECT xml_data FROM pg_temp.rep_top WHERE rep_top_id=2')).rows[0].xml_data,
+          before,
+        );
+        await connection.query('UPDATE pg_temp.rep_top SET edit_refer_status=4');
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId), false);
+        assert.equal((await download()).editStatus, '4');
+        assert.equal(await reportApplicantLocked(db, 2, actor.userId, true), true);
+        assert.equal(
+          parser.parse(
+            ((await getReportDownload(db, actor, { topId: '2', copy: '1' }, false, false)) as ReportDownload).xml,
+          ).conmas.top.readOnly,
+          '1',
+        );
+        assert.equal(parser.parse(await finishReportUpload(db, actor, upload)).conmas.error.code, '1110');
+        assert.equal(
+          parser.parse((await beginReportUpload(db, actor, [await file(top)])) as string).conmas.error.code,
+          '1110',
+        );
+      } finally {
+        await cleanupReportUpload(upload);
+        await rm(directory, { recursive: true, force: true });
+      }
+    }),
+);
 
 test(
   'Calculate saves client numeric/date/time/text results and formulas, and preserves omitted values on update',
@@ -1832,9 +2324,10 @@ test(
         '1',
       );
       await connection.query('UPDATE pg_temp.rep_top SET workflow_lock=0,use_applicant_lock=1');
-      await assert.rejects(
-        getReportDownload(db, actor, { topId: '2', copy: '1' }, false),
-        (error) => error instanceof ReportUnsupported && error.code === 'report_applicant_lock',
+      assert.equal(
+        parser.parse(((await getReportDownload(db, actor, { topId: '2', copy: '1' }, false)) as ReportDownload).xml)
+          .conmas.top.readOnly,
+        '0',
       );
       await connection.query('UPDATE pg_temp.rep_top SET use_applicant_lock=0,deleted=1');
       assert.equal(

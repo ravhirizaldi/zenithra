@@ -2,13 +2,13 @@
 
 [Project overview](../../README.md) · [Native-client REST](native-rest.md) · [Business API / WebAPI](business-api.md)
 
-Public migration snapshot: **9 November 2026**. Zenithra preserves the original ASPX-style protocols while replacing server behavior with Node.js. These are **not JSON REST endpoints**, and no `/api/v1` prefix is introduced.
+Public migration snapshot: **10 November 2026**. Zenithra preserves the original ASPX-style protocols while replacing server behavior with Node.js. These are **not JSON REST endpoints**, and no `/api/v1` prefix is introduced.
 
 ## Choose the correct application
 
 | Application           | Dispatcher                                           | Purpose                              | Current mapped-command status                                  |
 | :-------------------- | :--------------------------------------------------- | :----------------------------------- | :------------------------------------------------------------- |
-| Native-client REST    | `/ConMasWeb/Rests/ConMasIReporter.aspx?command=NAME` | Existing Designer and device clients | 23 local paths, 27 partial, 12 unimplemented, 1 scope-excluded |
+| Native-client REST    | `/ConMasWeb/Rests/ConMasIReporter.aspx?command=NAME` | Existing Designer and device clients | 24 local paths, 27 partial, 11 unimplemented, 1 scope-excluded |
 | Business API / WebAPI | `/ConMasAPI/Rests/APIExecute.aspx?command=NAME`      | Business integrations                | 35 partial, 62 unimplemented, 12 unavailable mapping targets   |
 | Manager               | `/ConMasManager`                                     | Browser management interface         | Separate web UI; not an alias for either API                   |
 

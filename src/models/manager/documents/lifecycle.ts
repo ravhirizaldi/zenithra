@@ -3,6 +3,7 @@ import type pg from 'pg';
 import { hostname } from 'node:os';
 import { labelInteger, labelString, LabelValidationError } from '../labels/index.js';
 import { attachedAutoDeleteLabels, deleteEmptyReportLabels } from '../../client-report-labels.js';
+import { documentDetail } from './details.js';
 
 type Report = {
   rep_top_id: number;
@@ -14,6 +15,25 @@ type Report = {
   locked: boolean;
   current: boolean;
 };
+
+export async function documentUnlock(db: pg.Pool, id: number, user: string) {
+  const client = await db.connect();
+  try {
+    await client.query('BEGIN');
+    await client.query('SELECT rep_top_id FROM rep_top WHERE rep_top_id=$1 FOR UPDATE', [id]);
+    const report = await documentDetail(client, id, user, true);
+    if (!report || Number(report.deleted) === 1 || report.workflow_locked)
+      throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
+    // Explicit Manager unlock releases the selected report, unlike same-user/host view cleanup.
+    await client.query('DELETE FROM rep_lock WHERE rep_top_id=$1', [id]);
+    await client.query('COMMIT');
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
 
 async function updateCurrent(client: pg.PoolClient, org: number) {
   const latest = (

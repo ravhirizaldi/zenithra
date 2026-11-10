@@ -47,7 +47,7 @@ flowchart TB
         Manager["Manager · /ConMasManager<br/>Web interface / own session"]
         Native["Native REST · /ConMasWeb<br/>XML and binary / own session"]
         API["Business API · /ConMasAPI<br/>XML and binary / own session"]
-        Views["EJS rendering<br/>90 templates and partials"]
+        Views["EJS rendering<br/>91 templates and partials"]
         Business["Models and shared business logic<br/>Validation / permissions / transactions"]
         Manager --> Views
         Manager --> Business
@@ -74,7 +74,7 @@ Three application surfaces share selected business helpers and storage—not aut
 
 ## Migration by the numbers
 
-<sub>Rechecked: 9 November 2026 · Source actions, installed templates, current route registration and reviewed command inventories</sub>
+<sub>Rechecked: 10 November 2026 · Source actions, installed templates, current route registration and reviewed command inventories</sub>
 
 <table>
   <tr>
@@ -86,8 +86,8 @@ Three application surfaces share selected business helpers and storage—not aut
   <tr>
     <td><strong>Manager</strong><br><code>/ConMasManager</code></td>
     <td><strong>461</strong> action signatures<br><strong>321</strong> distinct action paths<br><strong>17</strong> source controllers</td>
-    <td><strong>267</strong> source signatures have matching Node routes<br><strong>194</strong> remain unregistered<br><strong>5 / 11</strong> menu tabs reachable; none claimed complete</td>
-    <td><strong>252</strong> installed Razor templates<br><strong>90</strong> current Node EJS templates/partials</td>
+    <td><strong>270</strong> source signatures have matching Node routes<br><strong>191</strong> remain unregistered<br><strong>5 / 11</strong> menu tabs reachable; none claimed complete</td>
+    <td><strong>252</strong> installed Razor templates<br><strong>91</strong> current Node EJS templates/partials</td>
   </tr>
   <tr>
     <td><strong>Native-client REST</strong><br><code>/ConMasWeb</code></td>
@@ -103,7 +103,7 @@ Three application surfaces share selected business helpers and storage—not aut
   </tr>
 </table>
 
-**How to read these counts:** “Function” here means a public action signature or mapped command—not every internal helper. GET/POST overloads count separately. Manager registration includes blocked shells and explicit unsupported handlers; it is **not** 267 completed functions. Razor/EJS totals include partials and layouts, so **90 / 252 is not a screen-completion ratio**. Same-name API pages are alternate entry points, not extra commands. GeneralProcess operations are counted separately; unavailable targets and scope exclusions are not completed work.
+**How to read these counts:** “Function” here means a public action signature or mapped command—not every internal helper. GET/POST overloads count separately. Manager registration includes blocked shells and explicit unsupported handlers; it is **not** 270 completed functions. Razor/EJS totals include partials and layouts, so **91 / 252 is not a screen-completion ratio**. Same-name API pages are alternate entry points, not extra commands. GeneralProcess operations are counted separately; unavailable targets and scope exclusions are not completed work.
 
 <details>
 <summary><strong>Manager breakdown · actions, registration gaps and original views</strong></summary>
@@ -113,35 +113,35 @@ Three application surfaces share selected business helpers and storage—not aut
 | Account                       |              8 |          4 |            4 |                        8 |
 | Doc. Import / AutoGenerate    |             14 |          1 |           13 |                        5 |
 | Binder                        |             11 |          1 |           10 |                        9 |
-| Common / shared actions       |             28 |          7 |           21 |                       19 |
+| Common / shared actions       |             28 |          8 |           20 |                       19 |
 | Master Manager / CustomMaster |             14 |          1 |           13 |                        6 |
 | Custom menu                   |             11 |          1 |           10 |                        4 |
 | Data Output                   |             18 |         18 |            0 |                        9 |
 | Forms / DefReport             |             71 |          6 |           65 |                       40 |
 | FreeDrawOnly                  |              1 |          0 |            1 |                        0 |
 | Help                          |              8 |          0 |            8 |                        1 |
-| **Documents / InputReport**   |         **67** |     **28** |       **39** |                   **31** |
+| **Documents / InputReport**   |         **67** |     **30** |       **37** |                   **31** |
 | Labels                        |             10 |         10 |            0 |                        5 |
 | Library                       |             19 |         19 |            0 |                        9 |
 | Schedule                      |              8 |          1 |            7 |                        4 |
 | Standard dialogs              |              3 |          0 |            3 |                        1 |
 | System                        |            169 |        169 |            0 |                       86 |
 | SystemGoogleAuthCallback      |              1 |          1 |            0 |                        0 |
-| **Controller totals**         |        **461** |    **267** |      **194** |                  **237** |
+| **Controller totals**         |        **461** |    **270** |      **191** |                  **237** |
 
-Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **90** EJS files are independently counted from `src/views/manager/`; shared dialogs may serve multiple controllers. Four registered DefReport signatures serve Documents label/permission editors only; Forms remains blocked. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
+Another **15** templates belong to Shared, Home, Sample and the root layout, bringing the installed total to **252**. The **91** EJS files are independently counted from `src/views/manager/`; shared dialogs may serve multiple controllers. Four registered DefReport signatures serve Documents label/permission editors only; Forms remains blocked. System's baseline includes **25** excluded linkage-setting actions; its callback is also excluded. Full baseline counts are retained for traceability, not used as an in-scope completion percentage.
 
-Across Manager, **143 paths lack at least one source signature; 138 have no registered handler**. Within Documents, **28 / 67 signatures are registered and 39 remain unregistered**. A protected PDF handler returning 501 counts as registered, so these figures do not measure working workflows.
+Across Manager, **140 paths lack at least one source signature; 135 have no registered handler**. Within Documents, **30 / 67 signatures are registered and 37 remain unregistered**. Registered partial/error handlers count too, so these figures do not measure completed workflows.
 
 The registration check constructs the app with a throw-on-query/connect database stub and inspects routes: **zero database calls, no listener, no live-server requests**. Native/API status labels come from reviewed command inventories checked against the current configuration; they are not a fresh end-to-end acceptance result.
 
-The current Documents/Library publication check passed **130 affected tests**, typecheck, targeted ESLint and formatting. These checks use isolated fixtures; no application rebuild/restart, live-server requests or automated browser/client acceptance was performed.
+The current Documents detail/PDF check passed **87 affected tests**, source/test typecheck, full lint and formatting, including sequential-page and Unicode-font regressions. These checks use isolated fixtures; no application rebuild/restart, live-server requests or automated browser/client acceptance was performed.
 
 </details>
 
 ## Migration progress
 
-<sub>Snapshot: 9 November 2026 · Current priority: full Manager Documents area</sub>
+<sub>Snapshot: 10 November 2026 · Current priority: full Manager Documents area</sub>
 
 ### Server-side indicators
 
@@ -153,8 +153,8 @@ The current Documents/Library publication check passed **130 affected tests**, t
   </tr>
   <tr>
     <td><strong>Manager server</strong></td>
-    <td><strong>≈58%</strong> route registration</td>
-    <td>267 / 461 source action signatures have matching Node routes. Includes partial, blocked and explicitly unsupported handlers—not completed workflows.</td>
+    <td><strong>≈59%</strong> route registration</td>
+    <td>270 / 461 source action signatures have matching Node routes. Includes partial, blocked and explicitly unsupported handlers—not completed workflows.</td>
   </tr>
   <tr>
     <td><strong>Native REST server</strong></td>
@@ -192,8 +192,8 @@ Working server communication with an existing client does **not** mean that clie
   </tr>
   <tr>
     <td><strong>Documents</strong><br><sub>Active priority</sub></td>
-    <td>Index and detail navigation; Basic and normal-sheet detail views; cluster/report history with CSV/ZIP downloads; label/permission editors; guarded Basic settings and sheet metadata saves; shared automatic labels; tasks, lifecycle and protected media/FreeDraw views.</td>
-    <td>Actual cluster/binary editing and history writes; completion/numbering, approval and Manager copying; PDF rendering; output/notification delivery; remaining lifecycle effects and complete visual/locale parity.</td>
+    <td>Index and detail navigation; Basic and normal-sheet detail views; cluster/report history with CSV/ZIP downloads; label/permission editors; guarded settings/metadata saves; shared automatic labels; tasks, detail delete/restore/unlock, protected media/FreeDraw and populated report PDF previews.</td>
+    <td>Actual cluster/binary editing and history writes; completion/numbering, approval and Manager copying; PDF audit-trail appendices and complete layout/font parity; output/notification delivery; remaining lifecycle effects and complete visual/locale parity.</td>
   </tr>
   <tr>
     <td><strong>System</strong></td>
@@ -229,12 +229,12 @@ Working server communication with an existing client does **not** mean that clie
 
 > **Not a drop-in replacement yet.** Unfinished workflows may explicitly reject requests. Registered routes, HTTP 200 responses and passing tests are not evidence of complete behavioral or visual parity. Other Manager tabs remain blocked rather than being presented as finished.
 
-**Documents details can now be viewed**, including Basic information, sheets and input history. Editing is still limited: unchanged cluster controls allow guarded metadata saves, but actual cluster changes and unfinished downstream effects fail before commit. Full approval, copying, completion and PDF workflows remain migration work.
+**Documents details and populated PDF previews can now be viewed**, including Basic information, sheets and input history. PDF output overlays stored values/images/signatures/markers and DrawingImage pins onto the original background, applies cluster permissions and requested layers, maps sparse/added sheets and inserts stored FreeDraw pages for whole-report output. The shared viewer preserves original embed/close behavior. The user approved the open-source PDF engine without the commercial Apryse/Syncfusion engine-license gate; ConMas licensing and report permissions remain unchanged. Configure `PDF_SETTING/FONT_FILE_PATH` for Unicode fonts on hosts without the installed Windows CJK fonts. Audit-trail appendices and unsupported date formats still fail explicitly, and full visual/font parity remains unverified. Editing remains limited: unchanged cluster controls allow guarded metadata saves, while actual cluster changes and unfinished downstream effects fail before commit. Approval, copying and completion remain migration work.
 
 ## Next milestones
 
 - [ ] **Finish Documents editing end to end** — complete Basic, sheet/cluster/binary/history writes and their required transactional side effects.
-- [ ] **Complete approval, copy, completion and output** — preserve report state, numbering, permissions, binaries and downstream effects before reporting success; implement PDF rendering and remaining Index lifecycle behavior.
+- [ ] **Complete approval, copy, completion and output** — preserve report state, numbering, permissions, binaries and downstream effects before reporting success; finish PDF special-output/layout parity and remaining Index lifecycle behavior.
 - [ ] **Accept the original UI** — recheck tables, headers, menus, assets, dialogs and locale against the installed application; manual Edge UAT at 80% zoom remains outstanding.
 - [ ] **Resume Library and Data Output** — close their remaining branch and workflow gaps after the full Documents priority.
 - [ ] **Close native/API compatibility gaps** — finish remaining supplied commands and verify unchanged client contracts.

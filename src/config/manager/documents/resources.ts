@@ -447,6 +447,8 @@ export const v: Record<string, string> = {
   topEdit3: 'Reject',
   updateDate: 'Last update date and time',
   updateUser: 'Last updated by',
+  unLock: 'Unlock',
+  unLockMessage: 'Release the lock. Are you sure you want to unlock?',
   url: 'URL',
   viewTitleInputReportList: 'Document list',
 };
@@ -540,6 +542,14 @@ export const text: Readonly<Record<string, string>> = {
   'Reopen the label editor before saving.': 'Reopen the label editor before saving.',
   'Reopen the permission editor before saving.': 'Reopen the permission editor before saving.',
   'Report PDF rendering has not been migrated.': 'Report PDF rendering has not been migrated.',
+  'The report PDF data is invalid.': 'The report PDF data is invalid.',
+  'This report requires PDF output that has not been migrated.':
+    'This report requires PDF output that has not been migrated.',
+  'Configure a PDF font that supports all report characters.':
+    'Configure a PDF font that supports all report characters.',
+  'Invalid PDF preview options.': 'Invalid PDF preview options.',
+  Close: 'Close',
+  Deleted: 'Deleted',
   'Report XML identity differs.': 'Report XML identity differs.',
   Required: 'Required',
   'Role authority is insufficient.': 'Role authority is insufficient.',

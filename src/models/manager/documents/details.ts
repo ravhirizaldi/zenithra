@@ -38,6 +38,9 @@ export async function documentDetail(db: Database, id: number, user: string, edi
       sys_update_user_name: string;
       current: boolean;
       role_update: boolean;
+      role_delete: boolean;
+      deleted: number;
+      edit_refer_status: number;
       def_role_update: boolean;
       initial_input_judge: boolean;
     }>(
@@ -46,11 +49,13 @@ export async function documentDetail(db: Database, id: number, user: string, edi
     COALESCE(l.user_id,'0')<>'0' AS locked,COALESCE(u.user_name,'') AS lock_user_name,
     COALESCE(NULLIF(t.sys_update_user_name,''),NULLIF(up.user_name,''),t.sys_update_user,'') AS sys_update_user_name,
     EXISTS (SELECT 1 FROM rep_current c WHERE c.rep_top_id=t.rep_top_id) AS current,
-    COALESCE(r.role_update,0)=1 AS role_update,COALESCE(d.role_update,0)=1 AS def_role_update,
+    COALESCE(r.role_update,0)=1 AS role_update,COALESCE(r.role_delete,0)=1 AS role_delete,
+    t.deleted,t.edit_refer_status,COALESCE(d.role_update,0)=1 AS def_role_update,
     COALESCE(t.use_init_input_judge,0)=1 AS initial_input_judge
     FROM rep_top t LEFT JOIN rep_lock l USING(rep_top_id) LEFT JOIN mst_user u ON u.user_id=l.user_id
     LEFT JOIN mst_user up ON up.user_id=t.sys_update_user
-    LEFT JOIN LATERAL (SELECT MAX(role_rep_read) AS role_read,MAX(role_rep_update) AS role_update
+    LEFT JOIN LATERAL (SELECT MAX(role_rep_read) AS role_read,MAX(role_rep_update) AS role_update,
+      MAX(role_rep_delete) AS role_delete
       FROM rep_role WHERE rep_top_id=t.rep_top_id AND group_id IN
       (SELECT group_id FROM mst_group_affiation WHERE user_id=$2)) r ON true
     LEFT JOIN LATERAL (SELECT MAX(role_def_update) AS role_update FROM def_role

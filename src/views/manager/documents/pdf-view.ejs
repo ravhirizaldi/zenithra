@@ -1,0 +1,19 @@
+<% const ui = managerResources["documents"]; %><script type="text/javascript">
+    $(function () {
+        if ($("#pdfViewContent").length > 0) {
+            $("#pdfViewContent").show();
+        }
+    });
+    function fConMasPdfViewClose() {
+        if ($("#pdfViewContent").length > 0) {
+            $("#pdfViewContent").hide();
+        }
+        $("#conmasPdfView").remove();
+    };
+</script>
+<div id="conmasPdfView" style="width:100%; height:100%; padding:5px;">
+    <div style="text-align:right;">
+        <input type="button" value="×" aria-label="<%= ui.Close %>" onclick="fConMasPdfViewClose();">
+    </div>
+    <embed src="<%= base %>/InputReport/GetPdf?<%= new URLSearchParams(Object.entries(preview).map(([name, value]) => [name, String(value)])) %>" type="application/pdf" class="testPdf" title="<%= v.pdf %>" width="100%" height="100%" style="z-index:0;" wmode="transparent">
+</div>

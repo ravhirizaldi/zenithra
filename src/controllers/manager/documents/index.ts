@@ -65,7 +65,7 @@ export function registerDocumentController(
       req.path !== '/InputReport' &&
       !req.path.startsWith('/InputReport/') &&
       !['/DefReport/EditLabel', '/DefReport/EditRole'].includes(req.path) &&
-      !['/Common/LabelListView', '/Common/TaskList', '/Common/RegistTask'].includes(req.path)
+      !['/Common/LabelListView', '/Common/TaskList', '/Common/RegistTask', '/Common/PdfViewReport'].includes(req.path)
     )
       return next();
     return requireAuth(req, res, async (error) => {

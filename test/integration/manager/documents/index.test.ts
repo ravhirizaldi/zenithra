@@ -937,11 +937,16 @@ test('Documents FreeDrawOnly denial precedes database access without changing an
       '/DefReport/EditLabel?defTopId=1&mode=Rep',
       '/DefReport/EditRole?defTopId=1&mode=Rep',
       '/Common/LabelListView',
+      '/Common/PdfViewReport?repTopId=1&defTopId=100',
+      '/InputReport/GetPdf?repTopId=1&defTopId=100',
     ])
       assert.equal((await fetch(origin + '/ConMasManager' + path)).status, 403);
     for (const path of [
       '/InputReport',
       '/InputReport/IndexList',
+      '/InputReport/Delete',
+      '/InputReport/UnLock',
+      '/Common/PdfViewReport',
       '/DefReport/EditLabel?mode=Rep',
       '/DefReport/EditRole?mode=Rep',
     ])

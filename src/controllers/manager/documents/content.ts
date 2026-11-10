@@ -4,7 +4,10 @@ import type pg from 'pg';
 import { base } from '../../../config/manager.js';
 import { documentDetailScript, documentViewSource } from '../../../services/manager/documents.js';
 import { requestFailure } from '../../../middleware/request-log.js';
-import { documentDetailId, documentDetailUnlock } from '../../../models/manager/documents/details.js';
+import { documentDetail, documentDetailId, documentDetailUnlock } from '../../../models/manager/documents/details.js';
+import { documentDelete, documentUnlock } from '../../../models/manager/documents/lifecycle.js';
+import { documentPdfOptions } from '../../../models/manager/documents/pdf.js';
+import { registerDocumentPdf } from './pdf.js';
 import {
   documentApprovalRows,
   documentEditLock,
@@ -61,6 +64,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
         if (!edit) await unlock(res, user);
         if (req.method === 'GET' && !ajax(req)) return res.send('');
         const input: Record<string, unknown> = { ...req.query, ...req.body };
+        const previewOptions = documentPdfOptions(input);
         const id = documentDetailId(req.method === 'POST' ? input['rep_top.rep_top_id'] : input.repTopId);
         if (edit && !res.locals.documentPermissions.update)
           return res.status(403).send(pageText['Role authority is insufficient.']);
@@ -117,6 +121,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
           permissions: res.locals.documentPermissions,
           csrfToken: res.locals.csrfToken,
           approvals: edit ? [] : await documentApprovalRows(db, id, user),
+          previewOptions,
           js: await documentDetailScript(action, id),
         });
       } catch (error) {
@@ -277,14 +282,44 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
       return failure(res, error);
     }
   });
-  app.get(`${base}/InputReport/GetPdf`, async (req, res) => {
+  app.post(`${base}/InputReport/Delete`, async (req, res) => {
     try {
-      const model = await documentTop(db, documentDetailId(req.query.repTopId), req.session?.userId ?? '');
-      if (documentDetailId(req.query.defTopId) !== Number(model.report.def_top_id))
-        throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
-      return res.status(501).type('text/plain').send(pageText['Report PDF rendering has not been migrated.']);
+      if (!res.locals.documentPermissions.delete)
+        return res.status(403).send(pageText['Role authority is insufficient.']);
+      const id = documentDetailId(req.body['rep_top.rep_top_id']),
+        user = req.session?.userId ?? '',
+        mode = labelString(req.body.actMode);
+      if (!['REV', 'ALL', 'REVIVAL'].includes(mode))
+        throw new LabelValidationError('actMode', pageText['Invalid document deletion mode.']);
+      const report = await documentDetail(db, id, user);
+      if (!report?.role_delete) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
+      if (
+        mode !== 'REVIVAL' &&
+        (await db.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount
+      )
+        return res.redirect(`${base}/InputReport/Details?repTopId=${id}`);
+      await documentDelete(
+        db,
+        String(id),
+        mode === 'REVIVAL' ? 'DELETE_RETURN_REPORT' : 'DELETE_REPORT',
+        mode === 'REVIVAL' ? '' : mode,
+        user,
+      );
+      return res.redirect(mode === 'REVIVAL' ? `${base}/InputReport/Details?repTopId=${id}` : `${base}/InputReport`);
     } catch (error) {
       return failure(res, error);
     }
   });
+  app.post(`${base}/InputReport/UnLock`, async (req, res) => {
+    try {
+      if (!res.locals.documentPermissions.update)
+        return res.status(403).send(pageText['Role authority is insufficient.']);
+      const id = documentDetailId(req.body['rep_top.rep_top_id']);
+      await documentUnlock(db, id, req.session?.userId ?? '');
+      return res.redirect(`${base}/InputReport/Details?repTopId=${id}`);
+    } catch (error) {
+      return failure(res, error);
+    }
+  });
+  registerDocumentPdf(app, db);
 }

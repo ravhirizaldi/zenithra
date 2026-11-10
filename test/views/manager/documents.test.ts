@@ -117,6 +117,97 @@ test('Documents renders only project-owned EJS with original script outputs when
   }
 });
 
+test('Basic toolbar preserves delete/restore/unlock, applicant and completed/history gates and confirmed POST forms', async () => {
+  const source = await documentViewSource();
+  const model = {
+    ...source,
+    base: '/ConMasManager',
+    edit: false,
+    error: '',
+    csrfToken: '<fixture-token>',
+    js: await documentDetailScript('DetailsTop', 123),
+    previewOptions: { isLayer: false, isInitJudgeDisplay: false, isForciblyFontSize: false, isClusterLine: false },
+    fields: [],
+    outputs: [],
+    lineColors: [],
+    notifications: [],
+    history: [],
+    approvals: [],
+    fontDeduction: '',
+    audioFormat: 'm4a',
+    attachment: false,
+    openPdf: false,
+    biometrics: false,
+    identification: false,
+    historyEnabled: true,
+    permissions: { update: true, delete: true },
+    report: {
+      rep_top_id: 123,
+      def_top_id: 100,
+      rep_top_name: '<report>',
+      public_status: 2,
+      edit_refer_status: 1,
+      current: true,
+      role_update: true,
+      role_delete: true,
+      deleted: 0,
+      locked: false,
+      workflow_locked: false,
+      applicant_locked: false,
+      sys_update_user_name: '<workflow-user>',
+      lock_user_name: '<locking-user>',
+    },
+  };
+  for (const [changes, expected] of [
+    [{}, ['img_edit', 'img_delete']],
+    [{ current: false }, ['img_delete']],
+    [{ edit_refer_status: 4 }, ['img_delete']],
+    [{ applicant_locked: true }, ['img_delete']],
+    [{ locked: true }, ['img_locked']],
+    [{ locked: true, workflow_locked: true }, []],
+    [{ locked: true, role_update: false }, []],
+    [{ role_update: false, role_delete: false }, []],
+    [{ deleted: 1 }, ['img_rivive']],
+  ] as const) {
+    const html = await ejs.renderFile(join(root, 'src/views/manager/documents/top.ejs'), {
+      ...model,
+      report: { ...model.report, ...changes },
+    });
+    const toolbar = html.slice(html.indexOf('id="functionBar"'), html.indexOf('<form id="form0"'));
+    for (const name of ['img_edit', 'img_delete', 'img_locked', 'img_rivive'])
+      assert.equal(toolbar.includes(`class="${name}"`), (expected as readonly string[]).includes(name));
+    assert.match(html, /&lt;report&gt;/);
+    if ('deleted' in changes) assert.match(toolbar, />Deleted<\/span>/);
+    assert.doesNotMatch(html, /<locking-user>|<workflow-user>|<fixture-token>/);
+    assert.match(html, /id="conmasDetailsTopForm" method="post" action="\/ConMasManager\/InputReport\/Delete"/);
+    assert.match(html, /id="conmasUnLockForm" method="post" action="\/ConMasManager\/InputReport\/UnLock"/);
+    assert.match(html, /id="actMode" name="actMode"/);
+    assert.match(html, /name="__RequestVerificationToken" value="&lt;fixture-token&gt;"/);
+  }
+  const denied = await ejs.renderFile(join(root, 'src/views/manager/documents/top.ejs'), {
+    ...model,
+    permissions: { update: false, delete: false },
+  });
+  assert.doesNotMatch(
+    denied.slice(denied.indexOf('id="functionBar"'), denied.indexOf('<form id="form0"')),
+    /class="img_(edit|delete|locked|rivive)"/,
+  );
+  const actions: string[] = [];
+  let confirmed = false;
+  const context = {
+    confirm: () => confirmed,
+    $: (selector: unknown) => ({
+      val: (value: unknown) => actions.push(`${selector}:${value}`),
+      trigger: (value: unknown) => actions.push(`${selector}:${value}`),
+    }),
+  };
+  runInNewContext(model.js + '\ndelDetailsTop("confirm", "ALL"); linkUnLock("confirm");', context);
+  assert.deepEqual(actions, []);
+  confirmed = true;
+  runInNewContext(model.js + '\ndelDetailsTop("confirm", "ALL"); linkUnLock("confirm");', context);
+  assert.deepEqual(actions, ['#actMode:ALL', '#conmasDetailsTopForm:submit', '#conmasUnLockForm:submit']);
+});
+
 test('Documents app-launch uses private configuration and fails explicitly without its compatibility key', async () => {
   const previous = process.env.CONMAS_URL_SCHEME_KEY;
   try {

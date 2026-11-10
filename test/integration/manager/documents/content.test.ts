@@ -7,6 +7,7 @@ import { runInNewContext } from 'node:vm';
 import { createCipheriv } from 'node:crypto';
 import ejs from 'ejs';
 import sharp from 'sharp';
+import { PDFDocument, PDFRawStream, decodePDFRawStream } from 'pdf-lib';
 import { test } from 'node:test';
 import express from 'express';
 import session from 'express-session';
@@ -33,6 +34,8 @@ import {
   reportNotificationValues,
 } from '../../../../src/models/manager/common/notifications.js';
 import { validPrintPages } from '../../../../src/shared/print-pages.js';
+import { documentUnlock } from '../../../../src/models/manager/documents/lifecycle.js';
+import { documentPdfData } from '../../../../src/models/manager/documents/pdf.js';
 
 test('Basic, sheet and history use project-owned EJS scripts, resources and escaped values', async () => {
   const source = await documentViewSource();
@@ -52,6 +55,7 @@ test('Basic, sheet and history use project-owned EJS scripts, resources and esca
     'cluster-input',
     'output-options',
     'ajax-failure',
+    'pdf-view',
   ]) {
     const template = await readFile(`src/views/manager/documents/${view}.ejs`, 'utf8');
     for (const match of template.matchAll(/\b([rv])\.(\w+)/g))
@@ -144,6 +148,7 @@ test(
         'rep_label_role',
         'rep_label',
         'def_top',
+        'def_top_backup',
         'rep_top_option',
         'rep_cluster',
         'rep_cluster_role',
@@ -200,6 +205,16 @@ test(
         query: client.query.bind(client),
         connect: async () => ({ query: client.query.bind(client), release() {} }),
       } as unknown as pg.Pool;
+      const background = await PDFDocument.create();
+      background.addPage([300, 600]);
+      background.addPage([400, 600]);
+      await client.query(
+        'UPDATE rep_top SET background_image_file=$1,rep_sheet_count=2,display_sheet_number=$2 WHERE rep_top_id=1',
+        [Buffer.from(await background.save()), '1,3'],
+      );
+      await client.query(
+        'UPDATE rep_cluster SET left_position=.1,top_position=.1,right_position=.9,bottom_position=.2',
+      );
       let actor: string | undefined = 'fixture';
       const app = express();
       app.set('views', 'src/views');
@@ -269,11 +284,156 @@ test(
         assert.equal((await get('/InputReport/DetailsTop?repTopId=1', false)).status, 200);
         assert.equal(await (await get('/InputReport/DetailsTop?repTopId=1', false)).text(), '');
         assert.equal((await get('/InputReport/DetailsTop?repTopId=3')).status, 403);
-        assert.equal((await get('/InputReport/GetPdf?repTopId=1&defTopId=100')).status, 501);
+        assert.equal((await get('/InputReport/GetPdf?repTopId=1&defTopId=100')).status, 200);
         assert.equal((await get('/InputReport/GetPdf?repTopId=3&defTopId=100')).status, 403);
         const model = await documentTop(db, 1, 'fixture');
         assert.equal(model.fields.find((field) => field.name === 'UseVoiceInputEndTime')!.value, '1');
       });
+      await t.test(
+        'Basic preview flags and shared PDF viewer retain protected original URLs and close behavior',
+        async () => {
+          const response = await get(
+            '/InputReport/DetailsTop?repTopId=1&isLayer=true&isInitJudgeDisplay=true&isForciblyFontSize=true',
+          );
+          assert.equal(response.status, 200);
+          const html = await response.text();
+          const pdf = new URL(html.match(/<embed src="([^"]+)"/)![1].replaceAll('&amp;', '&'), origin);
+          assert.equal(pdf.searchParams.get('isLayer'), 'true');
+          assert.equal(pdf.searchParams.get('isInitJudgeDisplay'), 'true');
+          assert.equal(pdf.searchParams.get('isForciblyFontSize'), 'true');
+          const layer = new URL(
+            html.match(/href="([^"]+)" class="layer_change_On"/)![1].replaceAll('&amp;', '&'),
+            origin,
+          );
+          assert.equal(layer.searchParams.get('isLayer'), 'false');
+          assert.equal(layer.searchParams.get('isInitJudgeDisplay'), 'true');
+          assert.equal(layer.searchParams.get('isForciblyFontSize'), 'true');
+          const query = '?repTopId=1&defTopId=100&sheetNo=3&isLayer=true';
+          const viewer = await get('/Common/PdfViewReport' + query, false);
+          assert.equal(viewer.status, 200);
+          assert.equal(viewer.headers.get('cache-control'), 'no-store');
+          const view = await viewer.text();
+          assert.match(view, /id="conmasPdfView"/);
+          assert.match(view, /aria-label="Close"/);
+          const embedded = new URL(view.match(/<embed src="([^"]+)"/)![1].replaceAll('&amp;', '&'), origin);
+          assert.equal(embedded.pathname, '/ConMasManager/InputReport/GetPdf');
+          assert.equal(embedded.searchParams.get('sheetNo'), null);
+          assert.equal(embedded.searchParams.get('isClusterLine'), null);
+          assert.equal(embedded.searchParams.get('isLayer'), 'true');
+          const close: string[] = [];
+          runInNewContext(view.match(/<script[^>]*>([\s\S]*?)<\/script>/)![1] + '\nfConMasPdfViewClose();', {
+            $: (selector: unknown) =>
+              typeof selector === 'function'
+                ? undefined
+                : {
+                    length: 1,
+                    hide: () => close.push('hide'),
+                    remove: () => close.push('remove'),
+                  },
+          });
+          assert.deepEqual(close, ['hide', 'remove']);
+          assert.equal((await post('/Common/PdfViewReport', { repTopId: '1', defTopId: '100' })).status, 200);
+          assert.equal((await post('/Common/PdfViewReport', { repTopId: '1', defTopId: '100' }, 'bad')).status, 403);
+          assert.equal((await get('/Common/PdfViewReportExtra' + query)).status, 503);
+          assert.equal((await get('/Common/PdfView?topId=100')).status, 503);
+          for (const path of ['/Common/PdfViewReport', '/InputReport/GetPdf']) {
+            assert.equal((await get(path + '?repTopId=3&defTopId=100')).status, 403);
+            assert.equal((await get(path + '?repTopId=1&defTopId=101')).status, 403);
+            assert.equal((await get(path + '?repTopId=1&defTopId=100&sheetNo=2')).status, 400);
+            assert.equal((await get(path + '?repTopId=1&defTopId=100&isLayer=1')).status, 400);
+            actor = 'no-permissions';
+            assert.equal((await get(path + query)).status, 403);
+            actor = undefined;
+            assert.equal((await get(path + query)).headers.get('location'), '/ConMasManager/Account/LogOn');
+            actor = 'fixture';
+          }
+          const unchanged = await saved();
+          const output = await get('/InputReport/GetPdf' + query);
+          assert.equal(output.status, 200);
+          assert.match(output.headers.get('content-type') ?? '', /application\/pdf/);
+          assert.equal(output.headers.get('cache-control'), 'no-store');
+          const generated = await PDFDocument.load(await output.arrayBuffer());
+          assert.equal(generated.getPageCount(), 1);
+          assert.equal(generated.getPage(0).getWidth(), 400);
+          assert.deepEqual(await saved(), unchanged);
+          const calls: string[] = [];
+          let released = false;
+          const failedDb = {
+            connect: async () => ({
+              query: async (sql: string, values?: unknown[]) => {
+                calls.push(sql);
+                if (sql.includes('FROM rep_cluster c')) throw new Error('private-fixture-PDF-query-failure');
+                return client.query(sql, values);
+              },
+              release() {
+                released = true;
+              },
+            }),
+          } as unknown as pg.Pool;
+          await assert.rejects(
+            documentPdfData(failedDb, { repTopId: '1', defTopId: '100' }, 'fixture', 'en-US'),
+            /private-fixture-PDF-query-failure/,
+          );
+          assert.equal(calls[0], 'BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
+          assert.equal(calls.at(-1), 'ROLLBACK');
+          assert(released);
+          assert(calls.every((sql) => !/^\s*(UPDATE|INSERT|DELETE|CREATE|ALTER|DROP)\b/i.test(sql)));
+          assert.deepEqual(await saved(), unchanged);
+        },
+      );
+      await t.test(
+        'PDF routes render populated protected streams, use definition/backup fallbacks and return safe failures without writes',
+        async () => {
+          const unchanged = await saved();
+          const data = (await client.query('SELECT background_image_file FROM rep_top WHERE rep_top_id=1')).rows[0];
+          const output = await get('/InputReport/GetPdf?repTopId=1&defTopId=100&sheetNo=1');
+          assert.equal(output.status, 200);
+          const pdf = await PDFDocument.load(await output.arrayBuffer());
+          const streams = pdf.context
+            .enumerateIndirectObjects()
+            .filter(([, object]) => object instanceof PDFRawStream)
+            .map(([, object]) => Buffer.from(decodePDFRawStream(object as PDFRawStream).decode()).toString('latin1'))
+            .join('\n');
+          assert.match(streams, new RegExp(Buffer.from('visible').toString('hex').toUpperCase()));
+          for (const hidden of ['secret-preserved', 'history-secret'])
+            assert(!streams.includes(Buffer.from(hidden).toString('hex').toUpperCase()));
+          try {
+            await client.query('UPDATE rep_top SET background_image_file=NULL WHERE rep_top_id=1');
+            await client.query('UPDATE def_top SET background_image_file=$1 WHERE def_top_id=100', [
+              data.background_image_file,
+            ]);
+            assert.equal((await get('/InputReport/GetPdf?repTopId=1&defTopId=100')).status, 200);
+            await client.query('UPDATE def_top SET background_image_file=NULL WHERE def_top_id=100');
+            await client.query('INSERT INTO def_top_backup(def_top_id,background_image_file) VALUES (100,$1)', [
+              data.background_image_file,
+            ]);
+            assert.equal((await get('/InputReport/GetPdf?repTopId=1&defTopId=100')).status, 200);
+            await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=1', [
+              xml.replace('</top>', '<trailOutput>1</trailOutput></top>'),
+            ]);
+            const unsupported = await get('/InputReport/GetPdf?repTopId=1&defTopId=100');
+            assert.equal(unsupported.status, 501);
+            assert.match(unsupported.headers.get('content-type') ?? '', /text\/plain/);
+            assert.match(await unsupported.text(), /requires PDF output/);
+            assert.equal((await get('/InputReport/GetPdf?repTopId=1&defTopId=100&sheetNo=1')).status, 200);
+            await client.query('UPDATE rep_top SET xml_data=$1,background_image_file=$2 WHERE rep_top_id=1', [
+              xml,
+              Buffer.from('invalid-private-fixture-PDF'),
+            ]);
+            const corrupt = await get('/InputReport/GetPdf?repTopId=1&defTopId=100');
+            assert.equal(corrupt.status, 500);
+            assert.equal(await corrupt.text(), 'Server error has occurred.');
+          } finally {
+            await client.query('UPDATE rep_top SET xml_data=$1,background_image_file=$2 WHERE rep_top_id=1', [
+              xml,
+              data.background_image_file,
+            ]);
+            await client.query('UPDATE def_top SET background_image_file=NULL WHERE def_top_id=100');
+            await client.query('DELETE FROM def_top_backup WHERE def_top_id=100');
+          }
+          assert.deepEqual(await saved(), unchanged);
+        },
+      );
       await t.test(
         'normal sheets and input history preserve sparse page indexes and hide inaccessible values',
         async () => {
@@ -924,6 +1084,96 @@ test(
           assert.deepEqual((await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=11')).rows[0], sheet);
         },
       );
+      await t.test('detail delete/restore/unlock preserve CSRF, permissions, locks, data and rollback', async () => {
+        actor = 'fixture';
+        await client.query('UPDATE mst_group SET role_rep_delete_manager=1 WHERE group_id=10');
+        await client.query(
+          `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,workflow_lock,xml_data)
+          VALUES (901,901,1,'First revision',100,0,1,0,$1),(902,901,2,'Current revision',100,0,1,0,$1),
+          (903,903,1,'Trash',100,1,1,0,$1),(904,904,1,'Workflow',100,0,1,1,$1),
+          (905,905,1,'Unlock target',100,0,1,0,$1)`,
+          ['<conmas><top><retained>private fixture</retained></top></conmas>'],
+        );
+        await client.query(`INSERT INTO rep_current(rep_top_org,rep_top_id) VALUES (901,902),(903,903),(904,904),(905,905);
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update,role_rep_delete)
+          SELECT rep_top_id,10,1,1,1 FROM rep_top WHERE rep_top_id BETWEEN 901 AND 905;
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update,role_rep_delete)
+          SELECT rep_top_id,20,1,0,0 FROM rep_top WHERE rep_top_id BETWEEN 901 AND 905;
+          INSERT INTO rep_lock(rep_top_id,user_id) VALUES (901,'fixture'),(902,'other'),(903,'other'),(904,'other'),(905,'other')`);
+        const row = async (id: number) =>
+          (await client.query('SELECT * FROM rep_top WHERE rep_top_id=$1', [id])).rows[0];
+        const lockIds = async () =>
+          (await client.query('SELECT rep_top_id FROM rep_lock WHERE rep_top_id>=901 ORDER BY rep_top_id')).rows.map(
+            (row) => row.rep_top_id,
+          );
+        const original = await row(905),
+          unrelated = await saved();
+        const locked = await get('/InputReport/DetailsTop?repTopId=905');
+        assert.equal(locked.status, 200);
+        assert.match(await locked.text(), /class="img_locked"[^>]*aria-label="Unlock"/);
+        assert.equal((await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '905' }, 'bad')).status, 403);
+        actor = 'reader';
+        assert.equal((await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '905' })).status, 403);
+        assert.equal((await post('/InputReport/Delete', { 'rep_top.rep_top_id': '901', actMode: 'REV' })).status, 403);
+        actor = 'fixture';
+        await client.query('UPDATE rep_role SET role_rep_update=0 WHERE rep_top_id=905 AND group_id=10');
+        assert.equal((await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '905' })).status, 403);
+        await client.query('UPDATE rep_role SET role_rep_update=1 WHERE rep_top_id=905 AND group_id=10');
+        assert.equal((await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '904' })).status, 403);
+        assert.equal((await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '903' })).status, 403);
+        assert.equal((await get('/InputReport/UnLock?repTopId=905')).status, 501);
+        assert.equal((await get('/InputReport/Delete?repTopId=901')).status, 501);
+        const failing = {
+          connect: async () => ({
+            query: async (sql: string, values?: unknown[]) => {
+              if (sql === 'DELETE FROM rep_lock WHERE rep_top_id=$1') throw new Error('Private unlock failure');
+              return client.query(sql, values);
+            },
+            release() {},
+          }),
+        } as unknown as pg.Pool;
+        await assert.rejects(documentUnlock(failing, 905, 'fixture'));
+        assert.deepEqual(await lockIds(), [901, 902, 903, 904, 905]);
+        const unlocked = await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '905' });
+        assert.equal(unlocked.headers.get('location'), '/ConMasManager/InputReport/Details?repTopId=905');
+        assert.deepEqual(await row(905), original);
+        assert.deepEqual(await lockIds(), [901, 902, 903, 904]);
+        assert.equal(
+          (await post('/InputReport/Delete', { 'rep_top.rep_top_id': '901', actMode: 'bogus' })).status,
+          400,
+        );
+        assert.equal(
+          (await post('/InputReport/Delete', { 'rep_top.rep_top_id': '901', actMode: 'REV' }, 'bad')).status,
+          403,
+        );
+        await client.query('UPDATE rep_role SET role_rep_delete=0 WHERE rep_top_id=901 AND group_id=10');
+        assert.equal((await post('/InputReport/Delete', { 'rep_top.rep_top_id': '901', actMode: 'REV' })).status, 403);
+        await client.query('UPDATE rep_role SET role_rep_delete=1 WHERE rep_top_id=901 AND group_id=10');
+        const conflict = await row(902);
+        assert.equal(
+          (await post('/InputReport/Delete', { 'rep_top.rep_top_id': '902', actMode: 'ALL' })).headers.get('location'),
+          '/ConMasManager/InputReport/Details?repTopId=902',
+        );
+        assert.deepEqual(await row(902), conflict);
+        const deleted = await post('/InputReport/Delete', { 'rep_top.rep_top_id': '901', actMode: 'REV' });
+        assert.equal(deleted.headers.get('location'), '/ConMasManager/InputReport');
+        assert.equal(Number((await row(901)).deleted), 1);
+        assert.deepEqual(await row(902), conflict);
+        assert.equal(
+          (await client.query('SELECT rep_top_id FROM rep_current WHERE rep_top_org=901')).rows[0].rep_top_id,
+          902,
+        );
+        const restored = await post('/InputReport/Delete', { 'rep_top.rep_top_id': '903', actMode: 'REVIVAL' });
+        assert.equal(restored.headers.get('location'), '/ConMasManager/InputReport/Details?repTopId=903');
+        assert.equal(Number((await row(903)).deleted), 0);
+        assert.deepEqual(await lockIds(), [902, 904]);
+        await post('/InputReport/UnLock', { 'rep_top.rep_top_id': '902' });
+        await post('/InputReport/Delete', { 'rep_top.rep_top_id': '902', actMode: 'ALL' });
+        assert.equal(Number((await row(901)).deleted), 1);
+        assert.equal(Number((await row(902)).deleted), 1);
+        assert.deepEqual(await saved(), unrelated);
+        assert.deepEqual(await row(905), original);
+      });
     } finally {
       if (server)
         await new Promise<void>((resolve, reject) => server!.close((error) => (error ? reject(error) : resolve())));

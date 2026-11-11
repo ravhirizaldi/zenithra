@@ -119,6 +119,7 @@ export function documentCheckUnchangedClusters(input: Record<string, unknown>, r
         SelectListExItems: row.selectItems,
         SelectListLabels: row.selectLabels,
         multi_input_value: row.multi_input_value,
+        ...(['Image', 'DrawingImage', 'FreeText'].includes(String(row.cluster_type)) ? { IsImageClear: false } : {}),
       });
     if (!Object.hasOwn(values, name)) throw pending();
     const expected = values[name];
@@ -164,7 +165,9 @@ export async function documentClusters(db: Database, id: number, user: string, s
   return (
     await db.query(
       `SELECT c.rep_sheet_id,c.cluster_id,c.cluster_name,c.cluster_type,c.input_parameter,
-    c.input_value,c.display_value,c.verified,c.comment_value,c.change_reason,c.pin_value,
+    CASE WHEN c.cluster_type IN ('Image','DrawingImage','FreeText','FixedText','FreeDraw') THEN CASE WHEN COALESCE(length(c.image_file),0)>0 THEN '1' ELSE '' END
+      WHEN c.cluster_type='AudioRecording' THEN CASE WHEN COALESCE(length(c.recording_file),0)>0 THEN '1' ELSE '' END ELSE c.input_value END AS input_value,
+    c.display_value,c.verified,c.comment_value,c.change_reason,c.pin_value,
     c.applicant,c.applicant_name,c.applicant_comment,to_char(c.applicant_date,'YYYY/MM/DD') AS applicant_date,
     c.approver,c.approver_name,c.approver_comment,to_char(c.approver_date,'YYYY/MM/DD') AS approver_date,
     COALESCE(length(c.approval_sign),0)>0 AS has_signature,COALESCE(length(c.image_file),0)>0 AS has_image,

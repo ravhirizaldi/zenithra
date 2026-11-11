@@ -36,11 +36,11 @@ Today’s work is **server-side**. Designer, Windows, Android and iPad clients r
 
 ## Where it stands
 
-<sub>Recounted 10 November 2026 · Registration and implementation paths, not a completion score</sub>
+<sub>Recounted 11 November 2026 · Registration and implementation paths, not a completion score</sub>
 
 | Surface                         | Current evidence                                                                 | Remaining boundary                                                                                              |
 | :------------------------------ | :------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
-| **Manager** · `/ConMasManager`  | **270 / 461** source action signatures registered; **91** EJS templates/partials | **191** signatures unregistered; 5 of 11 tabs reachable, none complete                                          |
+| **Manager** · `/ConMasManager`  | **276 / 461** source action signatures registered; **92** EJS templates/partials | **185** signatures unregistered; 5 of 11 tabs reachable, none complete                                          |
 | **Native REST** · `/ConMasWeb`  | **24 local + 27 partial** mapped commands; 7 local GeneralProcess operations     | **11** mapped commands unimplemented; 1 command scope-excluded; advanced branches remain                        |
 | **Business API** · `/ConMasAPI` | **35 partial** mapped commands; 7 partial GeneralProcess operations              | **62** supplied mapped commands unimplemented; 12 additional mappings not supplied by the original installation |
 
@@ -50,15 +50,15 @@ Registered routes include blocked shells and explicit unsupported responses. Loc
 
 ### Working foundations
 
-- **Documents:** list/detail navigation, Basic and sheet views, input history/downloads, label/permission editors, guarded metadata saves, lifecycle controls and populated PDF previews.
+- **Documents:** list/detail navigation, Basic/sheet edits, supported scalar/image saves, input history, labels/permissions, normal/forced completion, numbering, approval/rejection and editable revision copies. PDF/standard CSV and stored DocuWorks downloads plus internal Excel repair have local paths; dependent pipelines remain guarded.
 - **Manager tools:** System management/settings, Labels, ordinary Library workflows and CSV Data Output paths.
 - **Native clients:** standard form/report transfers, definition update checks, ordinary report copying and master/catalog/library paths. Report finish commits required data transactionally; history/change reasons, initial-input baselines and applicant locks now have isolated regression coverage.
 - **Business integrations:** selected account, list/import/master and shared GeneralProcess paths, with separate sessions and contracts.
 
 ## What remains
 
-- [ ] **Finish report saves:** numbering, journalizing, binder/pin/deferred work and required output/notification pipelines. Unsupported effects must fail before success.
-- [ ] **Complete Documents:** cluster/binary editing, approval/copy/completion, remaining lifecycle effects and PDF audit-trail/layout/font parity.
+- [ ] **Finish native report saves:** numbering, journalizing, binder/pin/deferred work and required output/notification pipelines. Manager numbering does not enable native numbering; unsupported effects fail before success.
+- [ ] **Complete Documents:** remaining cluster/application/signature/audio edits, custom/layout CSV and populated Excel exports, approval/completion dependencies, lifecycle effects and PDF audit-trail/layout/font parity. Basic revision copying is not newest-form copying.
 - [ ] **Close Manager gaps:** remaining System, Labels, Library and Data Output branches, permissions/licensing, locale and original-screen parity. Six other tabs remain blocked.
 - [ ] **Finish supplied APIs:** remaining mapped/direct handlers, newest-revision copying, merged PDF, authentication continuations and cross-device compatibility.
 - [ ] **Prove portability and independence:** replace remaining installation-specific runtime dependencies and verify non-Windows deployment; rebuild client applications as separate future work.
@@ -67,6 +67,8 @@ Registered routes include blocked shells and explicit unsupported responses. Loc
 Scope excludes AD/MEID authentication/provider continuations and Manager’s External system linkage settings subtree. Shared user/device/license and MeID management, optional PDF license upload and native GetEdgeOCRCertificate remain in scope. Proven vendor-unsupplied features are tracked separately, never counted as completed.
 
 > **Not a drop-in replacement yet.** Passing tests, HTTP 200 responses and one working device workflow do not establish full behavior, visual parity or production readiness.
+
+Latest affected verification: **130 tests passed**, zero failures/skips; source/test typecheck, targeted lint and whitespace checks passed. Registration inspection used no database calls or listener. No application rebuild/restart, full-suite run or live/browser/device acceptance was performed.
 
 ## Explore
 

@@ -140,6 +140,15 @@ test('Basic toolbar preserves delete/restore/unlock, applicant and completed/his
     biometrics: false,
     identification: false,
     historyEnabled: true,
+    pdfDownload: true,
+    csvDownload: true,
+    xdwDownload: false,
+    excelRecovery: false,
+    excelErrorCode: '',
+    showNumbering: false,
+    managerRoleType: '',
+    reportHeading: '',
+    definition: { def_top_id: 100, def_top_name: '<form>' },
     permissions: { update: true, delete: true },
     report: {
       rep_top_id: 123,
@@ -156,6 +165,15 @@ test('Basic toolbar preserves delete/restore/unlock, applicant and completed/his
       applicant_locked: false,
       sys_update_user_name: '<workflow-user>',
       lock_user_name: '<locking-user>',
+      report_type: 2,
+      auto_gen: 1,
+      auto_select_gen: 0,
+      mobile_save: 1,
+      remarks_edit: 1,
+      sys_regist_term: '<registration-device>',
+      created_by: '<registrant>',
+      sys_update_term: '<last-device>',
+      updated_by: '<last-editor>',
     },
   };
   for (const [changes, expected] of [
@@ -173,10 +191,17 @@ test('Basic toolbar preserves delete/restore/unlock, applicant and completed/his
       ...model,
       report: { ...model.report, ...changes },
     });
-    const toolbar = html.slice(html.indexOf('id="functionBar"'), html.indexOf('<form id="form0"'));
+    const toolbar = html.slice(html.indexOf('id="functionBar"'), html.indexOf('id="DetailSection"'));
     for (const name of ['img_edit', 'img_delete', 'img_locked', 'img_rivive'])
       assert.equal(toolbar.includes(`class="${name}"`), (expected as readonly string[]).includes(name));
     assert.match(html, /&lt;report&gt;/);
+    assert.match(html, /Form name<\/th><td>&lt;form&gt;/);
+    assert.match(html, /Document type<\/th><td>Set/);
+    assert.match(html, /Automatic document creation<\/th><td>Yes/);
+    assert.match(html, /Save on iPad<\/th><td>Available to save on iPad/);
+    assert.match(html, /&lt;registration-device&gt;/);
+    assert.match(html, /&lt;last-editor&gt;/);
+    assert.doesNotMatch(html, /<form>|<registration-device>|<registrant>|<last-device>|<last-editor>/);
     if ('deleted' in changes) assert.match(toolbar, />Deleted<\/span>/);
     assert.doesNotMatch(html, /<locking-user>|<workflow-user>|<fixture-token>/);
     assert.match(html, /id="conmasDetailsTopForm" method="post" action="\/ConMasManager\/InputReport\/Delete"/);
@@ -189,7 +214,7 @@ test('Basic toolbar preserves delete/restore/unlock, applicant and completed/his
     permissions: { update: false, delete: false },
   });
   assert.doesNotMatch(
-    denied.slice(denied.indexOf('id="functionBar"'), denied.indexOf('<form id="form0"')),
+    denied.slice(denied.indexOf('id="functionBar"'), denied.indexOf('id="DetailSection"')),
     /class="img_(edit|delete|locked|rivive)"/,
   );
   const actions: string[] = [];

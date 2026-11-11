@@ -1,0 +1,11 @@
+<div style="display: none;"><a id="goIdentification" rel="leanModal" name="popUpIdentification" href="#Identification"></a><a id="conmasIdentificationCloseButton" class="modal_close" href="#"></a></div>
+<div id="Identification" style="display:none;">
+  <form id="GetIdentificationRequiredForm" action="<%= base %>/InputReport/GetIdentificationRequired" method="post"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"></form>
+  <form id="IdentificationForm" action="<%= base %>/InputReport/Identification" method="post"><input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>"></form>
+  <div id="IdentificationDialog"><div class="DialogMargin">
+    <div class="DialogTitle"><%= r.IdentificationCode %><a class="DialogClose" href="#" onclick="$('#conmasIdentificationCloseButton').trigger('click'); return false;"><img src="<%= base %>/Content/ConMas/images/function/close.png" alt="<%= managerResources.documents.Close %>"></a></div>
+    <div class="DialogLabel"><%= r.MessageInputIdentificationCode %><br><%= r.MessageSettingIdentificationCode %></div>
+    <input id="identificationCode" type="password" aria-label="<%= r.IdentificationCode %>"><div id="identificationCodeError" class="field-validation-error"></div>
+    <p><input type="button" class="image-approve-btn" value="<%= r.Approving %>" style="cursor:pointer" onclick="onClickIdentification();"></p>
+  </div></div>
+</div>

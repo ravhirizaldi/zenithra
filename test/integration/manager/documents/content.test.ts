@@ -1,6 +1,7 @@
 import 'dotenv/config';
 import assert from 'node:assert/strict';
-import { readFile } from 'node:fs/promises';
+import { mkdir, mkdtemp, readFile, rm, writeFile } from 'node:fs/promises';
+import { join } from 'node:path';
 import type { Server } from 'node:http';
 import { Script } from 'node:vm';
 import { runInNewContext } from 'node:vm';
@@ -36,6 +37,10 @@ import {
 import { validPrintPages } from '../../../../src/shared/print-pages.js';
 import { documentUnlock } from '../../../../src/models/manager/documents/lifecycle.js';
 import { documentPdfData } from '../../../../src/models/manager/documents/pdf.js';
+import { documentInnerExcel } from '../../../../src/models/manager/documents/excel.js';
+import { documentManualNumber } from '../../../../src/models/manager/documents/numbering.js';
+import { documentApprove } from '../../../../src/models/manager/documents/approval.js';
+import { documentCopy } from '../../../../src/models/manager/documents/copy.js';
 
 test('Basic, sheet and history use project-owned EJS scripts, resources and escaped values', async () => {
   const source = await documentViewSource();
@@ -155,6 +160,7 @@ test(
         'rep_cluster_refer',
         'history_rep_cluster',
         'rep_reference',
+        'rep_report_document',
         'rep_layer',
         'rep_layer_draw',
         'rep_cluster_draw',
@@ -166,6 +172,11 @@ test(
         'mst_mail',
         'mst_direct',
         'mst_webhook',
+        'data_output_layout',
+        'def_external_output',
+        'mst_report_table',
+        'def_auto_numbering_reset_setting',
+        'log_auto_numbering',
       ])
         await client.query(`CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING ALL)`);
       await client.query('SET search_path TO pg_temp');
@@ -253,6 +264,24 @@ test(
         );
         for (const [name, value] of Object.entries(body))
           for (const item of Array.isArray(value) ? value : [value]) data.append(name, item);
+        return fetch(origin + path, {
+          method: 'POST',
+          headers: { cookie, 'X-Requested-With': 'XMLHttpRequest' },
+          body: data,
+          redirect: 'manual',
+        });
+      };
+      const multipart = (
+        body: Record<string, string>,
+        files: Array<[string, Buffer, string]>,
+        csrf = token,
+        path = '/InputReport/EditSheet',
+      ) => {
+        const data = new FormData();
+        data.append('__RequestVerificationToken', csrf);
+        for (const [name, value] of Object.entries(body)) data.append(name, value);
+        for (const [field, bytes, type] of files)
+          data.append(field, new Blob([new Uint8Array(bytes)], { type }), 'fixture-image');
         return fetch(origin + path, {
           method: 'POST',
           headers: { cookie, 'X-Requested-With': 'XMLHttpRequest' },
@@ -594,6 +623,43 @@ test(
         },
       );
       await t.test(
+        'Basic PDF downloads use configured safe filenames and protected whole-report rendering without server files',
+        async () => {
+          await client.query(`INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES
+          ('OUTPUT_SETTING','BASE_FOLDER','unused-server-folder',91),('OUTPUT_SETTING','BASE_FILE','report_{repTopId}_{repTopName}',91),
+          ('OUTPUT_SETTING','DATE_FORMAT','yyyyMMdd',91),('OUTPUT_SETTING','DATETIME_FORMAT','yyyyMMddHHmmss',91),('OUTPUT_SETTING','TIME_FORMAT','HHmmss',91);`);
+          const before = await saved();
+          try {
+            const form = await (await get('/InputReport/DetailsTop?repTopId=1')).text();
+            assert.match(form, /class="pdf_link"[^>]*DownLoadAction/);
+            const result = await get(
+              '/InputReport/DownLoadAction?downloadMode=pdf&repTopId=1&isLayer=true&isInitJudgeDisplay=true&isForciblyFontSize=not-bound&sheetNo=999',
+            );
+            assert.equal(result.status, 200);
+            assert.match(result.headers.get('content-type') ?? '', /application\/pdf/);
+            assert.match(result.headers.get('content-disposition') ?? '', /report_1__Fixture report_\.pdf/);
+            const pdf = await PDFDocument.load(await result.arrayBuffer());
+            assert.equal(pdf.getPageCount(), 2);
+            assert.equal((await get('/InputReport/DownLoadAction?downloadMode=pdf&repTopId=3')).status, 403);
+            assert.equal((await get('/InputReport/DownLoadAction?downloadMode=csv&repTopId=3')).status, 403);
+            assert.equal(
+              (await get('/InputReport/DownLoadAction?downloadMode=pdf&repTopId=1&isLayer=bad')).status,
+              400,
+            );
+            assert.equal((await get('/InputReport/DownLoadAction?downloadMode=unknown&repTopId=1')).status, 400);
+            for (const mode of ['csv2', 'excel'])
+              assert.equal((await get('/InputReport/DownLoadAction?downloadMode=' + mode + '&repTopId=1')).status, 501);
+            await client.query(
+              "INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('OUTPUT_SETTING','PDF_MANUAL_OUTPUT','false',91)",
+            );
+            assert.doesNotMatch(await (await get('/InputReport/DetailsTop?repTopId=1')).text(), /class="pdf_link"/);
+            assert.deepEqual(await saved(), before);
+          } finally {
+            await client.query("DELETE FROM mst_common WHERE com_key='OUTPUT_SETTING' AND com_index=91");
+          }
+        },
+      );
+      await t.test(
         'settings-only Basic saves merge output selections and preserve omitted fields and source XML quirks',
         async () => {
           await documentSaveTop(
@@ -735,7 +801,8 @@ test(
             { 'rep_top_option.PdfFontSizeDeductionAmount': '10.1' },
             { 'rep_top.output_files.Csv': 'invalid' },
             { 'rep_top.unsupported_field': 'yes' },
-            { IsComplete: 'true' },
+            { IsCompleteSuperManager: 'true' },
+            { IsComplete: 'invalid' },
             { 'rep_top.edit_direct': 'changed' },
           ])
             await assert.rejects(documentSaveTop(db, 1, input, 'fixture'));
@@ -1285,6 +1352,158 @@ test(
         },
       );
       await t.test(
+        'sheet images upload/clear original bytes with protected previews, history and transactional rollback',
+        async () => {
+          const directory = await mkdtemp('/tmp/opencode/document-image-');
+          try {
+            const photo = await sharp({ create: { width: 5, height: 7, channels: 3, background: '#a03040' } })
+              .png()
+              .toBuffer();
+            const replacement = await sharp({ create: { width: 7, height: 5, channels: 3, background: '#30a040' } })
+              .png()
+              .toBuffer();
+            const path = join(directory, 'image');
+            await writeFile(path, replacement);
+            const imageBackground = await PDFDocument.create();
+            imageBackground.addPage([300, 600]);
+            const clusters = ['Image', 'FreeText', 'DrawingImage', 'Image', 'FixedText']
+              .map(
+                (type, index) =>
+                  `<cluster><clusterId>${index + 1}</clusterId><type>${type}</type><value/><displayValue/><inputParameters/></cluster>`,
+              )
+              .join('');
+            const xml = `<conmas><top><repTopId>703</repTopId><defTopId>100</defTopId><repTopName>Images</repTopName><editStatus>1</editStatus><sheets><sheet><repSheetId>7031</repSheetId><sheetNo>1</sheetNo><repSheetName>Images</repSheetName><clusters>${clusters}</clusters></sheet></sheets></top></conmas>`;
+            await client.query(
+              `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,def_top_id,rep_top_name,deleted,edit_refer_status,edit_output,finish_output,use_input_history,rep_sheet_count,xml_data,background_image_file)
+            VALUES(703,703,1,100,'Images',0,1,0,0,2,1,$1,$2)`,
+              [xml, Buffer.from(await imageBackground.save())],
+            );
+            await client.query(`INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(703,703);
+            INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(703,10,1,1),(703,20,1,0);
+            INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(7031,703,1,'Images');
+            INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_value,display_value,left_position,top_position,right_position,bottom_position) VALUES
+              (7031,1,'Image','','',.1,.1,.3,.3),(7031,2,'FreeText','','',.3,.1,.5,.3),(7031,3,'DrawingImage','','',.5,.1,.7,.3),(7031,4,'Image','','',.7,.1,.9,.3),(7031,5,'FixedText','','',.1,.4,.3,.6);
+            INSERT INTO rep_cluster_role(rep_sheet_id,cluster_id,group_id) VALUES(7031,4,30);
+            INSERT INTO rep_cluster_refer(rep_sheet_id,cluster_id,group_id) VALUES(7031,4,30);`);
+            const data: Record<string, string> = {
+              'rep_sheets[0].rep_top_id': '703',
+              'rep_sheets[0].rep_sheet_id': '7031',
+              'rep_sheets.PageIndex': '0',
+            };
+            for (let index = 0; index < 5; index++)
+              Object.assign(data, {
+                [`rep_clusters[${index}].rep_sheet_id`]: '7031',
+                [`rep_clusters[${index}].cluster_id`]: String(index + 1),
+                [`rep_clusters[${index}].cluster_role`]: index === 3 ? '2' : '1',
+              });
+            const snapshot = async () => ({
+              top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=703')).rows,
+              sheet: (await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=7031')).rows,
+              clusters: (await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=7031 ORDER BY cluster_id'))
+                .rows,
+              history: (
+                await client.query('SELECT * FROM history_rep_cluster WHERE rep_sheet_id=7031 ORDER BY history_id')
+              ).rows,
+            });
+            const before = await snapshot();
+            const form = await (await get('/InputReport/EditSheet?repTopId=703&pageIndex=0')).text();
+            assert.match(form, /enctype="multipart\/form-data"/);
+            assert.match(form, /type="file" id="1" name="1"/);
+            assert.doesNotMatch(form, /type="file" id="(?:4|5)"/);
+            for (const files of [
+              [
+                ['1', photo, 'image/png'],
+                ['1', replacement, 'image/png'],
+              ],
+              [['4', photo, 'image/png']],
+              [['5', photo, 'image/png']],
+              [['99', photo, 'image/png']],
+              [['unknown', photo, 'image/png']],
+              [['1', photo, 'text/plain']],
+              [['1', Buffer.from('not an image'), 'image/png']],
+            ] as Array<Array<[string, Buffer, string]>>) {
+              assert.equal((await multipart(data, files)).status, 400);
+              assert.deepEqual(await snapshot(), before);
+            }
+            assert.equal((await multipart(data, [['1', photo, 'image/png']], 'bad-token')).status, 403);
+            actor = 'reader';
+            assert.equal((await multipart(data, [['1', photo, 'image/png']])).status, 403);
+            actor = 'fixture';
+            const upload = await multipart(data, [
+              ['1', photo, 'image/png'],
+              ['2', photo, 'image/png'],
+              ['3', photo, 'image/png'],
+            ]);
+            const uploadText = await upload.text();
+            assert.equal(
+              upload.status,
+              302,
+              uploadText.includes('<') ? uploadText.match(/<li>([^<]+)<\/li>/)?.[1] : uploadText,
+            );
+            const saved = await snapshot();
+            for (const row of saved.clusters.slice(0, 3)) {
+              assert.deepEqual(row.image_file, photo);
+              assert.equal(row.input_value, '');
+              assert.equal(row.edit_user, 'fixture');
+              assert.equal(row.sys_update_user, 'fixture');
+            }
+            assert(
+              saved.history.filter((row) => Buffer.isBuffer(row.image_file) && row.image_file.equals(photo)).length >=
+                3,
+            );
+            assert(Buffer.isBuffer(saved.top[0].thumbnail_file) && saved.top[0].thumbnail_file.length > 0);
+            const detail = await (await get('/InputReport/DetailsSheet?repTopId=703&pageIndex=0')).text();
+            assert.match(detail, /GetInputValueImage\?repSheetId=7031/);
+            assert.doesNotMatch(detail, new RegExp(photo.toString('base64')));
+            const media = await get('/InputReport/GetInputValueImage?repSheetId=7031&clusterId=1');
+            assert.equal(media.status, 200);
+            assert.deepEqual(Buffer.from(await media.arrayBuffer()), photo);
+            await documentSaveSheetMetadata(db, 703, 0, { 'rep_sheets[0].rep_sheet_id': '7031' }, 'fixture');
+            assert.deepEqual((await snapshot()).clusters, saved.clusters);
+            assert.deepEqual((await snapshot()).history, saved.history);
+            const baseline = await snapshot();
+            const file = { path, fieldname: '1', mimetype: 'image/png' } as Express.Multer.File;
+            const failing = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('UPDATE rep_top SET thumbnail_file'))
+                    throw new Error('Private image thumbnail failure');
+                  return client.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            await assert.rejects(
+              documentSaveSheetMetadata(failing, 703, 0, data, 'fixture', 'en-US', [file]),
+              /Private image thumbnail failure/,
+            );
+            assert.deepEqual(await snapshot(), baseline);
+            await client.query('UPDATE rep_top SET use_change_reason=1 WHERE rep_top_id=703');
+            const reasonBaseline = await snapshot();
+            assert.equal((await multipart(data, [['1', replacement, 'image/png']])).status, 400);
+            assert.deepEqual(await snapshot(), reasonBaseline);
+            const clear = {
+              ...data,
+              'rep_clusters[0].IsImageClear': 'true',
+              'rep_clusters[0].Verified': 'true',
+              'rep_clusters[0].ChangeReason': 'remove image',
+            };
+            assert.equal((await multipart(clear, [['1', replacement, 'image/png']])).status, 302);
+            const cleared = await snapshot();
+            assert.equal(cleared.clusters[0].image_file, null);
+            assert.equal(cleared.clusters[0].verified, '1');
+            assert.equal(cleared.clusters[0].change_reason, 'remove image');
+            assert.deepEqual(cleared.clusters[1], reasonBaseline.clusters[1]);
+            assert.notDeepEqual(cleared.top[0].thumbnail_file, saved.top[0].thumbnail_file);
+            assert.equal((await get('/InputReport/GetInputValueImage?repSheetId=7031&clusterId=1')).status, 404);
+          } finally {
+            actor = 'fixture';
+            await rm(directory, { recursive: true, force: true });
+          }
+        },
+      );
+      await t.test(
         'sheet metadata regenerates report names using the native helper and commits labels/audits together, or rolls all of them back',
         async () => {
           const names =
@@ -1359,6 +1578,1218 @@ test(
           await assert.rejects(documentSaveSheetMetadata(db, 1, 0, input, 'fixture'), /date format/);
           assert.deepEqual(await saved(), unsupported);
           assert.deepEqual((await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=11')).rows[0], sheet);
+        },
+      );
+      await t.test(
+        'completion checks every sheet, protects stale states and commits status, XML, audit, naming, labels and cooperation atomically',
+        async () => {
+          const completionXml =
+            '<conmas><top><repTopId>801</repTopId><defTopId>801</defTopId><repTopName>Before completion</repTopName><editStatus>1</editStatus><publicStatus>0</publicStatus><cooperationTable>1</cooperationTable><nameRegenerate>1</nameRegenerate><remarksValue1>done</remarksValue1><nameParts><part><partId>1</partId><type>value</type><value>Completed - </value></part><part><partId>2</partId><type>report</type><value>remarksValue1</value></part></nameParts><sheets><sheet><repSheetId>8011</repSheetId><sheetNo>1</sheetNo><clusters><cluster><clusterId>1</clusterId><type>Text</type><value>kept</value></cluster></clusters></sheet><sheet><repSheetId>8012</repSheetId><sheetNo>2</sheetNo><clusters/></sheet></sheets></top></conmas>';
+          await client.query(
+            `INSERT INTO def_top(def_top_id,def_top_org,def_top_name,xml_data) VALUES (801,801,'Completion form',$1);
+        `,
+            [completionXml],
+          );
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,finish_output,top_remarks1,use_applicant_lock,workflow_lock,xml_data) VALUES (801,801,1,'Before completion',801,0,1,0,'done',0,0,$1)`,
+            [completionXml],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_org,rep_top_id) VALUES (801,801);
+        INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES (801,10,1,1),(801,20,1,0);
+        INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES (8011,801,1,'First'),(8012,801,2,'Second');
+        INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_parameter,input_value) VALUES (8011,1,'Text','Required=true','kept'),(8012,1,'Text','Required=true','');
+        INSERT INTO rep_cluster_refer(rep_sheet_id,cluster_id,group_id) VALUES (8012,1,30);
+        CREATE TEMP TABLE report_801(rep_top_id int PRIMARY KEY,rep_top_name text,edit_refer_status int,sys_update_user text,sys_update_time timestamp,cluster_1_1_t text);
+        INSERT INTO report_801 VALUES (801,'Before completion',1,'previous','2026-01-01','retained cooperation input');
+        INSERT INTO mst_report_table(report_file_name,xml_data) VALUES ('801.xml','<report/>');
+        INSERT INTO def_rep_label(def_top_id,mst_label_id) VALUES (801,101);`);
+          const snapshot = async () => (await client.query('SELECT * FROM rep_top WHERE rep_top_id=801')).rows[0];
+          const before = await snapshot();
+          const request = {
+            'rep_top.rep_top_id': '801',
+            'rep_top.rep_top_name': 'Draft completion',
+            IsComplete: ['true', 'false'],
+          };
+          const missing = await post('/InputReport/EditTop', request);
+          assert.equal(missing.status, 400);
+          const retry = await missing.text();
+          assert.match(retry, /Required inputs are missing/);
+          assert.match(retry, /id="IsComplete"[^>]*checked/);
+          assert.match(retry, /value="Draft completion"/);
+          assert.doesNotMatch(retry, /IsCompleteSuperManager|secret|SELECT|UPDATE rep_top/);
+          assert.deepEqual(await snapshot(), before);
+          await client.query("UPDATE rep_cluster SET verified='1' WHERE rep_sheet_id=8012");
+          for (const state of ['deleted=1', 'workflow_lock=1', 'edit_refer_status=4']) {
+            await client.query('UPDATE rep_top SET ' + state + ' WHERE rep_top_id=801');
+            const locked = await snapshot();
+            await assert.rejects(documentSaveTop(db, 801, { IsComplete: 'true' }, 'fixture'), /current state/);
+            assert.deepEqual(await snapshot(), locked);
+            await client.query('UPDATE rep_top SET deleted=0,workflow_lock=0,edit_refer_status=1 WHERE rep_top_id=801');
+          }
+          await client.query("INSERT INTO rep_lock(rep_top_id,user_id) VALUES (801,'other')");
+          await assert.rejects(documentSaveTop(db, 801, { IsComplete: 'true' }, 'fixture'), /locked/);
+          await client.query('DELETE FROM rep_lock WHERE rep_top_id=801');
+          await client.query('DELETE FROM rep_current WHERE rep_top_id=801');
+          await assert.rejects(documentSaveTop(db, 801, { IsComplete: 'true' }, 'fixture'), /current state/);
+          await client.query('INSERT INTO rep_current(rep_top_org,rep_top_id) VALUES (801,801)');
+          assert.equal((await post('/InputReport/EditTop', request, 'invalid')).status, 403);
+          actor = 'reader';
+          assert.equal((await post('/InputReport/EditTop', request)).status, 403);
+          actor = 'fixture';
+          await client.query(
+            "UPDATE rep_top SET xml_data=replace(xml_data,'<defTopId>801</defTopId>','<defTopId>100</defTopId>') WHERE rep_top_id=801",
+          );
+          await assert.rejects(documentSaveTop(db, 801, request, 'fixture'), /Report XML identity differs/);
+          await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=801', [before.xml_data]);
+          assert.deepEqual(await snapshot(), before);
+          await client.query(
+            "UPDATE mst_common SET com_value='true' WHERE com_key='OUTPUT_SETTING' AND com_name='FINISH'",
+          );
+          try {
+            const output = await post('/InputReport/EditTop', { ...request, 'rep_top.output_setting': '1' });
+            assert.equal(output.status, 501);
+            assert.match(await output.text(), /unmigrated output pipeline/);
+            assert.deepEqual(await snapshot(), before);
+          } finally {
+            await client.query(
+              "UPDATE mst_common SET com_value='false' WHERE com_key='OUTPUT_SETTING' AND com_name='FINISH'",
+            );
+          }
+          await client.query(
+            "INSERT INTO mst_mail(mail_file_name,xml_data) VALUES ('MailComplete.xml','<mail default=\"configured\"/>')",
+          );
+          try {
+            const mail = await post('/InputReport/EditTop', request);
+            assert.equal(mail.status, 501);
+            assert.match(await mail.text(), /unmigrated mail pipeline/);
+            assert.deepEqual(await snapshot(), before);
+          } finally {
+            await client.query("DELETE FROM mst_mail WHERE mail_file_name='MailComplete.xml'");
+          }
+          const cooperative = (await client.query('SELECT * FROM report_801')).rows;
+          const failing = {
+            ...db,
+            connect: async () => ({
+              query: async (sql: string, values?: unknown[]) => {
+                if (sql.startsWith('INSERT INTO pg_temp.report_801'))
+                  throw new Error('Private completion cooperation failure');
+                return client.query(sql, values);
+              },
+              release() {},
+            }),
+          } as unknown as pg.Pool;
+          await assert.rejects(
+            documentSaveTop(failing, 801, request, 'fixture'),
+            /Private completion cooperation failure/,
+          );
+          assert.deepEqual(await snapshot(), before);
+          assert.deepEqual((await client.query('SELECT * FROM report_801')).rows, cooperative);
+          assert.equal((await client.query('SELECT 1 FROM rep_label WHERE rep_top_id=801')).rowCount, 0);
+          const labelFailure = {
+            ...db,
+            connect: async () => ({
+              query: async (sql: string, values?: unknown[]) => {
+                if (sql.startsWith('INSERT INTO rep_label_role')) throw new Error('Private completion label failure');
+                return client.query(sql, values);
+              },
+              release() {},
+            }),
+          } as unknown as pg.Pool;
+          await assert.rejects(
+            documentSaveTop(labelFailure, 801, request, 'fixture'),
+            /Private completion label failure/,
+          );
+          assert.deepEqual(await snapshot(), before);
+          assert.deepEqual((await client.query('SELECT * FROM report_801')).rows, cooperative);
+          assert.equal((await client.query('SELECT 1 FROM rep_label WHERE rep_top_id=801')).rowCount, 0);
+          assert.equal((await post('/InputReport/EditTop', request)).status, 302);
+          const after = await snapshot(),
+            top = must(root(after.xml_data), 'top');
+          assert.equal(Number(after.edit_refer_status), 4);
+          assert.equal(optionalField(top, 'editStatus'), '4');
+          assert.equal(after.rep_top_name, 'Completed - done');
+          assert.equal(optionalField(top, 'repTopName'), after.rep_top_name);
+          assert.equal(after.sys_update_user, 'fixture');
+          assert.equal(after.sys_update_user_name, 'Fixture editor');
+          assert.equal(optionalField(top, 'updateUser'), 'fixture');
+          assert(after.sys_update_time instanceof Date);
+          const persisted = (await client.query('SELECT * FROM report_801')).rows[0];
+          assert.equal(persisted.rep_top_name, after.rep_top_name);
+          assert.equal(persisted.edit_refer_status, 4);
+          assert.equal(persisted.cluster_1_1_t, 'retained cooperation input');
+          assert.equal(persisted.sys_update_time.getTime(), after.sys_update_time.getTime());
+          assert((await client.query('SELECT 1 FROM rep_label WHERE rep_top_id=801')).rowCount! > 0);
+          await assert.rejects(documentSaveTop(db, 801, request, 'fixture'), /current state/);
+          assert.deepEqual(await snapshot(), after);
+          const staleEditor = await get('/InputReport/EditTop?repTopId=801');
+          assert.equal(staleEditor.status, 302);
+          assert.equal(staleEditor.headers.get('location'), '/ConMasManager/InputReport/DetailsTop?repTopId=801');
+          assert.equal((await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=801')).rowCount, 0);
+        },
+      );
+      await t.test(
+        'forced completion is server-authorized, preserves an escaped reason and bypasses only required checks',
+        async () => {
+          await client.query(`UPDATE rep_top SET edit_refer_status=1,xml_data=replace(xml_data,'<editStatus>4</editStatus>','<editStatus>1</editStatus>') WHERE rep_top_id=801;
+        UPDATE rep_cluster SET verified='0',input_value='' WHERE rep_sheet_id=8012;`);
+          const before = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=801')).rows[0];
+          const input = {
+            'rep_top.rep_top_id': '801',
+            IsCompleteSuperManager: ['true', 'false'],
+            'rep_top.finish_reason': '<Reason>\r\nretained',
+          };
+          assert.equal((await post('/InputReport/EditTop', input)).status, 403);
+          assert.deepEqual((await client.query('SELECT * FROM rep_top WHERE rep_top_id=801')).rows[0], before);
+          await client.query('UPDATE mst_group SET role_rep_super_manager=1 WHERE group_id=10');
+          try {
+            const form = await get('/InputReport/EditTop?repTopId=801');
+            assert.match(await form.text(), /id="IsCompleteSuperManager"/);
+            const oversized = await post('/InputReport/EditTop', {
+              ...input,
+              'rep_top.finish_reason': 'x'.repeat(4001),
+            });
+            assert.equal(oversized.status, 400);
+            assert.match(await oversized.text(), /id="IsCompleteSuperManager"[^>]*checked/);
+            await client.query(
+              "UPDATE rep_top SET xml_data=replace(xml_data,'<sheets>','<useAutoNumbering>1</useAutoNumbering><autoNumbering><numberingTiming>1</numberingTiming></autoNumbering><sheets>') WHERE rep_top_id=801",
+            );
+            const unsupported = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=801')).rows[0];
+            const rejected = await post('/InputReport/EditTop', input);
+            assert.equal(rejected.status, 400);
+            const html = await rejected.text();
+            assert.match(html, /numbering/);
+            assert.match(html, /&lt;Reason&gt;/);
+            assert.deepEqual((await client.query('SELECT * FROM rep_top WHERE rep_top_id=801')).rows[0], unsupported);
+            await client.query(
+              "UPDATE rep_top SET xml_data=replace(xml_data,'<useAutoNumbering>1</useAutoNumbering><autoNumbering><numberingTiming>1</numberingTiming></autoNumbering>','') WHERE rep_top_id=801",
+            );
+            assert.equal((await post('/InputReport/EditTop', input)).status, 302);
+            const after = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=801')).rows[0];
+            assert.equal(Number(after.edit_refer_status), 4);
+            assert.equal(Number(after.finish_compulsory_type), 1);
+            assert.equal(after.finish_reason, input['rep_top.finish_reason']);
+            assert.equal(after.sys_update_user, 'fixture');
+            const details = await get('/InputReport/DetailsTop?repTopId=801');
+            assert.match(await details.text(), /Reason for compulsory input completion<\/th><td>&lt;Reason&gt;/);
+            assert.equal(
+              (await client.query('SELECT input_value,verified FROM rep_cluster WHERE rep_sheet_id=8012')).rows[0]
+                .input_value,
+              '',
+            );
+          } finally {
+            await client.query('UPDATE mst_group SET role_rep_super_manager=0 WHERE group_id=10');
+          }
+        },
+      );
+      await t.test(
+        'Basic final-save numbering persists relational/XML clusters, history and generated names without renumbering saved numbers',
+        async () => {
+          const numbering =
+            '<useAutoNumbering>1</useAutoNumbering><autoNumbering><startValue>7</startValue><increment>2</increment><digit>3</digit><zeroPadding>1</zeroPadding><numberingTiming>1</numberingTiming><part><partId>1</partId><type>value</type><value>IR-</value></part><part><partId>2</partId><type>autoNumber</type><value/></part></autoNumbering>';
+          const xml =
+            '<conmas><top><repTopId>802</repTopId><defTopId>802</defTopId><repTopName>Before number</repTopName><editStatus>1</editStatus><nameRegenerate>1</nameRegenerate><nameParts><part><partId>1</partId><type>displayValue</type><value>1,1</value></part></nameParts>' +
+            numbering +
+            '<sheets><sheet><repSheetId>8021</repSheetId><sheetNo>1</sheetNo><clusters><cluster><clusterId>1</clusterId><type>KeyboardText</type><inputParameters>AutoNumber=1</inputParameters><value/><displayValue/></cluster></clusters></sheet></sheets></top></conmas>';
+          await client.query('INSERT INTO def_top(def_top_id,def_top_org,auto_numbering_rev_no) VALUES (802,802,1)');
+          await client.query(
+            "INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,finish_output,xml_data) VALUES(802,802,1,'Before number',802,0,1,0,$1)",
+            [xml],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_org,rep_top_id) VALUES (802,802);
+        INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES (802,10,1,1);
+        INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES (8021,802,1,'Number sheet');
+        INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_parameter,input_value,display_value) VALUES (8021,1,'KeyboardText','AutoNumber=1','','');
+        CREATE TEMP SEQUENCE rep_auto_numbering_802_1 INCREMENT 2 MINVALUE 1 MAXVALUE 999 START 7;`);
+          const failing = {
+            ...db,
+            connect: async () => ({
+              query: async (sql: string, values?: unknown[]) => {
+                if (sql.startsWith('INSERT INTO rep_top_option')) throw new Error('Private numbered save failure');
+                return client.query(sql, values);
+              },
+              release() {},
+            }),
+          } as unknown as pg.Pool;
+          await assert.rejects(
+            documentSaveTop(failing, 802, { IsComplete: 'true' }, 'fixture'),
+            /Private numbered save failure/,
+          );
+          assert.equal(
+            (await client.query('SELECT input_value FROM rep_cluster WHERE rep_sheet_id=8021')).rows[0].input_value,
+            '',
+          );
+          assert.equal((await client.query('SELECT xml_data FROM rep_top WHERE rep_top_id=802')).rows[0].xml_data, xml);
+          // PostgreSQL sequences retain gaps after rollback, as the source sequence implementation does.
+          assert.equal(
+            String((await client.query('SELECT last_value FROM rep_auto_numbering_802_1')).rows[0].last_value),
+            '7',
+          );
+          await documentSaveTop(db, 802, { IsComplete: 'true' }, 'fixture');
+          const report = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=802')).rows[0];
+          assert.equal(report.auto_numbering_value, 'IR-009');
+          assert.equal(report.rep_top_name, 'IR-009');
+          assert.equal(Number(report.edit_refer_status), 4);
+          assert.match(report.xml_data, /<value>IR-009<\/value><displayValue>IR-009<\/displayValue>/);
+          assert.match(
+            (await client.query('SELECT xml_data FROM rep_sheet WHERE rep_sheet_id=8021')).rows[0].xml_data,
+            /IR-009/,
+          );
+          const value = (await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=8021')).rows[0];
+          assert.equal(value.input_value, 'IR-009');
+          assert.equal(value.display_value, 'IR-009');
+          assert.equal(value.sys_update_user, 'fixture');
+          await client.query('UPDATE rep_top SET edit_refer_status=1 WHERE rep_top_id=802');
+          await documentSaveTop(db, 802, { IsComplete: 'true' }, 'fixture');
+          assert.equal(
+            String((await client.query('SELECT last_value FROM rep_auto_numbering_802_1')).rows[0].last_value),
+            '9',
+          );
+          await client.query(
+            "UPDATE rep_top SET edit_refer_status=1,auto_numbering_value=NULL WHERE rep_top_id=802; SELECT setval('pg_temp.rep_auto_numbering_802_1',999,true)",
+          );
+          await assert.rejects(documentSaveTop(db, 802, { IsComplete: 'true' }, 'fixture'), /maximum/);
+          const resetRule = numbering
+            .match(/<autoNumbering>[\s\S]*<\/autoNumbering>/)![0]
+            .replace('<startValue>7</startValue>', '<startValue>11</startValue>')
+            .replace(
+              '</autoNumbering>',
+              '<useReset>1</useReset><reset><termType>1</termType><interval>1</interval><startDate>2026/01/01</startDate><executeTime>00:00</executeTime></reset></autoNumbering>',
+            );
+          await client.query(
+            "INSERT INTO def_auto_numbering_reset_setting(def_top_org,auto_numbering_rev_no,auto_numbering_setting,next_reset_time) VALUES(802,1,$1,'2026-01-01')",
+            [resetRule],
+          );
+          await documentSaveTop(db, 802, { IsComplete: 'true' }, 'fixture');
+          assert.equal(
+            (await client.query('SELECT auto_numbering_value FROM rep_top WHERE rep_top_id=802')).rows[0]
+              .auto_numbering_value,
+            'IR-011',
+          );
+          assert.equal(
+            (await client.query("SELECT 1 FROM log_auto_numbering WHERE def_top_org=802 AND action='AUTO_RESET'"))
+              .rowCount,
+            1,
+          );
+        },
+      );
+      await t.test(
+        'Basic internal Excel repair preserves the first shared-definition backup, permissions, CSRF and rollback',
+        async () => {
+          const directory = await mkdtemp('/tmp/opencode/document-excel-');
+          const original = Buffer.from('private original workbook'),
+            patched = Buffer.from('private patched workbook'),
+            second = Buffer.from('private replacement workbook');
+          const type = 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
+          const body = { 'rep_top.rep_top_id': '804' };
+          const upload = (files: Array<[string, Buffer, string]>, csrf = token) =>
+            multipart(body, files, csrf, '/InputReport/UploadInnerExcel');
+          try {
+            await client.query(
+              "INSERT INTO def_top(def_top_id,def_top_name,def_file_type,def_file) VALUES(804,'Excel form','xlsx',$1)",
+              [original],
+            );
+            await client.query(`INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,def_top_id,rep_top_name,deleted,edit_refer_status,xml_data)
+            VALUES(804,804,1,804,'Excel report',0,4,'<conmas><top><repTopId>804</repTopId><defTopId>804</defTopId><sheets/></top></conmas>');
+            INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(804,804);
+            INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(804,10,1,1),(804,20,1,0);
+            INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('FUNCTION_SETTING','EXCELFILE_RECOVERY','1',90);`);
+            const snapshot = async () => (await client.query('SELECT * FROM def_top WHERE def_top_id=804')).rows[0];
+            const before = await snapshot();
+            const form = await (await get('/InputReport/DetailsTop?repTopId=804')).text();
+            assert.match(form, /id="UploadInnerExcel"[^>]*enctype="multipart\/form-data"/);
+            assert.match(form, /DownLoadInnerExcel\?repTopId=804/);
+            assert.doesNotMatch(form, /<form[^>]*id="form0"/);
+            assert.doesNotMatch(
+              await (await get('/InputReport/DetailsTop?repTopId=804&isLayer=true')).text(),
+              /id="patchExcel"/,
+            );
+            assert.equal((await upload([['patchedExcel', patched, type]], 'bad')).status, 403);
+            const missing = await upload([]);
+            assert.match(missing.headers.get('location') ?? '', /errorCode=PatchExcelFileNotExists$/);
+            const invalid = await upload([['patchedExcel', patched, 'text/plain']]);
+            assert.match(invalid.headers.get('location') ?? '', /errorCode=PatchExcelNotExcelFile$/);
+            actor = 'reader';
+            assert.equal((await get('/InputReport/DownLoadInnerExcel?repTopId=804')).status, 403);
+            assert.match(
+              (await upload([['patchedExcel', patched, type]])).headers.get('location') ?? '',
+              /errorCode=RoleError$/,
+            );
+            assert.doesNotMatch(await (await get('/InputReport/DetailsTop?repTopId=804')).text(), /id="patchExcel"/);
+            actor = 'fixture';
+            await client.query('UPDATE rep_role SET role_rep_update=0 WHERE rep_top_id=804 AND group_id=10');
+            assert.equal((await get('/InputReport/DownLoadInnerExcel?repTopId=804')).status, 403);
+            await client.query('UPDATE rep_role SET role_rep_update=1 WHERE rep_top_id=804 AND group_id=10');
+            assert.deepEqual(await snapshot(), before);
+            const path = join(directory, 'workbook');
+            await writeFile(path, patched);
+            const file = {
+              path,
+              fieldname: 'patchedExcel',
+              mimetype: type,
+              size: patched.length,
+            } as Express.Multer.File;
+            const failing = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('UPDATE def_top SET def_file='))
+                    throw new Error('Private workbook update failure');
+                  return client.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            await assert.rejects(
+              documentInnerExcel(failing, 804, 'fixture', [file]),
+              /Private workbook update failure/,
+            );
+            assert.deepEqual(await snapshot(), before);
+            const download = await get('/InputReport/DownLoadInnerExcel?repTopId=804');
+            assert.equal(download.status, 200);
+            assert.match(download.headers.get('content-disposition') ?? '', /def804\.xlsx/);
+            assert.deepEqual(Buffer.from(await download.arrayBuffer()), original);
+            assert.deepEqual((await snapshot()).def_file_backup, original);
+            assert.match(
+              (await upload([['patchedExcel', patched, type]])).headers.get('location') ?? '',
+              /errorCode=Success$/,
+            );
+            assert.deepEqual((await snapshot()).def_file, patched);
+            assert.deepEqual((await snapshot()).def_file_backup, original);
+            assert.match(
+              (await upload([['patchedExcel', second, type]])).headers.get('location') ?? '',
+              /errorCode=Success$/,
+            );
+            assert.deepEqual((await snapshot()).def_file, second);
+            const retained = await get('/InputReport/DownLoadInnerExcel?repTopId=804');
+            assert.deepEqual(Buffer.from(await retained.arrayBuffer()), original);
+            assert.deepEqual((await snapshot()).def_file_backup, original);
+            assert.match(
+              await (await get('/InputReport/DetailsTop?repTopId=804&errorCode=PatchExcelNotExcelFile')).text(),
+              /A non-EXCEL file was selected/,
+            );
+            await client.query(
+              "INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('OUTPUT_SETTING','EXCEL_MANUAL_OUTPUT','false',90)",
+            );
+            assert.doesNotMatch(await (await get('/InputReport/DetailsTop?repTopId=804')).text(), /id="patchExcel"/);
+          } finally {
+            actor = 'fixture';
+            await client.query(
+              "DELETE FROM mst_common WHERE com_key='FUNCTION_SETTING' AND com_name='EXCELFILE_RECOVERY' AND com_index=90",
+            );
+            await client.query(
+              "DELETE FROM mst_common WHERE com_key='OUTPUT_SETTING' AND com_name='EXCEL_MANUAL_OUTPUT' AND com_index=90",
+            );
+            await rm(directory, { recursive: true, force: true });
+          }
+        },
+      );
+      await t.test(
+        'sheet numbering increments stored save counts atomically, refreshes names/previews and saturates at the configured limit',
+        async () => {
+          const settings =
+            '<autoNumbering><startValue>1</startValue><increment>1</increment><digit>3</digit><zeroPadding>1</zeroPadding><numberingTiming>0</numberingTiming><useSaveCount>1</useSaveCount><saveCount><digit>2</digit><zeroPadding>1</zeroPadding></saveCount><part><partId>1</partId><type>autoNumber</type><value/></part><part><partId>2</partId><type>saveCount</type><value/></part></autoNumbering>';
+          const xml =
+            '<conmas><top><repTopId>803</repTopId><defTopId>100</defTopId><repTopName>Before counter</repTopName><editStatus>1</editStatus><useAutoNumbering>1</useAutoNumbering><nameRegenerate>0</nameRegenerate><nameParts><part><partId>1</partId><type>displayValue</type><value>1,1</value></part></nameParts>' +
+            settings +
+            '<sheets><sheet><repSheetId>8031</repSheetId><sheetNo>1</sheetNo><repSheetName>Numbered sheet</repSheetName><clusters><cluster><clusterId>1</clusterId><type>KeyboardText</type><inputParameters>AutoNumber=1</inputParameters><value>IR-007-02</value><displayValue>IR-007-02</displayValue></cluster></clusters></sheet></sheets></top></conmas>';
+          const pdf = await PDFDocument.create();
+          pdf.addPage([300, 600]);
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,edit_output,finish_output,use_input_history,rep_sheet_count,auto_numbering_value,auto_numbering_save_count,xml_data,background_image_file)
+          VALUES(803,803,1,'Before counter',100,0,1,0,0,2,1,'IR-007-{SAVE_COUNT}',2,$1,$2)`,
+            [xml, Buffer.from(await pdf.save())],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(803,803);
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(803,10,1,1);
+          INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(8031,803,1,'Numbered sheet');
+          INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_parameter,input_value,display_value,left_position,top_position,right_position,bottom_position)
+          VALUES(8031,1,'KeyboardText','AutoNumber=1','IR-007-02','IR-007-02',.1,.1,.9,.3);`);
+          const input = { 'rep_sheets[0].rep_sheet_id': '8031' };
+          const snapshot = async () => ({
+            top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=803')).rows[0],
+            sheet: (await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=8031')).rows[0],
+            cluster: (await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=8031')).rows[0],
+            history: (
+              await client.query('SELECT * FROM history_rep_cluster WHERE rep_sheet_id=8031 ORDER BY history_id')
+            ).rows,
+          });
+          const before = await snapshot();
+          const failing = {
+            ...db,
+            connect: async () => ({
+              query: async (sql: string, values?: unknown[]) => {
+                if (sql.startsWith('UPDATE rep_top SET thumbnail_file'))
+                  throw new Error('Private numbering preview failure');
+                return client.query(sql, values);
+              },
+              release() {},
+            }),
+          } as unknown as pg.Pool;
+          await assert.rejects(
+            documentSaveSheetMetadata(failing, 803, 0, input, 'fixture'),
+            /Private numbering preview failure/,
+          );
+          assert.deepEqual(await snapshot(), before);
+          await documentSaveSheetMetadata(db, 803, 0, input, 'fixture');
+          const saved = await snapshot();
+          assert.equal(Number(saved.top.auto_numbering_save_count), 3);
+          assert.equal(saved.top.auto_numbering_display_save_count, '03');
+          assert.equal(saved.top.auto_numbering_value, 'IR-007-{SAVE_COUNT}');
+          assert.equal(saved.top.rep_top_name, 'IR-007-03');
+          assert.equal(saved.cluster.input_value, 'IR-007-03');
+          assert.equal(saved.cluster.display_value, 'IR-007-03');
+          assert.match(saved.top.xml_data, /<readOnly>1<\/readOnly>/);
+          assert.match(saved.sheet.xml_data, /<value>IR-007-03<\/value>/);
+          assert(saved.history.some((row) => row.input_value === 'IR-007-03'));
+          assert(Buffer.isBuffer(saved.top.thumbnail_file) && saved.top.thumbnail_file.length > 0);
+          await client.query('UPDATE rep_top SET auto_numbering_save_count=99 WHERE rep_top_id=803');
+          await documentSaveSheetMetadata(db, 803, 0, input, 'fixture');
+          const capped = await snapshot();
+          assert.equal(Number(capped.top.auto_numbering_save_count), 99);
+          assert.equal(capped.cluster.input_value, 'IR-007-99');
+          await documentSaveSheetMetadata(db, 803, 0, input, 'fixture');
+          assert.equal(Number((await snapshot()).top.auto_numbering_save_count), 99);
+          const omittedPadding = xml.replace('<zeroPadding>1</zeroPadding></saveCount>', '</saveCount>');
+          await client.query('UPDATE rep_top SET xml_data=$1,auto_numbering_save_count=2 WHERE rep_top_id=803', [
+            omittedPadding,
+          ]);
+          await documentSaveSheetMetadata(db, 803, 0, input, 'fixture');
+          assert.equal((await snapshot()).cluster.input_value, 'IR-007-3');
+          for (const bad of [
+            '<digit>0</digit>',
+            '<digit>2</digit><zeroPadding>bad</zeroPadding>',
+            '<zeroPadding>1</zeroPadding>',
+          ]) {
+            await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=803', [
+              xml.replace(/<saveCount>[\s\S]*?<\/saveCount>/, '<saveCount>' + bad + '</saveCount>'),
+            ]);
+            const invalid = await snapshot();
+            await assert.rejects(documentSaveSheetMetadata(db, 803, 0, input, 'fixture'), /automatic-numbering/);
+            assert.deepEqual(await snapshot(), invalid);
+          }
+        },
+      );
+      await t.test(
+        'Basic manual re-numbering rechecks all three permissions and atomically preserves save counts and refreshes history/XML/preview',
+        async () => {
+          const settings =
+            '<useAutoNumbering>1</useAutoNumbering><autoNumbering><startValue>7</startValue><increment>2</increment><digit>3</digit><zeroPadding>1</zeroPadding><numberingTiming>0</numberingTiming><useSaveCount>1</useSaveCount><saveCount><digit>2</digit><zeroPadding>1</zeroPadding></saveCount><part><partId>1</partId><type>value</type><value>IR-</value></part><part><partId>2</partId><type>autoNumber</type><value/></part><part><partId>3</partId><type>saveCount</type><value/></part></autoNumbering>';
+          const xml =
+            '<conmas><top><repTopId>805</repTopId><defTopId>805</defTopId><repTopName>Manual report</repTopName><editStatus>4</editStatus>' +
+            settings +
+            '<sheets><sheet><repSheetId>8051</repSheetId><sheetNo>1</sheetNo><clusters><cluster><clusterId>1</clusterId><type>KeyboardText</type><inputParameters>AutoNumber=1</inputParameters><value>old</value><displayValue>old</displayValue></cluster></clusters></sheet></sheets></top></conmas>';
+          const pdf = await PDFDocument.create();
+          pdf.addPage([300, 600]);
+          await client.query('INSERT INTO def_top(def_top_id,def_top_org,auto_numbering_rev_no) VALUES(805,805,1)');
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,use_input_history,rep_sheet_count,auto_numbering_value,auto_numbering_save_count,xml_data,background_image_file)
+          VALUES(805,805,1,'Manual report',805,0,4,2,1,'OLD-{SAVE_COUNT}',3,$1,$2)`,
+            [xml, Buffer.from(await pdf.save())],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(805,805);
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(805,10,1,1),(805,20,1,0);
+          INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(8051,805,1,'Manual sheet');
+          INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_parameter,input_value,display_value,left_position,top_position,right_position,bottom_position)
+            VALUES(8051,1,'KeyboardText','AutoNumber=1','old','old',.1,.1,.9,.3);
+          CREATE TEMP SEQUENCE rep_auto_numbering_805_1 INCREMENT 2 MINVALUE 1 MAXVALUE 999 START 7;`);
+          const input = { repTopId: '805', defTopId: '805' };
+          const snapshot = async () => ({
+            top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=805')).rows[0],
+            sheet: (await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=8051')).rows[0],
+            cluster: (await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=8051')).rows[0],
+            history: (
+              await client.query('SELECT * FROM history_rep_cluster WHERE rep_sheet_id=8051 ORDER BY history_id')
+            ).rows,
+          });
+          const before = await snapshot();
+          try {
+            assert.match(
+              await (await get('/InputReport/DetailsTop?repTopId=805')).text(),
+              /value="Manual numbering" disabled/,
+            );
+            assert.equal((await post('/InputReport/UpdateAutoNumber', input)).status, 403);
+            await client.query('UPDATE mst_group SET role_rep_super_manager=1 WHERE group_id=10');
+            assert.match(
+              await (await get('/InputReport/DetailsTop?repTopId=805')).text(),
+              /action="[^"]*UpdateAutoNumber"[^>]*data-ajax-confirm=/,
+            );
+            assert.equal((await post('/InputReport/UpdateAutoNumber', input, 'bad')).status, 403);
+            actor = 'reader';
+            assert.equal((await post('/InputReport/UpdateAutoNumber', input)).status, 403);
+            actor = 'fixture';
+            await client.query('UPDATE mst_group SET role_rep_update_manager=0 WHERE group_id=10');
+            await assert.rejects(documentManualNumber(db, 805, 805, 'fixture', 'en-US'), /Role authority/);
+            await client.query('UPDATE mst_group SET role_rep_update_manager=1 WHERE group_id=10');
+            await client.query('UPDATE rep_role SET role_rep_update=0 WHERE rep_top_id=805 AND group_id=10');
+            assert.equal((await post('/InputReport/UpdateAutoNumber', input)).status, 403);
+            await client.query('UPDATE rep_role SET role_rep_update=1 WHERE rep_top_id=805 AND group_id=10');
+            assert.equal((await post('/InputReport/UpdateAutoNumber', { ...input, defTopId: '100' })).status, 400);
+            assert.notEqual((await get('/InputReport/UpdateAutoNumber?repTopId=805&defTopId=805')).status, 200);
+            assert.deepEqual(await snapshot(), before);
+            assert.equal(
+              (await client.query('SELECT is_called FROM rep_auto_numbering_805_1')).rows[0].is_called,
+              false,
+            );
+            const failing = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('UPDATE rep_top SET thumbnail_file'))
+                    throw new Error('Private manual preview failure');
+                  return client.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            await assert.rejects(
+              documentManualNumber(failing, 805, 805, 'fixture', 'en-US'),
+              /Private manual preview failure/,
+            );
+            assert.deepEqual(await snapshot(), before);
+            const result = await post('/InputReport/UpdateAutoNumber', input);
+            assert.equal(result.status, 302);
+            assert.equal(result.headers.get('location'), '/ConMasManager/InputReport/DetailsTop?repTopId=805');
+            const saved = await snapshot();
+            assert.equal(saved.top.auto_numbering_value, 'IR-009{SAVE_COUNT}');
+            assert.equal(Number(saved.top.auto_numbering_save_count), 3);
+            assert.equal(saved.top.auto_numbering_display_save_count, '03');
+            assert.equal(saved.top.rep_top_name, 'Manual report');
+            assert.equal(Number(saved.top.edit_refer_status), 4);
+            assert.equal(saved.top.sys_update_user, 'fixture');
+            assert.equal(saved.cluster.input_value, 'IR-00903');
+            assert.match(saved.top.xml_data, /<value>IR-00903<\/value>/);
+            assert.match(saved.sheet.xml_data, /<value>IR-00903<\/value>/);
+            assert(saved.history.some((row) => row.input_value === 'IR-00903'));
+            assert(Buffer.isBuffer(saved.top.thumbnail_file) && saved.top.thumbnail_file.length > 0);
+            await post('/InputReport/UpdateAutoNumber', input);
+            assert.equal((await snapshot()).top.auto_numbering_value, 'IR-011{SAVE_COUNT}');
+          } finally {
+            actor = 'fixture';
+            await client.query(
+              'UPDATE mst_group SET role_rep_update_manager=1,role_rep_super_manager=0 WHERE group_id=10',
+            );
+          }
+        },
+      );
+      await t.test(
+        'Basic standard CSV downloads preserve permissions, source modes, omission and optional original-byte media archives without data changes',
+        async () => {
+          const png = await sharp({ create: { width: 2, height: 2, channels: 3, background: '#fefefe' } })
+            .png()
+            .toBuffer();
+          await client.query(`INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,rep_sheet_count,no_need_to_fill_string,xml_data)
+          VALUES(806,806,1,'CSV report',100,0,1,1,'N/A','<conmas><top><repTopId>806</repTopId><defTopId>100</defTopId><sheets/></top></conmas>');
+          INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(806,806);
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(806,10,1,1),(806,20,1,0);
+          INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(8061,806,3,'CSV sheet');
+          INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,cluster_name,input_value,display_value,verified)
+          VALUES(8061,1,'KeyboardText','Quoted "name"','input','Display','0'),(8061,2,'Check','Omitted','FALSE','False','1'),
+          (8061,3,'Image','Picture','','','0'),(8061,4,'KeyboardText','Secret','secret-csv-value','hidden-csv-display','0');
+          INSERT INTO rep_cluster_refer(rep_sheet_id,cluster_id,group_id) VALUES(8061,4,30);
+          INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('OUTPUT_SETTING','BASE_FILE','csv_fixture',92),('OUTPUT_SETTING','CSV_MODE','0',92),('OUTPUT_SETTING','CSV_IMAGE_OUTPUT','false',92),('OUTPUT_SETTING','CSV_ZIP','false',92);`);
+          await client.query('UPDATE rep_cluster SET image_file=$1 WHERE rep_sheet_id=8061 AND cluster_id=3', [png]);
+          const snapshot = async () => ({
+            top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=806')).rows[0],
+            clusters: (await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=8061 ORDER BY cluster_id'))
+              .rows,
+          });
+          const before = await snapshot();
+          const download = () => get('/InputReport/DownLoadAction?repTopId=806&downloadMode=csv');
+          try {
+            const form = await (await get('/InputReport/DetailsTop?repTopId=806')).text();
+            assert.match(form, /class="csv_link"[^>]*downloadMode=csv/);
+            const plain = await download();
+            assert.equal(plain.status, 200);
+            assert.match(plain.headers.get('content-disposition') ?? '', /csv_fixture\.csv/);
+            const bytes = Buffer.from(await plain.arrayBuffer());
+            assert.deepEqual([...bytes.subarray(0, 3)], [239, 187, 191]);
+            assert.equal(
+              bytes.toString('utf8'),
+              '\ufeff"1","Quoted ""name""","input"\r\n"2","Omitted","N/A"\r\n"3","Picture","3_cluster_3.png"\r\n',
+            );
+            actor = 'reader';
+            assert.equal((await download()).status, 200);
+            actor = 'other';
+            assert.equal((await download()).status, 403);
+            actor = 'fixture';
+            await client.query(
+              "UPDATE mst_common SET com_value='true' WHERE com_key='OUTPUT_SETTING' AND com_name='CSV_IMAGE_OUTPUT' AND com_index=92",
+            );
+            const archive = await download();
+            assert.match(archive.headers.get('content-type') ?? '', /application\/zip/);
+            const zip = Buffer.from(await archive.arrayBuffer()),
+              entries = new Map<string, Buffer>();
+            let offset = 0;
+            while (zip.readUInt32LE(offset) === 0x04034b50) {
+              assert.equal(zip.readUInt16LE(offset + 8), 0);
+              const length = zip.readUInt32LE(offset + 18),
+                nameLength = zip.readUInt16LE(offset + 26),
+                extra = zip.readUInt16LE(offset + 28),
+                start = offset + 30 + nameLength + extra;
+              entries.set(
+                zip.subarray(offset + 30, offset + 30 + nameLength).toString('utf8'),
+                zip.subarray(start, start + length),
+              );
+              offset = start + length;
+            }
+            assert.deepEqual([...entries.keys()], ['csv_fixture_3_cluster_3.png', 'csv_fixture.csv']);
+            assert.deepEqual(entries.get('csv_fixture_3_cluster_3.png'), png);
+            assert.deepEqual(entries.get('csv_fixture.csv'), bytes);
+            await client.query(
+              "UPDATE mst_common SET com_value='3' WHERE com_key='OUTPUT_SETTING' AND com_name='CSV_MODE' AND com_index=92",
+            );
+            await client.query(
+              "UPDATE mst_common SET com_value='false' WHERE com_key='OUTPUT_SETTING' AND com_name='CSV_IMAGE_OUTPUT' AND com_index=92",
+            );
+            const display = await (await download()).text();
+            assert.match(display, /"1","Quoted ""name""","Display"/);
+            assert.doesNotMatch(display, /secret-csv-value|hidden-csv-display/);
+            for (const mode of ['1', '2']) {
+              await client.query(
+                "UPDATE mst_common SET com_value=$1 WHERE com_key='OUTPUT_SETTING' AND com_name='CSV_MODE' AND com_index=92",
+                [mode],
+              );
+              assert.equal((await download()).status, 501);
+            }
+            await client.query(
+              "INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('OUTPUT_SETTING','CSV_MANUAL_OUTPUT','false',92)",
+            );
+            assert.doesNotMatch(await (await get('/InputReport/DetailsTop?repTopId=806')).text(), /class="csv_link"/);
+            assert.deepEqual(await snapshot(), before);
+          } finally {
+            actor = 'fixture';
+            await client.query("DELETE FROM mst_common WHERE com_key='OUTPUT_SETTING' AND com_index=92");
+          }
+        },
+      );
+      await t.test(
+        'Basic approval/rejection rechecks identity and row permissions and atomically saves carbon copies, signatures, history, completion and preview',
+        async () => {
+          const xml =
+            '<conmas><top><repTopId>807</repTopId><defTopId>100</defTopId><repTopName>Approval report</repTopName><editStatus>2</editStatus><reEditDisable>1</reEditDisable><nameRegenerate>1</nameRegenerate><nameParts><part><partId>1</partId><type>displayValue</type><value>1,1</value></part></nameParts><sheets>' +
+            '<sheet><repSheetId>8071</repSheetId><sheetNo>1</sheetNo><clusters><cluster><clusterId>1</clusterId><type>Approve</type><inputParameters>Required=true</inputParameters><value>2</value><displayValue>2</displayValue><carbonCopy><targetCluster><sheetNo>3</sheetNo><clusterId>1</clusterId></targetCluster></carbonCopy></cluster></clusters></sheet>' +
+            '<sheet><repSheetId>8073</repSheetId><sheetNo>3</sheetNo><clusters><cluster><clusterId>1</clusterId><type>Approve</type><inputParameters/><value>2</value><displayValue>2</displayValue></cluster><cluster><clusterId>2</clusterId><type>Text</type><inputParameters>Required=true</inputParameters><value>ready</value><displayValue>ready</displayValue></cluster></clusters></sheet></sheets></top></conmas>';
+          const pdf = await PDFDocument.create();
+          for (let page = 0; page < 3; page++) pdf.addPage([300, 600]);
+          const png = await sharp({ create: { width: 2, height: 2, channels: 3, background: '#222222' } })
+            .png()
+            .toBuffer();
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,rep_sheet_count,finish_output,use_input_history,xml_data,background_image_file)
+          VALUES(807,807,1,'Approval report',100,0,2,3,0,2,$1,$2)`,
+            [xml, Buffer.from(await pdf.save())],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(807,807);
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(807,10,1,1),(807,20,1,0);
+          INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(8071,807,1,'Approval sheet'),(8073,807,3,'Carbon sheet');
+          INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,cluster_name,input_parameter,input_value,display_value,applicant,applicant_name,applicant_comment,left_position,top_position,right_position,bottom_position)
+          VALUES(8071,1,'Approve','Primary','Required=true','2','2','applicant','Original applicant','Retained applicant',.1,.1,.9,.3),
+            (8073,1,'Approve','Carbon','','2','2','applicant','Original applicant','Retained applicant',.1,.1,.9,.3),
+            (8073,2,'Text','Required','Required=true','ready','ready',NULL,NULL,NULL,.1,.5,.9,.8);`);
+          await client.query('UPDATE mst_user SET approval_sign=$1 WHERE user_id=$2', [
+            png.toString('base64'),
+            'fixture',
+          ]);
+          const input = {
+            'rep_top.rep_top_id': '807',
+            approveRepSheetId: '8071',
+            approveClusterId: '1',
+            approveEditStatus: '3',
+            approveComment: '<safe>\r\ncomment',
+          };
+          const snapshot = async () => ({
+            top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=807')).rows[0],
+            sheets: (await client.query('SELECT * FROM rep_sheet WHERE rep_top_id=807 ORDER BY rep_sheet_id')).rows,
+            clusters: (
+              await client.query(
+                'SELECT * FROM rep_cluster WHERE rep_sheet_id IN (8071,8073) ORDER BY rep_sheet_id,cluster_id',
+              )
+            ).rows,
+            history: (
+              await client.query(
+                'SELECT * FROM history_rep_cluster WHERE rep_sheet_id IN (8071,8073) ORDER BY history_id',
+              )
+            ).rows,
+          });
+          const before = await snapshot();
+          try {
+            const shell = await (await get('/InputReport/Details?repTopId=807', false)).text();
+            assert.match(shell, /id="GetIdentificationRequiredForm"/);
+            const form = await (await get('/InputReport/DetailsTop?repTopId=807')).text();
+            assert.match(form, /id="approveForm" method="post"/);
+            assert.match(form, /approveAction\('4', 8071, 1, 0\)/);
+            assert.match(form, /id="approveComment_8071_1"/);
+            assert.equal((await post('/InputReport/DetailsTop', input, 'bad')).status, 403);
+            assert.equal((await post('/InputReport/DetailsTop', { ...input, approveEditStatus: '4' })).status, 400);
+            actor = 'reader';
+            assert.equal((await post('/InputReport/DetailsTop', input)).status, 403);
+            assert.doesNotMatch(
+              await (await get('/InputReport/DetailsTop?repTopId=807')).text(),
+              /class="image-approve-btn"/,
+            );
+            actor = 'fixture';
+            await client.query('UPDATE mst_group SET role_rep_update_manager=0 WHERE group_id=10');
+            assert.equal((await post('/InputReport/DetailsTop', input)).status, 403);
+            await client.query('UPDATE mst_group SET role_rep_update_manager=1 WHERE group_id=10');
+            await client.query('INSERT INTO rep_cluster_role(rep_sheet_id,cluster_id,group_id) VALUES(8071,1,30)');
+            assert.equal((await post('/InputReport/DetailsTop', input)).status, 403);
+            await client.query('DELETE FROM rep_cluster_role WHERE rep_sheet_id=8071 AND cluster_id=1');
+            await client.query("INSERT INTO rep_lock(rep_top_id,user_id) VALUES(807,'other')");
+            assert.equal((await post('/InputReport/DetailsTop', input)).status, 403);
+            await client.query('DELETE FROM rep_lock WHERE rep_top_id=807');
+            assert.equal((await post('/InputReport/DetailsTop', { ...input, approveRepSheetId: '8061' })).status, 403);
+            assert.equal((await post('/InputReport/DetailsTop', { ...input, approveEditStatus: '9' })).status, 400);
+            assert.deepEqual(await snapshot(), before);
+            const network = xml.replace('</top>', '<networks><network/></networks></top>');
+            await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=807', [network]);
+            assert.equal((await post('/InputReport/DetailsTop', input)).status, 501);
+            await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=807', [xml]);
+            const failing = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('UPDATE rep_top SET thumbnail_file'))
+                    throw new Error('Private approval preview failure');
+                  return client.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            await assert.rejects(
+              documentApprove(failing, 807, 8071, 1, '3', input.approveComment, 'fixture', 'en-US'),
+              /Private approval preview failure/,
+            );
+            assert.deepEqual(await snapshot(), before);
+            const rejected = await post('/InputReport/DetailsTop', input);
+            assert.equal(rejected.status, 302);
+            const remand = await snapshot();
+            assert.equal(Number(remand.top.edit_refer_status), 3);
+            assert.equal(remand.top.rep_top_name, '3');
+            for (const row of remand.clusters.filter((row) => row.cluster_type === 'Approve')) {
+              assert.equal(row.input_value, '3');
+              assert.equal(row.approver, 'fixture');
+              assert.equal(row.approver_comment, input.approveComment);
+              assert.equal(row.applicant_comment, 'Retained applicant');
+              assert.equal(row.approval_sign, null);
+            }
+            assert(remand.history.some((row) => row.input_value === '3'));
+            assert(Buffer.isBuffer(remand.top.thumbnail_file));
+            await client.query('UPDATE rep_top SET xml_data=$1,edit_refer_status=2 WHERE rep_top_id=807', [xml]);
+            await client.query(
+              "UPDATE rep_cluster SET input_value='2',display_value='2' WHERE rep_sheet_id IN (8071,8073) AND cluster_type='Approve'",
+            );
+            const identity = (await (
+              await post('/InputReport/GetIdentificationRequired', { repTopIds: '807' })
+            ).json()) as { state: string };
+            assert(identity.state);
+            assert.equal(
+              (
+                await post('/InputReport/DetailsTop', {
+                  ...input,
+                  approveEditStatus: '4',
+                  approveIdentificationState: 'bad',
+                })
+              ).status,
+              400,
+            );
+            const approved = await post('/InputReport/DetailsTop', {
+              ...input,
+              approveEditStatus: '4',
+              approveIdentificationState: identity.state,
+            });
+            assert.equal(approved.status, 302);
+            const complete = await snapshot();
+            assert.equal(Number(complete.top.edit_refer_status), 4);
+            assert.equal(complete.top.rep_top_name, '4');
+            assert.match(complete.top.xml_data, /<editStatus>4<\/editStatus>/);
+            assert.match(complete.top.xml_data, /<copyDisable>1<\/copyDisable>/);
+            assert.match(complete.top.xml_data, /<approvalSignImage>/);
+            for (const row of complete.clusters.filter((row) => row.cluster_type === 'Approve')) {
+              assert.equal(row.input_value, '4');
+              assert.equal(row.approval_sign, png.toString('base64'));
+              assert.equal(row.applicant_comment, 'Retained applicant');
+            }
+            assert.match(complete.clusters[0].input_parameter, /Locked=1/);
+            assert.equal(Number(complete.sheets[0].copy_disable), 1);
+            assert.equal(
+              (
+                await post('/InputReport/DetailsTop', {
+                  ...input,
+                  approveEditStatus: '4',
+                  approveIdentificationState: identity.state,
+                })
+              ).status,
+              400,
+            );
+            assert.deepEqual(await snapshot(), complete);
+            const details = await (await get('/InputReport/DetailsTop?repTopId=807')).text();
+            assert.match(details, /&lt;safe&gt;/);
+            assert.doesNotMatch(details, /<safe>|class="image-approve-btn"/);
+          } finally {
+            actor = 'fixture';
+            await client.query('UPDATE mst_user SET approval_sign=NULL WHERE user_id=$1', ['fixture']);
+          }
+        },
+      );
+      await t.test(
+        'Basic copy creates a new editable revision with original inputs, approval/binary data, permissions and libraries, or rolls back the entire revision',
+        async () => {
+          await client.query(
+            'CREATE TEMP SEQUENCE rep_top_rep_top_id_seq START 10000; CREATE TEMP SEQUENCE rep_sheet_rep_sheet_id_seq START 10000; CREATE TEMP SEQUENCE rep_auto_numbering_808_1 START 7;',
+          );
+          const numbering =
+            '<useAutoNumbering>1</useAutoNumbering><autoNumbering><startValue>7</startValue><increment>1</increment><digit>3</digit><zeroPadding>1</zeroPadding><numberingTiming>0</numberingTiming><numberingForReeditFromComplete>0</numberingForReeditFromComplete><useSaveCount>1</useSaveCount><saveCount><digit>2</digit><zeroPadding>1</zeroPadding></saveCount><part><partId>1</partId><type>autoNumber</type><value/></part><part><partId>2</partId><type>saveCount</type><value/></part></autoNumbering>';
+          const xml =
+            '<conmas><top><repTopId>808</repTopId><defTopId>808</defTopId><repTopName>Retained name</repTopName><editStatus>4</editStatus><publicStatus>2</publicStatus><registUser>original</registUser><registUserName>Original name</registUserName><nameRegenerate>1</nameRegenerate><nameParts><part><partId>1</partId><type>displayValue</type><value>3,1</value></part></nameParts><sheets><sheet><repSheetId>8083</repSheetId><sheetNo>3</sheetNo><clusters><cluster><clusterId>1</clusterId><type>KeyboardText</type><inputParameters>AutoNumber=1</inputParameters><value>Retained input</value><displayValue>Retained display</displayValue></cluster><cluster><clusterId>2</clusterId><type>Approve</type><inputParameters/><value>4</value><displayValue>4</displayValue></cluster></clusters></sheet></sheets></top></conmas>';
+          await client.query(`INSERT INTO def_top(def_top_id,def_top_org,auto_numbering_rev_no) VALUES(808,808,1);
+          INSERT INTO rep_current(rep_top_id,rep_top_org) VALUES(808,808);
+          INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update,role_rep_delete) VALUES(808,10,1,1,1),(808,20,1,0,0);
+          INSERT INTO rep_label(rep_top_id,mst_label_id) VALUES(808,999);
+          INSERT INTO rep_report_document(rep_top_id,document_id) VALUES(808,101);
+          INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name,sys_regist_user,sys_regist_time,copy_disable) VALUES(8083,808,3,'Sparse sheet','original','2026-01-01',1);
+          INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,cluster_name,input_parameter,input_value,display_value,sys_regist_user)
+          VALUES(8083,1,'KeyboardText','Text','AutoNumber=1','Retained input','Retained display','original'),(8083,2,'Approve','Approval','','4','4','original');
+          INSERT INTO rep_cluster_role(rep_sheet_id,cluster_id,group_id) VALUES(8083,2,10);
+          INSERT INTO rep_cluster_refer(rep_sheet_id,cluster_id,group_id) VALUES(8083,1,10);
+          INSERT INTO rep_reference(rep_sheet_id,reference_id,rep_top_id,rep_sheet_no,reference_name,reference_type,document_id) VALUES(8083,1,808,3,'Library','PDF',101);`);
+          const bytes = Buffer.from('private binary fixture');
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,public_status,edit_refer_status,rep_sheet_count,xml_data,sys_regist_user,sys_regist_time,background_image_file,thumbnail_file,def_file)
+          VALUES(808,808,1,'Retained name',808,0,2,4,1,$1,'original','2026-01-01',$2,$2,$2)`,
+            [xml, bytes],
+          );
+          await client.query(
+            `UPDATE rep_cluster SET image_file=$1,binary_file=$1,recording_file=$1,recording_file_extension='m4a',approval_sign='AQID',applicant='applicant',applicant_comment='Original application',approver='approver',approver_comment='Original approval',verified='1',change_reason='retained reason' WHERE rep_sheet_id=8083`,
+            [bytes],
+          );
+          await client.query(
+            `INSERT INTO rep_fd_sheet(top_id,fd_sheet_no,sheet_index,pdf_file,irfd_file) VALUES(808,1,1,$1,$1);
+        `,
+            [bytes],
+          );
+          await client.query(
+            'INSERT INTO rep_layer(rep_sheet_id,layer_id,rep_top_id,rep_sheet_no,image_file,binary_file) VALUES(8083,1,808,3,$1,$1)',
+            [bytes],
+          );
+          await client.query(
+            'INSERT INTO rep_cluster_draw(rep_sheet_id,key_id,image_no,image_file) VALUES(8083,1,1,$1)',
+            [bytes],
+          );
+          await client.query(
+            'INSERT INTO rep_layer_draw(rep_sheet_id,key_id,image_no,image_file) VALUES(8083,1,1,$1)',
+            [bytes],
+          );
+          const before = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=808')).rows[0];
+          const count = async () =>
+            Number((await client.query('SELECT count(*) FROM rep_top WHERE rep_top_org=808')).rows[0].count);
+          try {
+            assert.match(
+              await (await get('/InputReport/DetailsTop?repTopId=808')).text(),
+              /action="[^"]*CopyTop"[^>]*onsubmit="return copyReport/,
+            );
+            assert.equal((await post('/InputReport/CopyTop', { repTopId: '808' }, 'bad')).status, 403);
+            actor = 'reader';
+            assert.equal((await post('/InputReport/CopyTop', { repTopId: '808' })).status, 403);
+            actor = 'fixture';
+            assert.notEqual((await get('/InputReport/CopyTop?repTopId=808')).status, 200);
+            await client.query('UPDATE rep_top SET edit_refer_status=1 WHERE rep_top_id=808');
+            assert.equal((await post('/InputReport/CopyTop', { repTopId: '808' })).status, 400);
+            await client.query('UPDATE rep_top SET edit_refer_status=4 WHERE rep_top_id=808');
+            await client.query("INSERT INTO rep_lock(rep_top_id,user_id) VALUES(808,'other')");
+            assert.equal((await post('/InputReport/CopyTop', { repTopId: '808' })).status, 400);
+            await client.query('DELETE FROM rep_lock WHERE rep_top_id=808');
+            assert.equal(await count(), 1);
+            assert.equal((await client.query('SELECT is_called FROM rep_top_rep_top_id_seq')).rows[0].is_called, false);
+            const failing = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('INSERT INTO rep_cluster_draw')) throw new Error('Private copy failure');
+                  return client.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            await assert.rejects(documentCopy(failing, 808, 'fixture', 'en-US'), /Private copy failure/);
+            assert.equal(await count(), 1);
+            assert.equal(
+              Number(
+                (await client.query('SELECT rep_top_id FROM rep_current WHERE rep_top_org=808')).rows[0].rep_top_id,
+              ),
+              808,
+            );
+            const result = await post('/InputReport/CopyTop', { repTopId: '808' });
+            assert.equal(result.status, 302);
+            const id = Number(result.headers.get('location')?.match(/repTopId=(\d+)/)?.[1]);
+            assert(id >= 10000);
+            const saved = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=$1', [id])).rows[0];
+            assert.equal(Number(saved.rev_no), 2);
+            assert.equal(Number(saved.edit_refer_status), 1);
+            assert.equal(saved.rep_top_name, 'Retained display');
+            assert.equal(saved.sys_regist_user, 'original');
+            assert.equal(saved.sys_update_user, 'fixture');
+            assert.deepEqual(saved.sys_regist_time, before.sys_regist_time);
+            assert.deepEqual(saved.background_image_file, bytes);
+            assert.deepEqual(saved.def_file, bytes);
+            assert.match(saved.xml_data, new RegExp('<repTopId>' + id + '</repTopId>'));
+            assert.match(saved.xml_data, /<registUser>fixture<\/registUser>/);
+            const sheet = (await client.query('SELECT * FROM rep_sheet WHERE rep_top_id=$1', [id])).rows[0];
+            assert.equal(Number(sheet.rep_sheet_no), 3);
+            assert.equal(sheet.sys_regist_user, 'original');
+            assert.equal(Number(sheet.copy_disable), 1);
+            const clusters = (
+              await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=$1 ORDER BY cluster_id', [
+                sheet.rep_sheet_id,
+              ])
+            ).rows;
+            for (const row of clusters) {
+              assert.deepEqual(row.image_file, bytes);
+              assert.deepEqual(row.recording_file, bytes);
+              assert.equal(row.approval_sign, 'AQID');
+              assert.equal(row.applicant_comment, 'Original application');
+              assert.equal(row.approver_comment, 'Original approval');
+              assert.equal(row.sys_regist_user, 'fixture');
+            }
+            assert.equal(clusters[0].input_value, 'Retained input');
+            assert.equal(clusters[1].input_value, '4');
+            for (const table of ['rep_role', 'rep_label', 'rep_report_document'])
+              assert((await client.query(`SELECT 1 FROM ${table} WHERE rep_top_id=$1`, [id])).rowCount);
+            for (const table of [
+              'rep_layer',
+              'rep_reference',
+              'rep_layer_draw',
+              'rep_cluster_draw',
+              'rep_cluster_role',
+              'rep_cluster_refer',
+            ])
+              assert.equal(
+                (await client.query(`SELECT 1 FROM ${table} WHERE rep_sheet_id=$1`, [sheet.rep_sheet_id])).rowCount,
+                1,
+              );
+            assert.deepEqual(
+              (await client.query('SELECT irfd_file FROM rep_fd_sheet WHERE top_id=$1', [id])).rows[0].irfd_file,
+              bytes,
+            );
+            assert.deepEqual((await client.query('SELECT * FROM rep_top WHERE rep_top_id=808')).rows[0], before);
+            assert.equal(
+              Number(
+                (await client.query('SELECT rep_top_id FROM rep_current WHERE rep_top_org=808')).rows[0].rep_top_id,
+              ),
+              id,
+            );
+            // Re-copying a historical revision allocates the next revision, never overwrites the current one.
+            await client.query(
+              'INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,public_status,deleted) VALUES(809,808,NULL,0,1)',
+            );
+            const numberedXml = xml.replace('<sheets>', numbering + '<sheets>');
+            await client.query(
+              "UPDATE rep_top SET xml_data=$1,auto_numbering_value='OLD{SAVE_COUNT}',auto_numbering_save_count=3 WHERE rep_top_id=808",
+              [numberedXml],
+            );
+            const numbered = await documentCopy(db, 808, 'fixture', 'en-US');
+            const numberedTop = (await client.query('SELECT * FROM rep_top WHERE rep_top_id=$1', [numbered])).rows[0];
+            assert.equal(Number(numberedTop.rev_no), 3);
+            assert.equal(numberedTop.auto_numbering_value, '007{SAVE_COUNT}');
+            assert.equal(Number(numberedTop.auto_numbering_save_count), 1);
+            assert.equal(numberedTop.rep_top_name, '00701');
+            for (const [rule, value, count] of [
+              [
+                numberedXml.replace('<numberingForReeditFromComplete>0', '<numberingForReeditFromComplete>1'),
+                'OLD{SAVE_COUNT}',
+                4,
+              ],
+              [numberedXml.replace('<numberingTiming>0', '<numberingTiming>2'), 'OLD{SAVE_COUNT}', 4],
+              [
+                numberedXml
+                  .replace('<numberingTiming>0', '<numberingTiming>1')
+                  .replace('<useSaveCount>1', '<useSaveCount>0')
+                  .replace(/<part><partId>2<\/partId><type>saveCount<\/type><value\/><\/part>/, ''),
+                null,
+                null,
+              ],
+            ] as const) {
+              await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=808', [rule]);
+              const copied = await documentCopy(db, 808, 'fixture', 'en-US');
+              const row = (
+                await client.query(
+                  'SELECT auto_numbering_value,auto_numbering_save_count FROM rep_top WHERE rep_top_id=$1',
+                  [copied],
+                )
+              ).rows[0];
+              assert.equal(row.auto_numbering_value, value);
+              assert.equal(row.auto_numbering_save_count == null ? null : Number(row.auto_numbering_save_count), count);
+            }
+            await client.query(
+              "INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('ROLE_SETTING','MANAGER_INPUT_REPORT_MANGERROLE_TYPE','1',93)",
+            );
+            assert.equal((await post('/InputReport/CopyTop', { repTopId: '808' })).status, 403);
+            assert.doesNotMatch(
+              await (await get('/InputReport/DetailsTop?repTopId=808')).text(),
+              /action="[^"]*CopyTop"/,
+            );
+            await client.query('UPDATE mst_group SET role_rep_super_manager=1 WHERE group_id=10');
+            await client.query('UPDATE rep_role SET role_rep_update=0 WHERE rep_top_id=808 AND group_id=10');
+            assert.match(await (await get('/InputReport/DetailsTop?repTopId=808')).text(), /action="[^"]*CopyTop"/);
+            await documentCopy(db, 808, 'fixture', 'en-US');
+            await client.query("DELETE FROM mst_common WHERE com_key='ROLE_SETTING' AND com_index=93");
+            await client.query('UPDATE mst_group SET role_rep_super_manager=0 WHERE group_id=10');
+            await client.query('UPDATE rep_role SET role_rep_update=1 WHERE rep_top_id=808 AND group_id=10');
+            const cooperativeXml = xml
+              .replace('<publicStatus>2', '<publicStatus>0')
+              .replace('<sheets>', '<cooperationTable>1</cooperationTable><sheets>');
+            await client.query('UPDATE rep_top SET xml_data=$1 WHERE rep_top_id=808', [cooperativeXml]);
+            await client.query('UPDATE def_top SET xml_data=$1 WHERE def_top_id=808', [cooperativeXml]);
+            await client.query(`CREATE TEMP TABLE report_808(rep_top_id int PRIMARY KEY,rep_top_name text,edit_refer_status int,sys_update_user text,cluster_3_1_t text);
+              INSERT INTO report_808 VALUES(808,'Retained original',4,'original','Retained cooperation input');
+              INSERT INTO mst_report_table(report_file_name,xml_data) VALUES('808.xml','<report/>');`);
+            const originalCooperation = (await client.query('SELECT * FROM report_808 WHERE rep_top_id=808')).rows[0];
+            const cooperationFailure = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('INSERT INTO pg_temp.report_808'))
+                    throw new Error('Private cooperation copy failure');
+                  return client.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            const previousCount = await count(),
+              current = (await client.query('SELECT * FROM rep_current WHERE rep_top_org=808')).rows;
+            await assert.rejects(
+              documentCopy(cooperationFailure, 808, 'fixture', 'en-US'),
+              /Private cooperation copy failure/,
+            );
+            assert.equal(await count(), previousCount);
+            assert.deepEqual((await client.query('SELECT * FROM rep_current WHERE rep_top_org=808')).rows, current);
+            const cooperativeCopy = await documentCopy(db, 808, 'fixture', 'en-US');
+            assert.equal(
+              (await client.query('SELECT auto_numbering_value FROM rep_top WHERE rep_top_id=$1', [cooperativeCopy]))
+                .rows[0].auto_numbering_value,
+              null,
+            );
+            const cooperativeRow = (
+              await client.query('SELECT * FROM report_808 WHERE rep_top_id=$1', [cooperativeCopy])
+            ).rows[0];
+            assert.equal(cooperativeRow.cluster_3_1_t, 'Retained input');
+            assert.equal(Number(cooperativeRow.edit_refer_status), 1);
+            assert.equal(cooperativeRow.rep_top_name, 'Retained display');
+            assert.deepEqual(
+              (await client.query('SELECT * FROM report_808 WHERE rep_top_id=808')).rows[0],
+              originalCooperation,
+            );
+          } finally {
+            actor = 'fixture';
+            await client.query("DELETE FROM mst_common WHERE com_key='ROLE_SETTING' AND com_index=93");
+            await client.query('UPDATE mst_group SET role_rep_super_manager=0 WHERE group_id=10');
+          }
+        },
+      );
+      await t.test(
+        'Basic DocuWorks download serves only the authorized stored artifact with source UI gates and safe missing-file errors',
+        async () => {
+          const directory = await mkdtemp('/tmp/opencode/conmas-xdw-'),
+            previous = process.env.CONMAS_CLIENT_SETTINGS;
+          const path = join(directory, 'interface', 'report', 'DW', 'report');
+          const contents = Buffer.from('private generated DocuWorks fixture');
+          const download = () => get('/InputReport/DownLoadAction?downloadMode=xdw&repTopId=806');
+          try {
+            await mkdir(path, { recursive: true });
+            await writeFile(join(directory, 'Admin.xml'), '<ConMas><userId>private-xdw-admin</userId></ConMas>');
+            process.env.CONMAS_CLIENT_SETTINGS = directory;
+            await client.query(
+              "INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('OUTPUT_SETTING','BASE_FILE','xdw_fixture',94),('OUTPUT_SETTING','XDW_MANUAL_OUTPUT','true',94)",
+            );
+            assert.doesNotMatch(await (await get('/InputReport/DetailsTop?repTopId=806')).text(), /class="xdw_link"/);
+            const missing = await download();
+            assert.equal(missing.status, 400);
+            assert.doesNotMatch(await missing.text(), /opencode|806\.xml|ENOENT/);
+            const file = join(directory, 'generated.xdw');
+            await writeFile(file, contents);
+            await writeFile(
+              join(path, '806.xml'),
+              '<report><variables><pdfpath>' + join(directory, 'generated.pdf') + '</pdfpath></variables></report>',
+            );
+            const form = await (await get('/InputReport/DetailsTop?repTopId=806')).text();
+            assert.match(form, /class="xdw_link"[^>]*downloadMode=xdw/);
+            const result = await download();
+            assert.equal(result.status, 200);
+            assert.match(result.headers.get('content-type') ?? '', /application\/vnd\.fujixerox\.docuworks/);
+            assert.match(result.headers.get('content-disposition') ?? '', /xdw_fixture\.xdw/);
+            assert.deepEqual(Buffer.from(await result.arrayBuffer()), contents);
+            actor = 'other';
+            assert.equal((await download()).status, 403);
+            actor = 'fixture';
+            await client.query(
+              "UPDATE mst_common SET com_value='false' WHERE com_key='OUTPUT_SETTING' AND com_name='XDW_MANUAL_OUTPUT' AND com_index=94",
+            );
+            assert.doesNotMatch(await (await get('/InputReport/DetailsTop?repTopId=806')).text(), /class="xdw_link"/);
+            // The source setting controls visibility; authorized direct downloads still serve an existing artifact.
+            assert.equal((await download()).status, 200);
+            await writeFile(
+              join(path, '806.xml'),
+              '<report><variables><pdfpath>relative.pdf</pdfpath></variables></report>',
+            );
+            assert.equal((await download()).status, 400);
+            await writeFile(
+              join(path, '806.xml'),
+              '<report><variables><pdfpath>' + file + '.txt</pdfpath></variables></report>',
+            );
+            assert.equal((await download()).status, 400);
+            assert.deepEqual(await readFile(file), contents);
+          } finally {
+            actor = 'fixture';
+            if (previous === undefined) delete process.env.CONMAS_CLIENT_SETTINGS;
+            else process.env.CONMAS_CLIENT_SETTINGS = previous;
+            await client.query("DELETE FROM mst_common WHERE com_key='OUTPUT_SETTING' AND com_index=94");
+            await rm(directory, { recursive: true, force: true });
+          }
+        },
+      );
+      await t.test(
+        'Basic source radio controls preserve disabled detail state and voice-input boolean/ID/retry contracts',
+        async () => {
+          const html = await (await get('/InputReport/EditTop?repTopId=1')).text();
+          for (const name of [
+            'output_setting',
+            'edit_output_setting',
+            'PdfAutoOutputSheetSelect',
+            'no_need_to_fill_type',
+            'no_need_to_fill_out_mode',
+            'IsReportCopy',
+            'reportCopyType',
+            'CalculateMode',
+            'IndexType',
+            'UseVoiceInputEndTime',
+            'NetworkAnswerbackMode',
+          ]) {
+            assert.match(html, new RegExp('type="radio"[^>]*name="rep_top\\.' + name + '"'));
+            assert.doesNotMatch(html, new RegExp('<select[^>]*name="rep_top\\.' + name + '"'));
+          }
+          assert.match(html, /id="VoiceInputEndTime" name="rep_top.VoiceInputEndTime"/);
+          assert.match(html, /setDefaultValue\(&#39;#VoiceInputEndTime&#39;, 650\)/);
+          const input = {
+            'rep_top.rep_top_id': '1',
+            'rep_top.UseVoiceInputEndTime': 'true',
+            'rep_top.VoiceInputEndTime': '9',
+          };
+          const retry = await post('/InputReport/EditTop', input);
+          assert.equal(retry.status, 400);
+          const retryHtml = await retry.text();
+          assert.match(retryHtml, /name="rep_top.UseVoiceInputEndTime" value="true" checked/);
+          assert.match(retryHtml, /id="VoiceInputEndTime"[^>]*value="9"/);
+          const details = await (await get('/InputReport/DetailsTop?repTopId=1')).text();
+          assert.match(details, /name="rep_top.output_setting"[^>]*disabled/);
+          await client.query(
+            "INSERT INTO mst_common(com_key,com_name,com_value,com_index) VALUES('CUSTOM_GRID','REP_REPORT','<custom-report-label>',95)",
+          );
+          try {
+            const custom = await (await get('/InputReport/DetailsTop?repTopId=1')).text();
+            assert.match(custom, /&lt;custom-report-label&gt;/);
+            assert.doesNotMatch(custom, /<custom-report-label>/);
+          } finally {
+            await client.query("DELETE FROM mst_common WHERE com_key='CUSTOM_GRID' AND com_index=95");
+          }
         },
       );
       await t.test('detail delete/restore/unlock preserve CSRF, permissions, locks, data and rollback', async () => {

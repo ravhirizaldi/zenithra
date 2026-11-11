@@ -5,7 +5,7 @@
 <div id="DetailTop"><span id="infoTitle"><%= v.reportName %> : <%= report.rep_top_name %></span>
   <% if (!edit) { %><span id="functionBar"><% if (report.workflow_locked || report.locked) { %><label class="user_lock_label"><%= v.locked %>：<%= report.workflow_locked ? report.sys_update_user_name : report.lock_user_name %></label><% } else if (report.applicant_locked) { %><label class="user_lock_label"><%= r.ApplicantLabel %></label><% } else if (report.current && report.role_update && permissions.update && Number(sheet.edit_refer_status) !== 4) { %><a href="<%= base %>/InputReport/EditSheet?repTopId=<%= report.rep_top_id %>&amp;pageIndex=<%= pageIndex %>" class="img_edit" title="<%= v.edit %>" data-ajax="true" data-ajax-update="#content"> </a><% } %></span><% } %>
 </div>
-<% if (edit) { %><form method="post" action="<%= base %>/InputReport/EditSheet" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure"><% } %>
+<% if (edit) { %><form method="post" action="<%= base %>/InputReport/EditSheet" enctype="multipart/form-data" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure"><% } %>
   <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
   <input type="hidden" name="rep_sheets[0].rep_top_id" value="<%= report.rep_top_id %>"><input type="hidden" name="rep_sheets[0].rep_sheet_id" value="<%= sheet.rep_sheet_id %>"><input type="hidden" name="rep_sheets.PageIndex" value="<%= pageIndex %>">
   <div id="DetailSection"><div class="info">

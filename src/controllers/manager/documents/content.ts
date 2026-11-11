@@ -8,6 +8,10 @@ import { documentDetail, documentDetailId, documentDetailUnlock } from '../../..
 import { documentDelete, documentUnlock } from '../../../models/manager/documents/lifecycle.js';
 import { documentPdfOptions } from '../../../models/manager/documents/pdf.js';
 import { registerDocumentPdf } from './pdf.js';
+import { documentInnerExcel } from '../../../models/manager/documents/excel.js';
+import { documentManualNumber } from '../../../models/manager/documents/numbering.js';
+import { documentApprove } from '../../../models/manager/documents/approval.js';
+import { documentCopy } from '../../../models/manager/documents/copy.js';
 import {
   documentApprovalRows,
   documentEditLock,
@@ -56,17 +60,75 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
       requestFailure(res, error);
     }
   };
+  app.get(`${base}/InputReport/DownLoadInnerExcel`, async (req, res) => {
+    try {
+      if (!res.locals.documentPermissions.update)
+        return res.status(403).send(pageText['Role authority is insufficient.']);
+      const file = await documentInnerExcel(db, documentDetailId(req.query.repTopId), req.session?.userId ?? '');
+      return res.attachment(file.name).type(file.type).send(file.data);
+    } catch (error) {
+      return failure(res, error);
+    }
+  });
+  app.post(`${base}/InputReport/UploadInnerExcel`, async (req, res) => {
+    let id: number;
+    try {
+      id = documentDetailId(req.body?.['rep_top.rep_top_id']);
+    } catch (error) {
+      return failure(res, error);
+    }
+    let code = 'Success';
+    try {
+      if (!res.locals.documentPermissions.update)
+        throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
+      await documentInnerExcel(db, id, req.session?.userId ?? '', Array.isArray(req.files) ? req.files : []);
+    } catch (error) {
+      requestFailure(res, error);
+      code =
+        error instanceof LabelValidationError
+          ? error.field === 'access'
+            ? 'RoleError'
+            : ['PatchExcelFileNotExists', 'PatchExcelNotExcelFile'].includes(error.field)
+              ? error.field
+              : 'Unknown'
+          : 'Unknown';
+    }
+    return res.redirect(`${base}/InputReport/Details?repTopId=${id}&errorCode=${code}`);
+  });
+  app.post(`${base}/InputReport/UpdateAutoNumber`, async (req, res) => {
+    try {
+      const id = documentDetailId(req.body?.repTopId),
+        definition = documentDetailId(req.body?.defTopId);
+      await documentManualNumber(db, id, definition, req.session?.userId ?? '', await currentMailLocale(db, req));
+      return res.redirect(`${base}/InputReport/DetailsTop?repTopId=${id}`);
+    } catch (error) {
+      return failure(res, error);
+    }
+  });
+  app.post(`${base}/InputReport/CopyTop`, async (req, res) => {
+    try {
+      const id = await documentCopy(
+        db,
+        documentDetailId(req.body?.repTopId),
+        req.session?.userId ?? '',
+        await currentMailLocale(db, req),
+      );
+      return res.redirect(`${base}/InputReport/Details?repTopId=${id}`);
+    } catch (error) {
+      return failure(res, error);
+    }
+  });
   for (const edit of [false, true]) {
     const action = edit ? 'EditTop' : 'DetailsTop';
     const handler = async (req: Request, res: Response) => {
       const user = req.session?.userId ?? '';
       try {
-        if (!edit) await unlock(res, user);
+        if (!edit && req.method === 'GET') await unlock(res, user);
         if (req.method === 'GET' && !ajax(req)) return res.send('');
         const input: Record<string, unknown> = { ...req.query, ...req.body };
         const previewOptions = documentPdfOptions(input);
         const id = documentDetailId(req.method === 'POST' ? input['rep_top.rep_top_id'] : input.repTopId);
-        if (edit && !res.locals.documentPermissions.update)
+        if ((edit || req.method === 'POST') && !res.locals.documentPermissions.update)
           return res.status(403).send(pageText['Role authority is insufficient.']);
         if (edit && labelString(input.isCanceled)) {
           await unlock(res, user);
@@ -74,13 +136,37 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
         }
         const locale = await currentMailLocale(db, req);
         let model = await documentTop(db, id, user, locale),
-          error = '';
+          error = '',
+          complete = false,
+          forcedComplete = false,
+          finishReason = String(model.report.finish_reason ?? '');
         if (edit && !model.report.role_update) return res.status(403).send(pageText['Role authority is insufficient.']);
         if (edit && req.method === 'GET' && !(await documentEditLock(db, id, user)))
           return res.redirect(`${base}/InputReport/DetailsTop?repTopId=${id}`);
         if (req.method === 'POST') {
           try {
-            await documentSaveTop(db, id, input, user, locale);
+            if (edit) await documentSaveTop(db, id, input, user, locale);
+            else {
+              const identity = req.session?.documentApprovalIdentity;
+              if (
+                labelString(input.approveEditStatus) === '4' &&
+                (!identity?.token ||
+                  identity.reports !== String(id) ||
+                  identity.token !== labelString(input.approveIdentificationState))
+              )
+                throw new LabelValidationError('approveIdentificationState', 'Invalid Identification.');
+              await documentApprove(
+                db,
+                id,
+                documentDetailId(input.approveRepSheetId),
+                labelInteger(input.approveClusterId),
+                labelString(input.approveEditStatus),
+                labelString(input.approveComment),
+                user,
+                locale,
+              );
+              if (req.session) delete req.session.documentApprovalIdentity;
+            }
             await unlock(res, user);
             return res.redirect(`${base}/InputReport/DetailsTop?repTopId=${id}`);
           } catch (cause) {
@@ -88,10 +174,17 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
             if (cause instanceof LabelValidationError && cause.field === 'access') return failure(res, cause);
             res.status(errorStatus(cause));
             error = errorMessage(cause);
+            complete = labelChecked(input.IsComplete);
+            forcedComplete = labelChecked(input.IsCompleteSuperManager);
             model = await documentTop(db, id, user, locale);
+            if (model.canForceComplete && Object.hasOwn(input, 'rep_top.finish_reason'))
+              finishReason = labelString(input['rep_top.finish_reason']);
             for (const field of model.fields)
-              if (field.editable && Object.hasOwn(input, 'rep_top.' + field.name))
+              if (field.editable && Object.hasOwn(input, 'rep_top.' + field.name)) {
                 field.value = labelString(input['rep_top.' + field.name]);
+                if (field.name === 'UseVoiceInputEndTime' && ['true', 'false'].includes(field.value.toLowerCase()))
+                  field.value = field.value.toLowerCase() === 'true' ? '1' : '0';
+              }
             for (const output of model.outputs)
               for (const field of output.fields) {
                 const key = `rep_top.${output.name}.${field.name}`;
@@ -118,6 +211,26 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
           ...model,
           edit,
           error,
+          complete,
+          forcedComplete,
+          finishReason,
+          approvalDraft:
+            !edit && req.method === 'POST'
+              ? {
+                  sheet: labelString(input.approveRepSheetId),
+                  cluster: labelString(input.approveClusterId),
+                  comment: labelString(input.approveComment).slice(0, 4000),
+                }
+              : undefined,
+          excelErrorCode: [
+            'Success',
+            'RoleError',
+            'PatchExcelFileNotExists',
+            'PatchExcelNotExcelFile',
+            'Unknown',
+          ].includes(labelString(input.errorCode))
+            ? labelString(input.errorCode)
+            : '',
           permissions: res.locals.documentPermissions,
           csrfToken: res.locals.csrfToken,
           approvals: edit ? [] : await documentApprovalRows(db, id, user),
@@ -129,7 +242,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
       }
     };
     app.get(`${base}/InputReport/${action}`, handler);
-    if (edit) app.post(`${base}/InputReport/${action}`, handler);
+    app.post(`${base}/InputReport/${action}`, handler);
   }
   for (const edit of [false, true]) {
     const action = edit ? 'EditSheet' : 'DetailsSheet';
@@ -154,7 +267,15 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
           return res.redirect(`${base}/InputReport/DetailsSheet?repTopId=${id}&pageIndex=${pageIndex}`);
         if (req.method === 'POST') {
           try {
-            await documentSaveSheetMetadata(db, id, pageIndex, input, user, await currentMailLocale(db, req));
+            await documentSaveSheetMetadata(
+              db,
+              id,
+              pageIndex,
+              input,
+              user,
+              await currentMailLocale(db, req),
+              Array.isArray(req.files) ? req.files : [],
+            );
             await unlock(res, user);
             return res.redirect(`${base}/InputReport/Details?repTopId=${id}&pageIndex=${pageIndex}`);
           } catch (cause) {
@@ -188,6 +309,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
                 ['IsKeyboardInput', 'isKeyboardInput'],
                 ['Verified', 'verified'],
                 ['input_check_value', 'input_check_value'],
+                ['IsImageClear', 'is_image_clear'],
               ]) {
                 const key = `rep_clusters[${index}].${name}`;
                 if (Object.hasOwn(input, key)) row[field] = labelChecked(input[key]);

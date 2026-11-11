@@ -1,4 +1,6 @@
 import type pg from 'pg';
+import { readFile } from 'node:fs/promises';
+import sharp from 'sharp';
 import { text as pageText } from '../../../config/manager/documents/resources.js';
 import { documentCheckUnchangedClusters, splitClusterItems } from './clusters.js';
 import { documentScalarValue } from './cluster-value.js';
@@ -14,7 +16,8 @@ import {
 } from '../../client-definition-xml.js';
 import { LabelValidationError } from '../labels/index.js';
 
-// shortcut: approval and binary editors stay guarded until their full save pipelines are ported.
+// shortcut: approval, audio and ink editors stay guarded until their full save pipelines are ported.
+const images = new Set(['Image', 'DrawingImage', 'FreeText']);
 const scalar = new Set([
   'Numeric',
   'InputNumeric',
@@ -34,6 +37,7 @@ const editable = new Set([
   'Select',
   'MultiSelect',
   'MultipleChoiceNumber',
+  ...images,
   ...scalar,
 ]);
 const mutable = new Set([
@@ -47,6 +51,7 @@ const mutable = new Set([
   'Verified',
   'ChangeReason',
   'comment_value',
+  'IsImageClear',
 ]);
 type Row = Record<string, unknown>;
 type Change = {
@@ -57,6 +62,7 @@ type Change = {
   verified: boolean;
   comment: string;
   reason: string;
+  image?: Buffer | null;
 };
 const string = (value: unknown) => String(value ?? '');
 const pending = () =>
@@ -82,12 +88,34 @@ function checked(value: unknown): boolean {
   return parts.some((part) => /^true$/i.test(part));
 }
 
+export async function documentImageFiles(files: Express.Multer.File[], rows: Row[]): Promise<Map<string, Buffer>> {
+  const result = new Map<string, Buffer>();
+  for (const file of files) {
+    const row = rows.find((row) => string(row.cluster_id) === file.fieldname);
+    if (!row || row.cluster_role !== '1' || !images.has(string(row.cluster_type)) || result.has(file.fieldname))
+      throw invalid();
+    if (!file.mimetype.startsWith('image/')) throw invalid();
+    const data = await readFile(file.path);
+    try {
+      const image = sharp(data, { limitInputPixels: 64_000_000, failOn: 'warning' });
+      const metadata = await image.metadata();
+      if (!metadata.format || !['jpeg', 'png', 'gif', 'tiff', 'webp'].includes(metadata.format)) throw invalid();
+      await image.stats();
+    } catch {
+      throw new LabelValidationError('rep_clusters', pageText['Select a valid image file. No changes were saved.']);
+    }
+    result.set(file.fieldname, data);
+  }
+  return result;
+}
+
 export function documentClusterChanges(
   input: Record<string, unknown>,
   rows: Row[],
   sheet: XmlNode,
   changeReason: boolean,
   locale = 'en-US',
+  files: ReadonlyMap<string, Buffer> = new Map(),
 ): Change[] {
   const groups = new Map<number, Record<string, unknown>>();
   for (const [key, value] of Object.entries(input)) {
@@ -100,6 +128,8 @@ export function documentClusterChanges(
     groups.set(index, fields);
     if (!mutable.has(match[2])) documentCheckUnchangedClusters({ [key]: value }, rows);
   }
+  for (const id of files.keys())
+    if (![...groups.keys()].some((index) => string(rows[index].cluster_id) === id)) throw invalid();
   const changes: Change[] = [];
   for (const [index, fields] of groups) {
     const row = rows[index],
@@ -121,6 +151,7 @@ export function documentClusterChanges(
       ...(['Check', 'MultipleChoiceNumber'].includes(type) ? ['comment_value'] : []),
       ...(['Select', 'MultiSelect'].includes(type) ? ['KeyboardValue', 'IsKeyboardInput'] : []),
       ...(type === 'MultiSelect' ? ['multi_input_value'] : []),
+      ...(images.has(type) ? ['IsImageClear'] : []),
     ]);
     for (const [name, value] of Object.entries(fields))
       if (mutable.has(name) && !controls.has(name))
@@ -135,6 +166,10 @@ export function documentClusterChanges(
     const comment = read('comment_value', row.comment_value),
       reason = read('ChangeReason', row.change_reason);
     const keyboard = flag('IsKeyboardInput', Boolean(row.isKeyboardEnable && row.isKeyboardInput));
+    const imageType = images.has(type);
+    const image = imageType ? (flag('IsImageClear', false) ? null : files.get(string(row.cluster_id))) : undefined;
+    if (imageType && value !== string(row.input_value)) throw invalid();
+    if (imageType && image === undefined && verified !== (Number(row.verified) === 1)) throw invalid();
     const options = row.options as Array<{ value: string; text: string }>;
     const parameters = string(row.input_parameter)
       .split(';')
@@ -239,7 +274,9 @@ export function documentClusterChanges(
       display = formatted.display;
     }
     const valueChanged = value !== string(row.input_value);
-    const changed = valueChanged || verified !== (Number(row.verified) === 1) || comment !== string(row.comment_value);
+    const changed = imageType
+      ? image !== undefined
+      : valueChanged || verified !== (Number(row.verified) === 1) || comment !== string(row.comment_value);
     if (!changed && reason !== string(row.change_reason))
       throw new LabelValidationError(
         'rep_clusters',
@@ -252,7 +289,8 @@ export function documentClusterChanges(
       fields.cluster_role !== '1'
     )
       throw pending();
-    if (verified && value && !(type === 'Check' && /^false$/i.test(value))) throw invalid();
+    if (verified && (imageType ? image !== null : value && !(type === 'Check' && /^false$/i.test(value))))
+      throw invalid();
     if (changeReason && !['Action', 'Calculate', 'TimeCalculate'].includes(type) && !reason)
       throw new LabelValidationError('rep_clusters', pageText['Enter a reason for the input change.']);
     if (['KeyboardText', 'Handwriting'].includes(type)) {
@@ -292,7 +330,7 @@ export function documentClusterChanges(
       (node) => optionalField(node, 'clusterId') === string(row.cluster_id),
     );
     if (!node || optionalField(node, 'type') !== type) throw pending();
-    changes.push({ row, node, value, display, verified, comment, reason });
+    changes.push({ row, node, value, display, verified, comment, reason, ...(imageType ? { image } : {}) });
   }
   return changes;
 }
@@ -307,30 +345,40 @@ export async function saveDocumentClusters(
   timestamp: string,
 ) {
   for (const change of changes) {
-    const { row, node, value, display, verified, comment, reason } = change;
-    await db.query(
-      `UPDATE rep_cluster SET input_value=$3,display_value=$4,verified=$5,comment_value=$6,change_reason=$7,
+    const { row, node, value, display, verified, comment, reason, image } = change;
+    if (image !== undefined)
+      await db.query(
+        `UPDATE rep_cluster SET image_file=$3,verified=$4,change_reason=$5,
+      edit_user=CASE WHEN COALESCE(edit_user,'')='' THEN $6 ELSE edit_user END,
+      edit_user_name=CASE WHEN COALESCE(edit_user,'')='' THEN $7 ELSE edit_user_name END,
+      edit_time=CASE WHEN COALESCE(edit_user,'')='' THEN $9 ELSE edit_time END,
+      sys_update_user=$6,sys_update_term=$8,sys_update_time=$9 WHERE rep_sheet_id=$1 AND cluster_id=$2`,
+        [row.rep_sheet_id, row.cluster_id, image, verified ? '1' : '0', reason, user, userName, terminal, now],
+      );
+    else
+      await db.query(
+        `UPDATE rep_cluster SET input_value=$3,display_value=$4,verified=$5,comment_value=$6,change_reason=$7,
       edit_user=CASE WHEN COALESCE(edit_user,'')='' THEN $8 ELSE edit_user END,
       edit_user_name=CASE WHEN COALESCE(edit_user,'')='' THEN $9 ELSE edit_user_name END,
       edit_time=CASE WHEN COALESCE(edit_user,'')='' THEN $11 ELSE edit_time END,
       sys_update_user=$8,sys_update_term=$10,sys_update_time=$11 WHERE rep_sheet_id=$1 AND cluster_id=$2`,
-      [
-        row.rep_sheet_id,
-        row.cluster_id,
-        value,
-        display,
-        verified ? '1' : '0',
-        comment,
-        reason,
-        user,
-        userName,
-        terminal,
-        now,
-      ],
-    );
+        [
+          row.rep_sheet_id,
+          row.cluster_id,
+          value,
+          display,
+          verified ? '1' : '0',
+          comment,
+          reason,
+          user,
+          userName,
+          terminal,
+          now,
+        ],
+      );
     for (const [name, fieldValue] of Object.entries({
-      value,
-      displayValue: display,
+      value: image === undefined ? value : '',
+      displayValue: image === undefined ? display : '',
       inputParameters: string(row.input_parameter),
       verified: verified ? '1' : '0',
       changeReasonValue: reason,

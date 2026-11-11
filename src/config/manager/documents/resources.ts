@@ -1,4 +1,29 @@
 export const r: Record<string, string> = {
+  ValueByAutoNumbering: 'Value of auto. numbering',
+  SaveCount: 'Save count',
+  ManualNumbering: 'Manual numbering',
+  MessageManualNumbering: 'Execute numbering manually and the current one is deleted. Is it OK?',
+  auto_gen: 'Automatic document creation',
+  auto_select_gen: 'Auto. data acquisition for choices',
+  mobile_save: 'Save on iPad',
+  remarks_edit: 'Edit remarks info. on iPad',
+  NotSaveDefinition: 'Not available to save on iPad',
+  SaveDefinition: 'Available to save on iPad',
+  NotEditable: 'Not editable',
+  Editable: 'Editable',
+  NotTargeted: 'No',
+  Targeted: 'Yes',
+  Book: 'Book',
+  Success: 'Completed.',
+  Unknown: 'Server error has occurred.',
+  RoleError: 'Role authority is insufficient.',
+  Upload: 'Upload',
+  DownLoad: 'DownLoad',
+  PatchExcel: 'EXCEL Patch',
+  DownLoadInnerExcel: 'Download internal Excel file',
+  UploadInnerExcel: 'Upload internal Excel file',
+  PatchExcelFileNotExists: 'Please select a file.',
+  PatchExcelNotExcelFile: 'A non-EXCEL file was selected.',
   Add: 'Add',
   allData: 'All',
   AppEditReport: 'Edit on App.',
@@ -355,6 +380,13 @@ export const r: Record<string, string> = {
 };
 
 export const v: Record<string, string> = {
+  xdw: 'DW',
+  downloadXdw: 'Docuworks Download',
+  copyMessage: 'Change the status from Completed to Editing. Are you sure you want to change the status?',
+  applicantUser: 'Applicant',
+  applicantDate: 'Application date',
+  approveDate: 'Date of approval',
+  approveUser: 'Approver',
   add: 'Add',
   applicant: 'Apply',
   approveCheckMessage: 'Approve it. Are you sure you want to approve?',
@@ -454,6 +486,23 @@ export const v: Record<string, string> = {
 };
 
 export const text: Readonly<Record<string, string>> = {
+  'The DocuWorks output file is unavailable.': 'The DocuWorks output file is unavailable.',
+  'The original form is unavailable. No changes were saved.':
+    'The original form is unavailable. No changes were saved.',
+  'This report download format has not been migrated.': 'This report download format has not been migrated.',
+  'The internal Excel file is unavailable.': 'The internal Excel file is unavailable.',
+  'Invalid or oversized sheet upload. No changes were saved.':
+    'Invalid or oversized sheet upload. No changes were saved.',
+  'Select a valid image file. No changes were saved.': 'Select a valid image file. No changes were saved.',
+  'Invalid automatic-numbering settings. No changes were saved.':
+    'Invalid automatic-numbering settings. No changes were saved.',
+  'The automatic-numbering sequence has reached its maximum. No changes were saved.':
+    'The automatic-numbering sequence has reached its maximum. No changes were saved.',
+  'This report cannot be edited in its current state.': 'This report cannot be edited in its current state.',
+  'Required inputs are missing. The report cannot be completed.':
+    'Required inputs are missing. The report cannot be completed.',
+  'Permission for document management': 'Permission for document management',
+  'Reason for compulsory input completion': 'Reason for compulsory input completion',
   'Cluster editing for this control has not been migrated. No changes were saved.':
     'Cluster editing for this control has not been migrated. No changes were saved.',
   'Invalid cluster input. No changes were saved.': 'Invalid cluster input. No changes were saved.',

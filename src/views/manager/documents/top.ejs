@@ -1,6 +1,7 @@
 <% const ui = managerResources["documents"]; %><%
    const preview = {defTopId: String(report.def_top_id), repTopId: String(report.rep_top_id), ...previewOptions};
    const previewLink = flags => base + '/InputReport/DetailsTop?' + new URLSearchParams(Object.entries({...preview, ...flags}).filter(([name]) => name !== 'defTopId').map(([name, value]) => [name, String(value)]));
+   const radioFields = ['output_setting','edit_output_setting','PdfAutoOutputSheetSelect','no_need_to_fill_type','no_need_to_fill_out_mode','IsReportCopy','reportCopyType','CalculateMode','IndexType','UseVoiceInputEndTime','NetworkAnswerbackMode'];
 %><script src="<%= base %>/Scripts/jquery.validate.min.js" type="text/javascript"></script>
 <script src="<%= base %>/Scripts/jquery.validate.unobtrusive.min.js" type="text/javascript"></script>
 <script type="text/javascript"><%- js %></script>
@@ -25,13 +26,21 @@
         <% if (report.current) { %><a href="#" class="img_delete" title="<%= v.delete %>" aria-label="<%= v.delete %>" onclick="fConMasToggle('DeleteDialogTop'); return false;"> </a>
         <% } else { %><a href="#" class="img_delete" title="<%= v.delete %>" aria-label="<%= v.delete %>" onclick="return delDetailsTop('<%= v.deleteMessage %>', 'REV');"> </a><% } %>
       <% } %>
+      <% if ((Number(report.edit_refer_status) === 4 || !report.current) && (managerRoleType === '1' ? canForceComplete : report.role_update && permissions.update)) { %>
+        <form method="post" action="<%= base %>/InputReport/CopyTop" style="display:inline" onsubmit="return copyReport('<%= v.copyMessage %>');">
+          <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+          <input type="hidden" name="repTopId" value="<%= report.rep_top_id %>">
+          <button type="submit" class="img_copy" title="<%= v.copy %>" aria-label="<%= v.copy %>"> </button>
+        </form>
+      <% } %>
     <% } %>
     <% } %>
   </div><% } %>
 </div>
-<form id="form0" method="post" action="<%= base %>/InputReport/EditTop" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure">
+<% if (edit) { %><form id="form0" method="post" action="<%= base %>/InputReport/EditTop" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure">
   <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
   <input type="hidden" id="rep_top_rep_top_id" name="rep_top.rep_top_id" value="<%= report.rep_top_id %>">
+<% } %>
   <div id="DetailSection"><div class="info">
     <table border="0" cellpadding="0" cellspacing="0" width="100%"><tr>
       <td id="previewLeftTop">
@@ -39,6 +48,9 @@
         <div id="PublicStatus"><label class="<%= ['privateStatus','testStatus','publicStatus'][Number(report.public_status)] || '' %>"><%= [r.NonDisclosure,r.Test,r.Published][Number(report.public_status)] || '' %></label></div>
         <div id="EditReferStatus"><label class="edit_refer_status"><img src="<%= base %>/Content/ConMas/images/grid/grid_status_<%= Number(report.edit_refer_status) + 1 %>.png" alt="<%= ui["[edit]"] %>"><%= [v.edit0,v.edit1,v.edit2,v.topEdit3,v.edit4][Number(report.edit_refer_status)] || '' %></label></div>
         <% if (!edit) { %>
+          <% if (csvDownload) { %><div><a class="csv_link" href="<%= base %>/InputReport/DownLoadAction?downloadMode=csv&amp;repTopId=<%= report.rep_top_id %>"><%= ui.CSV %></a></div><% } %>
+          <% if (pdfDownload) { %><div><a class="pdf_link" href="<%= base %>/InputReport/DownLoadAction?<%= new URLSearchParams({downloadMode:'pdf',repTopId:String(report.rep_top_id),isLayer:String(previewOptions.isLayer),isInitJudgeDisplay:String(previewOptions.isInitJudgeDisplay),isForciblyFontSize:String(previewOptions.isForciblyFontSize)}) %>"><%= v.pdf %></a></div><% } %>
+          <% if (xdwDownload) { %><div><a class="xdw_link" href="<%= base %>/InputReport/DownLoadAction?downloadMode=xdw&amp;repTopId=<%= report.rep_top_id %>" title="<%= v.downloadXdw %>"><%= v.xdw %></a></div><% } %>
           <br>
           <div><a href="<%= previewLink({isLayer: !previewOptions.isLayer}) %>" class="<%= previewOptions.isLayer ? 'layer_change_On' : 'layer_change' %>" data-ajax="true" data-ajax-update="#content"><%= previewOptions.isLayer ? r.LayerOff : r.LayerOn %></a></div>
           <div><a href="<%= previewLink({isInitJudgeDisplay: !previewOptions.isInitJudgeDisplay}) %>" class="<%= previewOptions.isInitJudgeDisplay ? 'layer_change_On' : 'layer_change' %>" data-ajax="true" data-ajax-update="#content"><%= previewOptions.isInitJudgeDisplay ? r.InitInputJudgeSettingOff : r.InitInputJudgeSettingOn %></a></div>
@@ -50,18 +62,44 @@
       <button type="submit" class="image-ok_btn" onclick="editOutputFileChecked();"><%= r.Fix %></button>
       <button type="submit" class="image-cancel_btn" name="isCanceled" value="1"><%= r.Cancel %></button>
     </p><% } %>
+    <% if (!edit && excelRecovery && !previewOptions.isLayer && definition?.def_file_type && report.role_update && permissions.update) { %>
+      <div class="toggle" onclick="fConMasToggle('patchExcel')"><h2>▼<%= r.PatchExcel %></h2></div>
+      <div id="patchExcel"><table cellpadding="0" cellspacing="0" class="table_information horizontal">
+        <tr><th scope="row">①<%= r.DownLoadInnerExcel %></th><td><a href="<%= base %>/InputReport/DownLoadInnerExcel?repTopId=<%= report.rep_top_id %>" title="<%= r.DownLoadInnerExcel %>"><%= r.DownLoad %></a></td></tr>
+        <tr><th scope="row">②<%= r.UploadInnerExcel %></th><td>
+          <form id="UploadInnerExcel" method="post" action="<%= base %>/InputReport/UploadInnerExcel" enctype="multipart/form-data">
+            <input type="file" name="patchedExcel" accept=".xlsx,.xls" aria-label="<%= r.UploadInnerExcel %>">
+            <input type="submit" value="<%= r.Upload %>">
+            <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+            <input type="hidden" name="rep_top.rep_top_id" value="<%= report.rep_top_id %>">
+            <% if (excelErrorCode) { %><span role="status" style="color:<%= excelErrorCode === 'Success' ? '#0000ff' : '#ff0000' %>;"><%= r[excelErrorCode] %></span><% } %>
+          </form>
+        </td></tr>
+      </table></div>
+    <% } %>
     <div class="toggle" onclick="fConMasToggle('topInfo')"><h2>▼<%= v.basicInformation %></h2></div>
     <div id="topInfo"><table cellpadding="0" cellspacing="0" class="table_information horizontal">
       <tr><th scope="row"><%= r.rep_top_id %></th><td><%= report.rep_top_id %></td></tr>
-      <% for (const item of fields.filter(item => !item.name.startsWith('top_remarks') && !item.name.startsWith('system_key'))) { %>
+      <tr><th scope="row"><label for="rep_top_rep_top_name"><%= reportHeading || r.rep_top_name %></label></th><td><% if (edit) { %><input class="EditValue1" id="rep_top_rep_top_name" name="rep_top.rep_top_name" value="<%= fields.find(item => item.name === 'rep_top_name')?.value ?? report.rep_top_name %>" required><% } else { %><%= report.rep_top_name %><% } %></td></tr>
+      <% for (const name of ['rep_top_org','rev_no']) { %><tr><th scope="row"><%= r[name] %></th><td><%= report[name] %></td></tr><% } %>
+    </table><table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <tr><th scope="row"><%= r.def_top_id %></th><td><%= definition?.def_top_id ?? '' %></td></tr>
+      <tr><th scope="row"><%= r.def_top_name %></th><td><%= definition?.def_top_name ?? '' %></td></tr>
+      <tr><th scope="row"><%= r.report_type %></th><td><%= ({1:r.Sheet,2:r.Set,3:r.Book})[Number(report.report_type)] || '' %></td></tr>
+      <tr><th scope="row"><%= r.rep_sheet_count %></th><td><%= report.rep_sheet_count %></td></tr>
+    </table><table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <% for (const [name, values] of [['auto_gen',[r.NotTargeted,r.Targeted]],['auto_select_gen',[r.NotTargeted,r.Targeted]],['mobile_save',[r.NotSaveDefinition,r.SaveDefinition]]]) { %><tr><th scope="row"><%= r[name] %></th><td><%= report[name] == null ? '' : values[Number(report[name])] || '' %></td></tr><% } %>
+      <% for (const item of fields.filter(item => item.name !== 'rep_top_name' && !item.name.startsWith('top_remarks') && !item.name.startsWith('system_key') && (item.name !== 'CalculateMode' || item.editable))) { %>
         <tr><th scope="row"><label for="rep_top_<%= item.name %>"><%= r[item.label] || v[item.label] || item.label %></label></th><td>
-          <% if (edit && item.editable) { %>
-            <% if (['output_setting','edit_output_setting','PdfAutoOutputSheetSelect'].includes(item.name)) { %>
-              <% item.options.forEach((text, index) => { %><label><input type="radio" id="rep_top_<%= item.name %><%= index ? '_' + index : '' %>" name="rep_top.<%= item.name %>" value="<%= index %>" <%= item.value === String(index) ? 'checked' : '' %> onclick="<%= item.name === 'output_setting' ? 'outputSettingSelect(false)' : item.name === 'edit_output_setting' ? 'editOutputSettingSelect(false)' : 'fConMasPdfSheetSelect()' %>"><%= r[text] || v[text] || text %></label> <% }); %>
-            <% } else if (item.name === 'InitInputJudgeColor') { %><select id="rep_top_InitInputJudgeColor" name="rep_top.InitInputJudgeColor"><% for (const [value, text] of lineColors) { %><option value="<%= value %>" <%= item.value === value ? 'selected' : '' %>><%= r[text] || text %></option><% } %></select>
+          <% if (radioFields.includes(item.name)) { %>
+            <% item.options.forEach((text, index) => { const click = item.name === 'output_setting' ? 'outputSettingSelect(false)' : item.name === 'edit_output_setting' ? 'editOutputSettingSelect(false)' : item.name === 'PdfAutoOutputSheetSelect' ? 'fConMasPdfSheetSelect()' : item.name === 'UseVoiceInputEndTime' ? (index ? "setDisabled('#VoiceInputEndTime', false); setDefaultValue('#VoiceInputEndTime', 650);" : "setDisabled('#VoiceInputEndTime', true);") : ''; %>
+              <label><input type="radio" id="rep_top_<%= item.name %><%= index ? '_' + index : '' %>" name="rep_top.<%= item.name %>" value="<%= item.name === 'UseVoiceInputEndTime' ? String(index === 1) : index %>" <%= item.value === String(index) ? 'checked' : '' %> <%= !edit || !item.editable ? 'disabled' : '' %> onclick="<%= click %>"><%= !edit && item.name === 'CalculateMode' && index === 0 ? '通常' : r[text] || v[text] || text %></label><% if (['output_setting','edit_output_setting'].includes(item.name) && index < item.options.length-1) { %><br><% } %>
+            <% }); %>
+          <% } else if (edit && item.editable) { %>
+            <% if (item.name === 'InitInputJudgeColor') { %><select id="rep_top_InitInputJudgeColor" name="rep_top.InitInputJudgeColor"><% for (const [value, text] of lineColors) { %><option value="<%= value %>" <%= item.value === value ? 'selected' : '' %>><%= r[text] || text %></option><% } %></select>
             <% } else if (item.options) { %><select id="rep_top_<%= item.name %>" name="rep_top.<%= item.name %>"><% item.options.forEach((text, index) => { %><option value="<%= index %>" <%= item.value === String(index) ? 'selected' : '' %>><%= r[text] || v[text] || text %></option><% }); %></select>
             <% } else if (item.name === 'InitInputJudgeThickness') { %><input type="range" id="rep_top_<%= item.name %>" name="rep_top.<%= item.name %>" min="1" max="5" step="1" value="<%= item.value %>">
-            <% } else { %><input class="EditValue1" id="rep_top_<%= item.name %>" name="rep_top.<%= item.name %>" value="<%= item.value %>" <%= item.name === 'rep_top_name' ? 'required' : '' %>><% } %>
+            <% } else { %><input class="EditValue1" id="<%= item.name === 'VoiceInputEndTime' ? item.name : 'rep_top_' + item.name %>" name="rep_top.<%= item.name %>" value="<%= item.value %>" <%= item.name === 'VoiceInputEndTime' && fields.find(field => field.name === 'UseVoiceInputEndTime')?.value !== '1' ? 'disabled' : '' %>><% } %>
           <% } else { %><%= item.options ? r[item.options[Number(item.value)]] || v[item.options[Number(item.value)]] || item.value : item.value %><% } %>
           <% if (['output_setting','edit_output_setting'].includes(item.name)) { const output = outputs.find(output => output.name === (item.name === 'output_setting' ? 'output_files' : 'edit_output_files')); %>
             <div id="<%= item.name === 'output_setting' ? 'outputFilesSetting' : 'editOutputFilesSetting' %>" <%- !edit && item.value !== '2' ? 'style="display:none"' : '' %>>
@@ -69,9 +107,21 @@
             </div>
           <% } %>
         </td></tr>
+        <% if (item.name === 'mobile_report_save') { %><tr><th scope="row"><%= r.remarks_edit %></th><td><%= report.remarks_edit == null ? '' : [r.NotEditable,r.Editable][Number(report.remarks_edit)] || '' %></td></tr><% } %>
       <% } %>
-      <% for (const name of ['rep_top_org','rev_no']) { %><tr><th scope="row"><%= r[name] %></th><td><%= report[name] %></td></tr><% } %>
       <tr><th scope="row"><%= r.PdfFontSizeDeductionAmount %></th><td><% if (edit) { %><input class="EditValue1" id="rep_top_option_PdfFontSizeDeductionAmount" name="rep_top_option.PdfFontSizeDeductionAmount" value="<%= fontDeduction %>" oninput="pdfFontSizeDeductionAmount(this)"><% } else { %><%= fontDeduction %><% } %></td></tr>
+      <% if (!edit && showNumbering) { %><tr><th scope="row"><%= r.ValueByAutoNumbering %></th><td>
+        <% if (report.auto_numbering_value) { %><div><%= report.auto_numbering_value %></div><% if (Number(report.auto_numbering_save_count) > 0) { %><div><%= r.SaveCount %>：<%= report.auto_numbering_save_count %></div><% } %>
+        <% } else if (report.auto_numbering_message) { %><span class="error-message"><%= report.auto_numbering_message %></span><% } %>
+        <% if (canForceComplete && report.role_update && permissions.update) { %>
+          <form method="post" action="<%= base %>/InputReport/UpdateAutoNumber" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure" data-ajax-confirm="<%= r.MessageManualNumbering %>">
+            <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+            <input type="hidden" name="repTopId" value="<%= report.rep_top_id %>">
+            <input type="hidden" name="defTopId" value="<%= report.def_top_id %>">
+            <input type="submit" value="<%= r.ManualNumbering %>">
+          </form>
+        <% } else { %><input type="button" value="<%= r.ManualNumbering %>" disabled><% } %>
+      </td></tr><% } %>
       <% for (const item of notifications.filter(item => item.options)) { const selected = item.multiple ? item.value.split(',').filter(Boolean) : [item.value]; const options = [...item.options, ...selected.filter(value => !item.options.some(option => option.value === value)).map(value => ({value, text: value}))]; %>
         <tr><th scope="row"><label for="rep_top_<%= item.name %>"><%= r[item.label] || item.label %></label></th><td>
           <% if (edit) { %><select id="rep_top_<%= item.name %>" name="rep_top.<%= item.name %>" <%= item.multiple ? 'multiple' : '' %>><% for (const option of options) { %><option value="<%= option.value %>" <%= selected.includes(option.value) ? 'selected' : '' %>><%= option.text %></option><% } %></select><% if (item.multiple) { %><input type="hidden" name="rep_top.<%= item.name %>" value=""><% } %>
@@ -80,7 +130,13 @@
       <% } %>
       <% for (const [label, available] of [['can_send_mail_as_attachment',attachment],['can_open_as_pdf',openPdf],['Biometrics',biometrics],['UseIdentification',identification]]) { %><tr><th scope="row"><%= r[label] %></th><td><%= available ? r.SELECTED_AVAILABLE_YES : r.SELECTED_AVAILABLE_NO %></td></tr><% } %>
       <tr><th scope="row"><%= r.AudioRecordingFileFormat %></th><td><%= audioFormat %></td></tr>
-      <% if (edit) { %><tr><th scope="row"><label for="IsComplete"><%= v.isComplete %></label></th><td><input type="checkbox" id="IsComplete" name="IsComplete" value="true"><input type="hidden" name="IsComplete" value="false"></td></tr><% } %>
+      <% if (edit) { %><tr><th scope="row"><label for="IsComplete"><%= v.isComplete %></label></th><td><input type="checkbox" id="IsComplete" name="IsComplete" value="true" <%= complete ? 'checked' : '' %>><input type="hidden" name="IsComplete" value="false"></td></tr>
+        <% if (canForceComplete) { %><tr><th scope="row" style="color:#FF0000;"><label for="IsCompleteSuperManager"><%= v.isComplete %> （<%= ui['Permission for document management'] %>）</label></th><td><input type="checkbox" id="IsCompleteSuperManager" name="IsCompleteSuperManager" value="true" <%= forcedComplete ? 'checked' : '' %>><input type="hidden" name="IsCompleteSuperManager" value="false"> <label for="rep_top_finish_reason"><%= ui['Reason for compulsory input completion'] %></label> <input id="rep_top_finish_reason" name="rep_top.finish_reason" value="<%= finishReason %>" maxlength="4000"></td></tr><% } %>
+      <% } %>
+      <% if (!edit && Number(report.edit_refer_status) === 4 && Number(report.finish_compulsory_type) === 1) { %><tr><th scope="row"><%= ui['Reason for compulsory input completion'] %></th><td><%= report.finish_reason %></td></tr><% } %>
+    </table>
+    <table cellpadding="0" cellspacing="0" class="table_information horizontal">
+      <% for (const [name, value] of [['sys_regist_term',report.sys_regist_term],['sys_regist_user',report.created_by],['sys_regist_time',report.registered],['sys_update_term',report.sys_update_term],['sys_update_user',report.updated_by],['sys_update_time',report.updated]]) { %><tr><th scope="row"><%= r[name] %></th><td><%= value %></td></tr><% } %>
     </table></div>
     <div class="toggle" onclick="fConMasToggle('remarks')"><h2>▼<%= v.remark %></h2></div>
     <div id="remarks"><table cellpadding="0" cellspacing="0" class="table_information horizontal">
@@ -89,10 +145,27 @@
     </table></div>
     <% if (!edit) { %>
       <div class="toggle" onclick="fConMasToggle('approvalStatus')"><h2>▼<%= v.approveSheet %></h2></div>
-      <div id="approvalStatus"><table cellpadding="0" cellspacing="0" class="table_information verticality">
-        <tr><th scope="col"><%= r.rep_sheet_no %></th><th scope="col"><%= r.cluster_name %></th><th scope="col"><%= r.display_value %></th></tr>
-        <% for (const row of approvals) { %><tr><td><%= row.rep_sheet_no %></td><td><%= row.cluster_name %></td><td><%- include('cluster-value', {row}) %></td></tr><% } %>
-      </table></div>
+      <form id="approveForm" method="post" action="<%= base %>/InputReport/DetailsTop" data-ajax="true" data-ajax-update="#content" data-ajax-failure="fConMasDocumentFailure">
+        <input type="hidden" name="__RequestVerificationToken" value="<%= csrfToken %>">
+        <input type="hidden" id="rep_top_rep_top_id" name="rep_top.rep_top_id" value="<%= report.rep_top_id %>">
+        <% for (const name of ['approveEditStatus','approveRepSheetId','approveClusterId','approveComment','approveIdentificationState']) { %><input type="hidden" id="<%= name %>" name="<%= name %>" value=""><% } %>
+        <input type="hidden" id="pageIndex" name="rep_sheets.PageIndex" value="0">
+        <div id="approvalStatus"><table cellpadding="0" cellspacing="0" class="table_information verticality">
+          <tr><th scope="col"><%= r.rep_sheet_no %></th><th scope="col"><%= r.cluster_id %></th><th scope="col"><%= v.clusterName %></th><th scope="col"><%= v.editStatus %></th><th scope="col"><%= v.applicantDate %></th><th scope="col"><%= v.applicantUser %></th><th scope="col"><%= v.approveDate %></th><th scope="col"><%= v.approveUser %></th></tr>
+          <% for (const row of approvals) { const visible = row.cluster_role !== '2'; %><tr>
+            <td><%= row.rep_sheet_no %></td><td><%= row.cluster_id %></td><td><%= row.cluster_name %></td><td><%- include('cluster-value', {row}) %>
+              <% if (permissions.update && report.role_update && row.input_value === '2' && row.cluster_role === '1' && !row.approval_read_only && !report.locked && !report.workflow_locked && !report.applicant_locked && Number(report.edit_refer_status) !== 4 && report.current && Number(report.deleted) === 0) { %>
+                <table style="border-style:none; width:100%;"><tr style="border-style:none;">
+                  <td style="border-style:none;"><input type="submit" value="<%= v.approveTop %>" class="image-approve-btn" onclick="return approveAction('4', <%= row.rep_sheet_id %>, <%= row.cluster_id %>, 0);"></td>
+                  <td style="border-style:none;"><input type="submit" value="<%= v.remandInputReport %>" class="image-remand-btn" onclick="return approveAction('3', <%= row.rep_sheet_id %>, <%= row.cluster_id %>, 0);"></td>
+                  <td style="border-style:none; width:100%;"><textarea id="approveComment_<%= row.rep_sheet_id %>_<%= row.cluster_id %>" class="approve_table_comment" maxlength="4000" aria-label="<%= r.approver_comment %>"><%= typeof approvalDraft !== 'undefined' && approvalDraft?.sheet === String(row.rep_sheet_id) && approvalDraft?.cluster === String(row.cluster_id) ? approvalDraft.comment : '' %></textarea></td>
+                </tr></table>
+              <% } %>
+            </td><td><%= visible ? row.applicant_date : '' %></td><td><%= visible ? row.applicant_name : '' %><% if (visible && row.applicant_comment) { %><div><%= row.applicant_comment %></div><% } %></td>
+            <td><%= visible ? row.approver_date : '' %></td><td><%= visible ? row.approver_name : '' %><% if (visible && row.approver_comment) { %><div><%= row.approver_comment %></div><% } %></td>
+          </tr><% } %>
+        </table></div>
+      </form>
       <% if (historyEnabled) { %><div class="toggle" onclick="fConMasToggle('historyList')"><h2>▼<%= r.History %></h2></div>
       <div id="historyList"><table class="GridCommon" border="0" cellspacing="1" id="histroryList">
         <tr><th scope="col"><%= r.rev_no %></th><th scope="col"><%= r.rep_top_name %></th><th scope="col"><%= r.sys_regist_time %></th><th scope="col"><%= r.sys_update_info %></th></tr>
@@ -100,7 +173,7 @@
       </table></div><% } %>
     <% } %>
   </div></div>
-</form>
+<% if (edit) { %></form><% } %>
 <% if (!edit) { %>
 <div id="DeleteDialogTop" style="display:none;">
   <div class="DialogMargin">

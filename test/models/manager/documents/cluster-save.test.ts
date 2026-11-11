@@ -132,6 +132,44 @@ test('hidden, read-only, unsupported and invalid formatted controls cannot be ch
   }
 });
 
+test('image changes require server identities, preserve scalar values and give clear precedence over upload', () => {
+  for (const type of ['Image', 'DrawingImage', 'FreeText']) {
+    const f = fixture(type, '1');
+    const bytes = Buffer.from('validated-image-fixture');
+    const run = (fields: Record<string, unknown>, uploads = new Map<string, Buffer>(), reason = false) =>
+      documentClusterChanges({ ...f.data, ...fields }, [f.row], f.sheet, reason, 'en-US', uploads);
+    assert.equal(run({ 'rep_clusters[0].IsImageClear': 'false' }).length, 0);
+    assert.equal(run({}, new Map([['1', bytes]]))[0].image, bytes);
+    const clear = run(
+      { 'rep_clusters[0].IsImageClear': ['true', 'false'], 'rep_clusters[0].Verified': 'true' },
+      new Map([['1', bytes]]),
+    )[0];
+    assert.equal(clear.image, null);
+    assert.equal(clear.verified, true);
+    assert.equal(clear.value, '1');
+    assert.throws(() => run({ 'rep_clusters[0].input_value': 'forged' }), /Invalid cluster/);
+    assert.throws(() => run({ 'rep_clusters[0].Verified': 'true' }), /Invalid cluster/);
+    assert.throws(() => run({ 'rep_clusters[0].Verified': 'true' }, new Map([['1', bytes]])), /Invalid cluster/);
+    assert.throws(() => run({}, new Map([['1', bytes]]), true), /reason/);
+    assert.equal(
+      run({ 'rep_clusters[0].ChangeReason': 'new photo' }, new Map([['1', bytes]]), true)[0].reason,
+      'new photo',
+    );
+    assert.throws(
+      () => documentClusterChanges({}, [f.row], f.sheet, false, 'en-US', new Map([['1', bytes]])),
+      /Invalid cluster/,
+    );
+    assert.throws(() => run({ 'rep_clusters[0].IsImageClear': 'bogus' }), /Invalid cluster/);
+    assert.throws(() => run({ 'rep_clusters[0].cluster_id': '2' }, new Map([['1', bytes]])));
+  }
+  for (const role of ['0', '2']) {
+    const f = fixture('Image', '1', '', '1', role);
+    assert.throws(() =>
+      documentClusterChanges({ ...f.data, 'rep_clusters[0].IsImageClear': 'true' }, [f.row], f.sheet, false),
+    );
+  }
+});
+
 test('numeric/date/time sheet edits normalize only posted values and retain server identity, bounds and verification checks', () => {
   let f = fixture('InputNumeric', '1', 'Decimal=2;Comma=1;Maximum=2000');
   const run = (values: Record<string, unknown>, reason = false) =>

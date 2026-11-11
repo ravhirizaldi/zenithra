@@ -1,7 +1,12 @@
 <% const ui = managerResources["documents"]; %><% const name = 'rep_clusters[' + index + '].', id = 'rep_clusters_' + index + '__';
    const attributes = 'onChange="onChangeEditText(this,' + index + ');"';
    if (row.cluster_role === '2') { %><%= r.SELECTED_ROLE_STATE_REFER_NO %>
-<% } else if (row.cluster_role !== '1' || ['Approve','Create','Inspect','Image','DrawingImage','FixedText','FreeText','FreeDraw','AudioRecording'].includes(row.cluster_type)) { %>
+<% } else if (row.cluster_role === '1' && ['Image','DrawingImage','FreeText'].includes(row.cluster_type)) { %>
+  <%- include('cluster-value', {row}) %>
+  <input type="hidden" name="<%= name %>input_value" value="<%= row.input_value || '' %>">
+  <input type="file" id="<%= row.cluster_id %>" name="<%= row.cluster_id %>" accept="image/*" onchange="onChangeEditText(this, <%= index %>);" aria-label="<%= row.cluster_name %>">
+  <label for="<%= id %>IsImageClear"><input type="checkbox" id="<%= id %>IsImageClear" name="<%= name %>IsImageClear" value="true"<% if (row.is_image_clear) { %> checked<% } %> onclick="onChangeEditImageClear(this, <%= index %>);"> <%= r.Clear %></label><input type="hidden" name="<%= name %>IsImageClear" value="false">
+<% } else if (row.cluster_role !== '1' || ['Approve','Create','Inspect','FixedText','FreeDraw','AudioRecording'].includes(row.cluster_type)) { %>
   <%- include('cluster-value', {row}) %>
   <input type="hidden" name="<%= name %>input_value" value="<%= row.input_value || '' %>">
 <% } else if (['Check','Action'].includes(row.cluster_type)) { %>

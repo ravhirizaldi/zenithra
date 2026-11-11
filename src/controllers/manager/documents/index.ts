@@ -5,6 +5,7 @@ import { randomBytes } from 'node:crypto';
 import { registerDocumentMedia } from './media.js';
 import { registerDocumentDetails } from './details.js';
 import { registerDocumentContent } from './content.js';
+import { documentUploadBody } from '../../../middleware/manager/documents.js';
 import { licenseStatus } from '../../../shared/license-counts.js';
 import { base } from '../../../config/manager.js';
 import type { RenderPage } from '../../../services/manager/page.js';
@@ -59,6 +60,7 @@ export function registerDocumentController(
 ): void {
   const entry = [`${base}/`, `${base}/InputReport`, `${base}/InputReport/Index`];
   const common = `${base}/Common/LabelListView`;
+  app.post([`${base}/InputReport/EditSheet`, `${base}/InputReport/UploadInnerExcel`], requireAuth, documentUploadBody);
   app.use(base, (req, res, next) => {
     if (
       req.path !== '/' &&

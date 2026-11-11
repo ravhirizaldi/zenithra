@@ -83,6 +83,7 @@ export async function checkReportSaveFeatures(
   db: Pick<pg.PoolClient, 'query'>,
   top: XmlNode,
   editStatus = field(top, 'editStatus'),
+  numberingSupported = false,
 ): Promise<void> {
   // shortcut: feature pipelines remain separate work; reject them before success until all required side effects are ported.
   await checkReportTables(db, top);
@@ -116,6 +117,7 @@ export async function checkReportSaveFeatures(
       throw new ReportUnsupported('Report history trigger is unavailable.', 'report_history_trigger');
   }
   for (const name of ['journalizingDefTopId', 'useAutoNumbering']) {
+    if (name === 'useAutoNumbering' && numberingSupported) continue;
     const value = optionalField(top, name);
     if (value && !['0', '-1'].includes(value))
       throw new ReportUnsupported('Report feature is not implemented: ' + name, 'report_feature_' + name);

@@ -3,11 +3,10 @@ import type pg from 'pg';
 import { hostname } from 'node:os';
 import { documentAdministratorId, documentDetail } from './details.js';
 import { documentApplicantLocked, documentClusters, documentClusterInput } from './clusters.js';
-import { documentClusterChanges, saveDocumentClusters } from './cluster-save.js';
-import { documentPdfInputs } from './pdf.js';
-import { renderDocumentPdf } from '../../../services/manager/documents/pdf.js';
-import { documentThumbnail } from '../../../services/manager/documents/thumbnail.js';
+import { documentClusterChanges, documentImageFiles, saveDocumentClusters } from './cluster-save.js';
+import { documentRefreshThumbnail } from './thumbnail.js';
 import { documentPatchXml } from './top.js';
+import { documentSaveNumbering } from './numbering.js';
 import { children, must, optionalField, root, serialize } from '../../client-definition-xml.js';
 import { saveReportTables } from '../../client-report-tables.js';
 import { checkReportSaveFeatures } from '../../client-report-upload.js';
@@ -113,6 +112,7 @@ export async function documentSaveSheetMetadata(
   input: Record<string, unknown>,
   user: string,
   locale = 'en-US',
+  files: Express.Multer.File[] = [],
 ) {
   const client = await db.connect();
   try {
@@ -148,8 +148,9 @@ export async function documentSaveSheetMetadata(
       sheet,
       Boolean(model.sheet.show_change_reason),
       locale,
+      await documentImageFiles(files, model.clusters),
     );
-    await checkReportSaveFeatures(client, top);
+    await checkReportSaveFeatures(client, top, undefined, true);
     if (
       (
         await client.query(
@@ -214,7 +215,6 @@ export async function documentSaveSheetMetadata(
       throw new LabelValidationError('', pageText['The selected sheet has changed.']);
     if (
       optionalField(top, 'lockMode') === '1' ||
-      optionalField(top, 'useAutoNumbering') === '1' ||
       (
         await client.query(
           'SELECT 1 FROM binder_rep_src src JOIN rep_top t ON t.rep_top_org=src.rep_top_org WHERE t.rep_top_id=$1 LIMIT 1',
@@ -260,7 +260,8 @@ export async function documentSaveSheetMetadata(
     documentPatchXml(top, 'updateUserName', userName);
     documentPatchXml(top, 'updateTime', reportNameDate(now, 'yyyy/MM/dd HH:mm:ss'));
     documentPatchXml(top, 'repTopName', model.report.rep_top_name);
-    setReportName(top, now, false);
+    const numbering = await documentSaveNumbering(client, id, top, user, now, locale, 'sheet');
+    setReportName(top, now, numbering.regenerateName);
     await client.query(`UPDATE rep_sheet SET ${assignments.join(',')} WHERE rep_sheet_id=$1`, parameters);
     await client.query('UPDATE rep_sheet SET xml_data=$2 WHERE rep_sheet_id=$1', [
       model.sheet.rep_sheet_id,
@@ -273,7 +274,10 @@ export async function documentSaveSheetMetadata(
     await saveReportTables(
       client as pg.PoolClient,
       top,
-      new Set(changes.map((change) => model.sheet.rep_sheet_no + ',' + change.row.cluster_id)),
+      new Set([
+        ...changes.map((change) => model.sheet.rep_sheet_no + ',' + change.row.cluster_id),
+        ...numbering.changed,
+      ]),
       locale,
     );
     await updateReportAutoLabels(
@@ -288,26 +292,10 @@ export async function documentSaveSheetMetadata(
       now,
     );
     if (
-      changes.length &&
-      Number(model.sheet.rep_sheet_no) === 1 &&
-      !(await client.query('SELECT 1 FROM rep_fd_sheet WHERE top_id=$1 AND sheet_index=1', [id])).rowCount
-    ) {
-      const data = await documentPdfInputs(
-        client,
-        { repTopId: String(id), defTopId: String(model.report.def_top_id), sheetNo: '1', isLayer: 'true' },
-        user,
-        locale,
-      );
-      const pixels = Number(
-        (
-          await client.query(
-            "SELECT com_value FROM mst_common WHERE com_key='PDF_SETTING' AND com_name='THUMBNAIL_PIXEL' ORDER BY com_index LIMIT 1",
-          )
-        ).rows[0]?.com_value,
-      );
-      const thumbnail = await documentThumbnail(await renderDocumentPdf(data), pixels);
-      await client.query('UPDATE rep_top SET thumbnail_file=$2 WHERE rep_top_id=$1', [id, thumbnail]);
-    }
+      (changes.length && Number(model.sheet.rep_sheet_no) === 1) ||
+      [...numbering.changed].some((key) => key.startsWith('1,'))
+    )
+      await documentRefreshThumbnail(client, id, Number(model.report.def_top_id), user, locale);
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');

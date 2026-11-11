@@ -5,6 +5,7 @@ import { documentDetail, documentDetailId } from './details.js';
 import { labelChecked, labelString, LabelValidationError } from '../labels/index.js';
 import {
   child,
+  children,
   content,
   element,
   must,
@@ -15,11 +16,14 @@ import {
   type XmlNode,
 } from '../../client-definition-xml.js';
 import { saveReportTables } from '../../client-report-tables.js';
-import { reportNameDate } from '../../client-report-name.js';
+import { reportNameDate, setReportName } from '../../client-report-name.js';
 import { updateReportAutoLabels } from '../../client-report-labels.js';
 import { documentApplicantLocked, documentClusters } from './clusters.js';
 import { reportNotificationOptions, reportNotificationValues } from '../common/notifications.js';
 import { validPrintPages } from '../../../shared/print-pages.js';
+import { checkDocumentCompletionFeatures, documentRequiredComplete } from './completion.js';
+import { documentSaveNumbering } from './numbering.js';
+import { documentDocuWorksAvailable } from './output.js';
 
 type Database = Pick<pg.Pool, 'query'>;
 export type TopField = {
@@ -149,7 +153,7 @@ const fields: Array<[string, string, string | null, string | null, string[]?, bo
     ['SELECTED_REQUIRED_SAVE_MODE_0', 'SELECTED_REQUIRED_SAVE_MODE_1'],
     true,
   ],
-  ['CalculateMode', 'calculate_mode', 'calculate_mode', null, ['0', '1']],
+  ['CalculateMode', 'calculate_mode', 'calculate_mode', null, ['double型', 'decimal型']],
   ['IndexType', 'IndexType', null, 'indexType', ['ClusterIndexDisplayNo', 'MobileListDisplayNo']],
   ['UseVoiceInputEndTime', 'VoiceInputEndTime', null, null, ['YES_NO_STATE_NO', 'YES_NO_STATE_YES']],
   ['VoiceInputEndTime', 'VoiceInputEndTime', null, 'voiceInputEndTime'],
@@ -201,7 +205,7 @@ export async function documentTop(db: Database, id: number, user: string, locale
   if (!report) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
   const row = (
     await db.query(
-      "SELECT t.*,to_char(t.sys_regist_time,'YYYY/MM/DD HH24:MI') AS registered,to_char(t.sys_update_time,'YYYY/MM/DD HH24:MI') AS updated,COALESCE(NULLIF(t.sys_regist_user_name,''),NULLIF(u.user_name,''),t.sys_regist_user,'') AS created_by FROM rep_top t LEFT JOIN mst_user u ON u.user_id=t.sys_regist_user WHERE t.rep_top_id=$1",
+      "SELECT t.*,to_char(t.sys_regist_time,'YYYY/MM/DD HH24:MI') AS registered,to_char(t.sys_update_time,'YYYY/MM/DD HH24:MI') AS updated,COALESCE(NULLIF(t.sys_regist_user_name,''),NULLIF(u.user_name,''),t.sys_regist_user,'') AS created_by,COALESCE(NULLIF(t.sys_update_user_name,''),NULLIF(v.user_name,''),t.sys_update_user,'') AS updated_by FROM rep_top t LEFT JOIN mst_user u ON u.user_id=t.sys_regist_user LEFT JOIN mst_user v ON v.user_id=t.sys_update_user WHERE t.rep_top_id=$1",
       [id],
     )
   ).rows[0];
@@ -221,7 +225,7 @@ export async function documentTop(db: Database, id: number, user: string, locale
     ),
     db.query('SELECT rep_sheet_id,rep_sheet_no FROM rep_sheet WHERE rep_top_id=$1 ORDER BY rep_sheet_no', [id]),
     db.query(
-      "SELECT com_key,com_name,com_value FROM mst_common WHERE com_key IN ('HISTORY_SETTING','CONMAS_FUNCTION') ORDER BY com_index",
+      "SELECT com_key,com_name,com_value FROM mst_common WHERE com_key IN ('HISTORY_SETTING','CONMAS_FUNCTION','FUNCTION_SETTING','OUTPUT_SETTING','ROLE_SETTING','CUSTOM_GRID') ORDER BY com_index",
     ),
   ]);
   const xml = must(root(row.xml_data), 'top');
@@ -320,6 +324,21 @@ export async function documentTop(db: Database, id: number, user: string, locale
     };
   });
   return {
+    reportHeading: commonValue('CUSTOM_GRID', 'REP_REPORT'),
+    xdwDownload: await documentDocuWorksAvailable(id, commonValue('OUTPUT_SETTING', 'XDW_MANUAL_OUTPUT')),
+    managerRoleType: commonValue('ROLE_SETTING', 'MANAGER_INPUT_REPORT_MANGERROLE_TYPE'),
+    showNumbering: optionalField(xml, 'useAutoNumbering') === '1' && !!child(xml, 'autoNumbering'),
+    csvDownload: (commonValue('OUTPUT_SETTING', 'CSV_MANUAL_OUTPUT') || 'true').toUpperCase() === 'TRUE',
+    pdfDownload: (commonValue('OUTPUT_SETTING', 'PDF_MANUAL_OUTPUT') || 'true').toUpperCase() === 'TRUE',
+    excelRecovery:
+      commonValue('FUNCTION_SETTING', 'EXCELFILE_RECOVERY') === '1' &&
+      (commonValue('OUTPUT_SETTING', 'EXCEL_MANUAL_OUTPUT') || 'true').toUpperCase() === 'TRUE',
+    canForceComplete: !!(
+      await db.query(
+        `SELECT 1 FROM mst_group g JOIN mst_group_affiation a USING(group_id) WHERE a.user_id=$1 AND g.role_rep_super_manager=1 LIMIT 1`,
+        [user],
+      )
+    ).rowCount,
     report: { ...row, ...report, applicant_locked: await documentApplicantLocked(db, id, user) },
     definition: definition.rows[0],
     fields: topFields,
@@ -346,7 +365,14 @@ export async function documentEditLock(db: pg.Pool, id: number, user: string) {
     await client.query('SELECT rep_top_id FROM rep_top WHERE rep_top_id=$1 FOR UPDATE', [id]);
     const report = await documentDetail(client, id, user, true);
     if (!report) throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
-    if ((await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount) {
+    if (
+      report.workflow_locked ||
+      !report.current ||
+      Number(report.deleted) !== 0 ||
+      Number(report.edit_refer_status) === 4 ||
+      (await documentApplicantLocked(client, id, user)) ||
+      (await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount
+    ) {
       await client.query('ROLLBACK');
       return false;
     }
@@ -372,11 +398,11 @@ export async function documentSaveTop(
   user: string,
   locale = 'en-US',
 ) {
-  if (labelChecked(input.IsComplete) || labelChecked(input.IsCompleteSuperManager))
-    throw new LabelValidationError(
-      'pending',
-      pageText['Completion, numbering and automatic-output persistence have not been migrated. No changes were saved.'],
-    );
+  for (const key of ['IsComplete', 'IsCompleteSuperManager'])
+    if (Object.hasOwn(input, key) && !['true', 'false'].includes(labelString(input[key]).toLowerCase()))
+      throw new LabelValidationError(key, pageText['Invalid setting value.']);
+  const forced = labelChecked(input.IsCompleteSuperManager),
+    complete = forced || labelChecked(input.IsComplete);
   const client = await db.connect();
   try {
     await client.query('BEGIN');
@@ -386,9 +412,27 @@ export async function documentSaveTop(
       throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
     if ((await client.query('SELECT 1 FROM rep_lock WHERE rep_top_id=$1 AND user_id<>$2', [id, user])).rowCount)
       throw new LabelValidationError('', pageText['The report is locked by another user.']);
+    if (
+      model.report.workflow_locked ||
+      !model.report.current ||
+      Number(model.report.deleted) !== 0 ||
+      Number(model.report.edit_refer_status) === 4 ||
+      model.report.applicant_locked
+    )
+      throw new LabelValidationError('', pageText['This report cannot be edited in its current state.']);
+    if (forced && !model.canForceComplete)
+      throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
+    if (complete && !forced && !(await documentRequiredComplete(client, id)))
+      throw new LabelValidationError(
+        'IsComplete',
+        pageText['Required inputs are missing. The report cannot be completed.'],
+      );
     const xml = root(model.report.xml_data),
       top = must(xml, 'top');
-    if (documentDetailId(optionalField(top, 'repTopId')) !== id)
+    if (
+      documentDetailId(optionalField(top, 'repTopId')) !== id ||
+      (complete && documentDetailId(optionalField(top, 'defTopId')) !== Number(model.report.def_top_id))
+    )
       throw new Error(pageText['Report XML identity differs.']);
     const updates = new Map<string, string>();
     for (const field of model.fields) {
@@ -411,6 +455,18 @@ export async function documentSaveTop(
     }
     // Settings-only SaveTop stores event selections without sending notifications.
     const supported = new Set(model.fields.map((field) => 'rep_top.' + field.name));
+    supported.add('rep_top.finish_reason');
+    const reason = Object.hasOwn(input, 'rep_top.finish_reason')
+      ? labelString(input['rep_top.finish_reason'])
+      : String(model.report.finish_reason ?? '');
+    if (reason.length > 4000)
+      throw new LabelValidationError('rep_top.finish_reason', pageText['The value is too long.']);
+    if (
+      Object.hasOwn(input, 'rep_top.finish_reason') &&
+      !model.canForceComplete &&
+      reason !== String(model.report.finish_reason ?? '')
+    )
+      throw new LabelValidationError('access', pageText['Role authority is insufficient.']);
     for (const notification of model.notifications) {
       const key = 'rep_top.' + notification.name;
       supported.add(key);
@@ -520,6 +576,26 @@ export async function documentSaveTop(
     const now = new Date();
     documentPatchXml(top, 'updateUser', user);
     documentPatchXml(top, 'updateTime', reportNameDate(now, 'yyyy/MM/dd HH:mm:ss'));
+    let numbered = new Set<string>();
+    if (complete) {
+      await checkDocumentCompletionFeatures(
+        client,
+        id,
+        top,
+        get('output_setting'),
+        updates.get('complete_mail') ?? String(model.report.complete_mail ?? ''),
+      );
+      updates.set('edit_refer_status', '4');
+      documentPatchXml(top, 'editStatus', '4');
+      const numbering = await documentSaveNumbering(client, id, top, user, now, locale);
+      numbered = numbering.changed;
+      setReportName(top, now, numbering.regenerateName);
+      updates.set('rep_top_name', optionalField(top, 'repTopName'));
+      if (forced) {
+        updates.set('finish_compulsory_type', '1');
+        updates.set('finish_reason', reason);
+      }
+    }
     const parameters: unknown[] = [id, user, hostname(), now, serialize(xml)];
     const assignments = [
       'sys_update_user=$2',
@@ -538,7 +614,7 @@ export async function documentSaveTop(
       VALUES($1,$2,$3,$4,$5,$3,$4,$5) ON CONFLICT(rep_top_id) DO UPDATE SET pdf_fontsize_deduction=$2,sys_update_term=$3,sys_update_user=$4,sys_update_time=$5`,
       [id, font || null, hostname(), user, now],
     );
-    await saveReportTables(client as pg.PoolClient, top, new Set());
+    await saveReportTables(client as pg.PoolClient, top, numbered, locale);
     await updateReportAutoLabels(
       client,
       must(root(model.report.xml_data), 'top'),
@@ -561,5 +637,21 @@ export async function documentSaveTop(
 }
 
 export async function documentApprovalRows(db: Database, id: number, user: string) {
-  return (await documentClusters(db, id, user)).filter((row) => row.cluster_type === 'Approve');
+  const rows = (await documentClusters(db, id, user)).filter((row) => row.cluster_type === 'Approve');
+  if (!rows.length) return [];
+  const top = must(
+    root((await db.query('SELECT xml_data FROM rep_top WHERE rep_top_id=$1', [id])).rows[0].xml_data),
+    'top',
+  );
+  return rows.map((row) => {
+    const sheet = children(must(top, 'sheets'), 'sheet').find(
+      (node) => optionalField(node, 'repSheetId') === String(row.rep_sheet_id),
+    );
+    const cluster =
+      sheet &&
+      children(must(sheet, 'clusters'), 'cluster').find(
+        (node) => optionalField(node, 'clusterId') === String(row.cluster_id),
+      );
+    return { ...row, approval_read_only: !cluster || optionalField(cluster, 'readOnly') === '1' };
+  });
 }

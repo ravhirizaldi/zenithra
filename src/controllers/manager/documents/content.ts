@@ -154,7 +154,7 @@ export function registerDocumentContent(app: Express, db: pg.Pool) {
           return res.redirect(`${base}/InputReport/DetailsSheet?repTopId=${id}&pageIndex=${pageIndex}`);
         if (req.method === 'POST') {
           try {
-            await documentSaveSheetMetadata(db, id, pageIndex, input, user);
+            await documentSaveSheetMetadata(db, id, pageIndex, input, user, await currentMailLocale(db, req));
             await unlock(res, user);
             return res.redirect(`${base}/InputReport/Details?repTopId=${id}&pageIndex=${pageIndex}`);
           } catch (cause) {

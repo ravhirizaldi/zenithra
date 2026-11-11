@@ -2,12 +2,11 @@ import { text as pageText } from '../../../config/manager/documents/resources.js
 import type pg from 'pg';
 import { hostname } from 'node:os';
 import { documentAdministratorId, documentDetail } from './details.js';
-import {
-  documentApplicantLocked,
-  documentClusters,
-  documentClusterInput,
-  documentCheckUnchangedClusters,
-} from './clusters.js';
+import { documentApplicantLocked, documentClusters, documentClusterInput } from './clusters.js';
+import { documentClusterChanges, saveDocumentClusters } from './cluster-save.js';
+import { documentPdfInputs } from './pdf.js';
+import { renderDocumentPdf } from '../../../services/manager/documents/pdf.js';
+import { documentThumbnail } from '../../../services/manager/documents/thumbnail.js';
 import { documentPatchXml } from './top.js';
 import { children, must, optionalField, root, serialize } from '../../client-definition-xml.js';
 import { saveReportTables } from '../../client-report-tables.js';
@@ -113,6 +112,7 @@ export async function documentSaveSheetMetadata(
   pageIndex: number,
   input: Record<string, unknown>,
   user: string,
+  locale = 'en-US',
 ) {
   const client = await db.connect();
   try {
@@ -126,6 +126,7 @@ export async function documentSaveSheetMetadata(
     if (
       model.report.workflow_locked ||
       !model.report.current ||
+      Number(model.report.deleted) !== 0 ||
       Number(model.sheet.edit_refer_status) === 4 ||
       model.report.applicant_locked
     )
@@ -133,7 +134,6 @@ export async function documentSaveSheetMetadata(
         'pending',
         pageText['This report state requires an unmigrated sheet-editing workflow. No changes were saved.'],
       );
-    documentCheckUnchangedClusters(input, model.clusters);
     const row = (await client.query('SELECT xml_data FROM rep_top WHERE rep_top_id=$1', [id])).rows[0];
     const xml = root(row.xml_data),
       top = must(xml, 'top');
@@ -142,11 +142,18 @@ export async function documentSaveSheetMetadata(
     );
     if (!sheet || optionalField(top, 'repTopId') !== String(id))
       throw new Error(pageText['Report XML identity differs.']);
+    const changes = documentClusterChanges(
+      input,
+      model.clusters,
+      sheet,
+      Boolean(model.sheet.show_change_reason),
+      locale,
+    );
     await checkReportSaveFeatures(client, top);
     if (
       (
         await client.query(
-          "SELECT 1 FROM rep_top WHERE rep_top_id=$1 AND (COALESCE(use_input_history,0)<>0 OR COALESCE(use_change_reason,0)<>0 OR COALESCE(journalizing_def_top_id,-1)>0 OR COALESCE(edit_output,1)<>0 OR COALESCE(edit_mail,'')<>'')",
+          "SELECT 1 FROM rep_top WHERE rep_top_id=$1 AND (COALESCE(journalizing_def_top_id,-1)>0 OR COALESCE(edit_output,1)<>0 OR COALESCE(edit_mail,'')<>'')",
           [id],
         )
       ).rowCount
@@ -154,6 +161,39 @@ export async function documentSaveSheetMetadata(
       throw new LabelValidationError(
         'pending',
         pageText['Sheet history, output or notifications have not been migrated. No changes were saved.'],
+      );
+    const historyEnabled =
+      Number(model.sheet.use_input_history) !== 0 ||
+      (
+        await client.query(
+          "SELECT 1 FROM mst_common WHERE com_key='HISTORY_SETTING' AND com_name='ENABLE' AND com_value IN ('1','2')",
+        )
+      ).rowCount;
+    if (
+      historyEnabled &&
+      !(
+        await client.query(`SELECT 1 FROM pg_trigger t JOIN pg_proc p ON p.oid=t.tgfoid
+      WHERE t.tgrelid='rep_cluster'::regclass AND NOT t.tgisinternal AND t.tgenabled IN ('O','A')
+      AND p.proname='func_rep_cluster_trigger' AND (t.tgtype::int & 21)=21`)
+      ).rowCount
+    )
+      throw new LabelValidationError(
+        'pending',
+        pageText['Report history trigger is unavailable. No changes were saved.'],
+      );
+    if (
+      changes.length &&
+      (
+        await client.query(
+          `SELECT 1 FROM rep_cluster WHERE rep_sheet_id=$1 AND cluster_id=ANY($2::int[])
+      AND COALESCE(change_mail,'')<>'' LIMIT 1`,
+          [model.sheet.rep_sheet_id, changes.map((change) => Number(change.row.cluster_id))],
+        )
+      ).rowCount
+    )
+      throw new LabelValidationError(
+        'pending',
+        pageText['Cluster mail delivery has not been migrated. No changes were saved.'],
       );
     const names = ['rep_sheet_name', ...Array.from({ length: 10 }, (_, index) => 'sheet_remarks' + (index + 1))];
     const supported = new Set([
@@ -187,6 +227,17 @@ export async function documentSaveSheetMetadata(
         pageText['Numbering, cooperative editing or binder persistence has not been migrated. No changes were saved.'],
       );
     const now = new Date();
+    const userName =
+      (await client.query('SELECT user_name FROM mst_user WHERE user_id=$1', [user])).rows[0]?.user_name ?? '';
+    await saveDocumentClusters(
+      client,
+      changes,
+      user,
+      userName,
+      hostname(),
+      now,
+      reportNameDate(now, 'yyyy/MM/dd HH:mm:ss'),
+    );
     const parameters: unknown[] = [model.sheet.rep_sheet_id, user, hostname(), now];
     const assignments = ['sys_update_user=$2', 'sys_update_term=$3', 'sys_update_time=$4'];
     for (const name of names) {
@@ -206,27 +257,57 @@ export async function documentSaveSheetMetadata(
     }
     documentPatchXml(top, 'editStatus', String(model.sheet.edit_refer_status));
     documentPatchXml(top, 'updateUser', user);
+    documentPatchXml(top, 'updateUserName', userName);
     documentPatchXml(top, 'updateTime', reportNameDate(now, 'yyyy/MM/dd HH:mm:ss'));
     documentPatchXml(top, 'repTopName', model.report.rep_top_name);
     setReportName(top, now, false);
     await client.query(`UPDATE rep_sheet SET ${assignments.join(',')} WHERE rep_sheet_id=$1`, parameters);
+    await client.query('UPDATE rep_sheet SET xml_data=$2 WHERE rep_sheet_id=$1', [
+      model.sheet.rep_sheet_id,
+      serialize(sheet),
+    ]);
     await client.query(
       'UPDATE rep_top SET xml_data=$2,rep_top_name=$3,sys_update_user=$4,sys_update_user_name=(SELECT user_name FROM mst_user WHERE user_id=$4),sys_update_term=$5,sys_update_time=$6 WHERE rep_top_id=$1',
       [id, serialize(xml), optionalField(top, 'repTopName'), user, hostname(), now],
     );
-    await saveReportTables(client as pg.PoolClient, top, new Set());
+    await saveReportTables(
+      client as pg.PoolClient,
+      top,
+      new Set(changes.map((change) => model.sheet.rep_sheet_no + ',' + change.row.cluster_id)),
+      locale,
+    );
     await updateReportAutoLabels(
       client,
       must(root(row.xml_data), 'top'),
       top,
       {
         userId: user,
-        userName:
-          (await client.query('SELECT user_name FROM mst_user WHERE user_id=$1', [user])).rows[0]?.user_name ?? '',
+        userName,
         terminalId: hostname(),
       },
       now,
     );
+    if (
+      changes.length &&
+      Number(model.sheet.rep_sheet_no) === 1 &&
+      !(await client.query('SELECT 1 FROM rep_fd_sheet WHERE top_id=$1 AND sheet_index=1', [id])).rowCount
+    ) {
+      const data = await documentPdfInputs(
+        client,
+        { repTopId: String(id), defTopId: String(model.report.def_top_id), sheetNo: '1', isLayer: 'true' },
+        user,
+        locale,
+      );
+      const pixels = Number(
+        (
+          await client.query(
+            "SELECT com_value FROM mst_common WHERE com_key='PDF_SETTING' AND com_name='THUMBNAIL_PIXEL' ORDER BY com_index LIMIT 1",
+          )
+        ).rows[0]?.com_value,
+      );
+      const thumbnail = await documentThumbnail(await renderDocumentPdf(data), pixels);
+      await client.query('UPDATE rep_top SET thumbnail_file=$2 WHERE rep_top_id=$1', [id, thumbnail]);
+    }
     await client.query('COMMIT');
   } catch (error) {
     await client.query('ROLLBACK');

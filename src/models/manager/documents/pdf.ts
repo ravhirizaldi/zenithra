@@ -63,11 +63,29 @@ export async function documentPdfData(db: pg.Pool, input: Record<string, unknown
   try {
     // Authorization and every PDF input must describe the same report revision, without writes or locks.
     await client.query('BEGIN ISOLATION LEVEL REPEATABLE READ READ ONLY');
-    const preview = await documentPdfView(client, input, user);
-    const administrator = await documentAdministratorId();
-    const top = (
-      await client.query<PdfRow>(
-        `SELECT t.background_image_file,t.display_sheet_number,t.rep_sheet_count,t.no_need_to_fill_type,
+    const result = await documentPdfInputs(client, input, user, locale);
+    await client.query('COMMIT');
+    return result;
+  } catch (error) {
+    await client.query('ROLLBACK');
+    throw error;
+  } finally {
+    client.release();
+  }
+}
+
+// Sheet saves use their existing transaction so the preview sees uncommitted input and shares rollback.
+export async function documentPdfInputs(
+  client: Pick<pg.PoolClient, 'query'>,
+  input: Record<string, unknown>,
+  user: string,
+  locale: string,
+) {
+  const preview = await documentPdfView(client, input, user);
+  const administrator = await documentAdministratorId();
+  const top = (
+    await client.query<PdfRow>(
+      `SELECT t.background_image_file,t.display_sheet_number,t.rep_sheet_count,t.no_need_to_fill_type,
           t.use_init_input_judge_parameters,t.xml_data,o.pdf_fontsize_deduction,
           t.sys_regist_user,t.sys_update_user,COALESCE(r.user_name,'') AS regist_name,
           COALESCE(u.user_name,'') AS update_name,
@@ -76,31 +94,29 @@ export async function documentPdfData(db: pg.Pool, input: Record<string, unknown
           FROM rep_top t LEFT JOIN rep_top_option o USING(rep_top_id)
           LEFT JOIN mst_user r ON r.user_id=t.sys_regist_user LEFT JOIN mst_user u ON u.user_id=t.sys_update_user
           WHERE t.rep_top_id=$1`,
-        [preview.repTopId],
-      )
-    ).rows[0];
-    if (!Buffer.isBuffer(top.background_image_file) || !top.background_image_file.length) {
-      for (const table of ['def_top', 'def_top_backup']) {
-        const row = (
-          await client.query<PdfRow>(`SELECT background_image_file FROM ${table} WHERE def_top_id=$1`, [
-            preview.defTopId,
-          ])
-        ).rows[0];
-        if (Buffer.isBuffer(row?.background_image_file) && row.background_image_file.length) {
-          top.background_image_file = row.background_image_file;
-          break;
-        }
+      [preview.repTopId],
+    )
+  ).rows[0];
+  if (!Buffer.isBuffer(top.background_image_file) || !top.background_image_file.length) {
+    for (const table of ['def_top', 'def_top_backup']) {
+      const row = (
+        await client.query<PdfRow>(`SELECT background_image_file FROM ${table} WHERE def_top_id=$1`, [preview.defTopId])
+      ).rows[0];
+      if (Buffer.isBuffer(row?.background_image_file) && row.background_image_file.length) {
+        top.background_image_file = row.background_image_file;
+        break;
       }
     }
-    const sheets = (
-      await client.query<PdfRow>(
-        'SELECT rep_sheet_id,rep_sheet_no,COALESCE(sheet_no_org,rep_sheet_no) AS sheet_no_org FROM rep_sheet WHERE rep_top_id=$1 ORDER BY rep_sheet_no',
-        [preview.repTopId],
-      )
-    ).rows;
-    const clusters = (
-      await client.query<PdfRow>(
-        `SELECT c.rep_sheet_id,s.rep_sheet_no,c.cluster_id,c.cluster_type,c.input_parameter,
+  }
+  const sheets = (
+    await client.query<PdfRow>(
+      'SELECT rep_sheet_id,rep_sheet_no,COALESCE(sheet_no_org,rep_sheet_no) AS sheet_no_org FROM rep_sheet WHERE rep_top_id=$1 ORDER BY rep_sheet_no',
+      [preview.repTopId],
+    )
+  ).rows;
+  const clusters = (
+    await client.query<PdfRow>(
+      `SELECT c.rep_sheet_id,s.rep_sheet_no,c.cluster_id,c.cluster_type,c.input_parameter,
         c.left_position,c.top_position,c.right_position,c.bottom_position,c.input_value,c.display_value,
         c.image_file,c.approval_sign,c.verified,c.is_hidden,c.binary_file_type,
         COALESCE(length(c.binary_file),0) AS binary_file_length,
@@ -112,32 +128,32 @@ export async function documentPdfData(db: pg.Pool, input: Record<string, unknown
         FROM rep_cluster c JOIN rep_sheet s USING(rep_sheet_id)
         CROSS JOIN LATERAL(${documentClusterPermissionQuery.replaceAll('$1', '$2')}) roles
         WHERE s.rep_top_id=$1 AND ($4=-1 OR s.rep_sheet_no=$4) ORDER BY s.rep_sheet_no,c.cluster_id`,
-        [preview.repTopId, user, administrator, preview.sheetNo],
-      )
-    ).rows;
-    const layers = preview.isLayer
-      ? (
-          await client.query<PdfRow>(
-            `SELECT s.rep_sheet_no,l.image_file FROM rep_layer l JOIN rep_sheet s USING(rep_sheet_id)
+      [preview.repTopId, user, administrator, preview.sheetNo],
+    )
+  ).rows;
+  const layers = preview.isLayer
+    ? (
+        await client.query<PdfRow>(
+          `SELECT s.rep_sheet_no,l.image_file FROM rep_layer l JOIN rep_sheet s USING(rep_sheet_id)
         WHERE s.rep_top_id=$1 AND l.layer_id=1 AND COALESCE(length(l.image_file),0)>0
         AND ($2=-1 OR s.rep_sheet_no=$2) ORDER BY s.rep_sheet_no,l.layer_id`,
-            [preview.repTopId, preview.sheetNo],
+          [preview.repTopId, preview.sheetNo],
+        )
+      ).rows
+    : [];
+  const freeDraw =
+    preview.sheetNo === -1
+      ? (
+          await client.query<PdfRow>(
+            'SELECT sheet_index,pdf_file FROM rep_fd_sheet WHERE top_id=$1 AND sheet_index>=1 ORDER BY sheet_index',
+            [preview.repTopId],
           )
         ).rows
       : [];
-    const freeDraw =
-      preview.sheetNo === -1
-        ? (
-            await client.query<PdfRow>(
-              'SELECT sheet_index,pdf_file FROM rep_fd_sheet WHERE top_id=$1 AND sheet_index>=1 ORDER BY sheet_index',
-              [preview.repTopId],
-            )
-          ).rows
-        : [];
-    const history = preview.isInitJudgeDisplay
-      ? (
-          await client.query<PdfRow>(
-            `SELECT h.rep_sheet_id,h.cluster_id,h.input_value,h.display_value,h.verified,h.init_history_input,
+  const history = preview.isInitJudgeDisplay
+    ? (
+        await client.query<PdfRow>(
+          `SELECT h.rep_sheet_id,h.cluster_id,h.input_value,h.display_value,h.verified,h.init_history_input,
         COALESCE(length(h.image_file),0) AS image_file_length,
         COALESCE(length(h.binary_file),0) AS binary_file_length,
         COALESCE(length(h.binary_file_win),0) AS binary_file_length_win,h.binary_file_type,
@@ -145,28 +161,21 @@ export async function documentPdfData(db: pg.Pool, input: Record<string, unknown
         h.approver||to_char(h.approver_date,'YYYYMMDDHH24MISS') AS input_approval_value,h.history_type
         FROM history_rep_cluster h JOIN rep_sheet s USING(rep_sheet_id)
         WHERE s.rep_top_id=$1 AND ($2=-1 OR s.rep_sheet_no=$2) ORDER BY h.history_regist_time`,
-            [preview.repTopId, preview.sheetNo],
-          )
-        ).rows
-      : [];
-    const settings = Object.fromEntries(
-      (
-        await client.query<{ com_name: string; com_value: string }>(
-          `SELECT DISTINCT ON (com_name) com_name,com_value FROM mst_common WHERE
+          [preview.repTopId, preview.sheetNo],
+        )
+      ).rows
+    : [];
+  const settings = Object.fromEntries(
+    (
+      await client.query<{ com_name: string; com_value: string }>(
+        `SELECT DISTINCT ON (com_name) com_name,com_value FROM mst_common WHERE
         (com_key='PDF_SETTING' AND com_name='FONT_FILE_PATH' AND COALESCE(com_locale,'')=$1)
         OR (com_key='OUTPUT_SETTING' AND com_name='PDF_FREE_DRAW_FORMAT')
         OR (com_key='CONMAS_FUNCTION' AND com_name='INITIAL_VALUE_CHANGE_DISPLAY_TYPE')
         ORDER BY com_name,com_index`,
-          [locale],
-        )
-      ).rows.map((row) => [row.com_name, row.com_value]),
-    );
-    await client.query('COMMIT');
-    return { preview, top, sheets, clusters, layers, freeDraw, history, settings, locale } satisfies DocumentPdfData;
-  } catch (error) {
-    await client.query('ROLLBACK');
-    throw error;
-  } finally {
-    client.release();
-  }
+        [locale],
+      )
+    ).rows.map((row) => [row.com_name, row.com_value]),
+  );
+  return { preview, top, sheets, clusters, layers, freeDraw, history, settings, locale } satisfies DocumentPdfData;
 }

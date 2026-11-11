@@ -6,7 +6,7 @@ import { element } from '../../client-definition-xml.js';
 import { reportTableValue } from '../../client-report-tables.js';
 export { reportApplicantLocked as documentApplicantLocked } from '../../client-report-lock.js';
 
-function splitClusterItems(value: string) {
+export function splitClusterItems(value: string) {
   const items: string[] = [];
   let text = '';
   for (let index = 0; index < value.length; index++) {

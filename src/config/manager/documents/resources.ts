@@ -454,6 +454,18 @@ export const v: Record<string, string> = {
 };
 
 export const text: Readonly<Record<string, string>> = {
+  'Cluster editing for this control has not been migrated. No changes were saved.':
+    'Cluster editing for this control has not been migrated. No changes were saved.',
+  'Invalid cluster input. No changes were saved.': 'Invalid cluster input. No changes were saved.',
+  'A change reason cannot be changed without changing the input.':
+    'A change reason cannot be changed without changing the input.',
+  'Enter a reason for the input change.': 'Enter a reason for the input change.',
+  'The input exceeds the cluster maximum length.': 'The input exceeds the cluster maximum length.',
+  'The input is outside the cluster minimum or maximum.': 'The input is outside the cluster minimum or maximum.',
+  'Report history trigger is unavailable. No changes were saved.':
+    'Report history trigger is unavailable. No changes were saved.',
+  'Cluster mail delivery has not been migrated. No changes were saved.':
+    'Cluster mail delivery has not been migrated. No changes were saved.',
   '(date)': '(date)',
   '(sort)': '(sort)',
   '(time)': '(time)',

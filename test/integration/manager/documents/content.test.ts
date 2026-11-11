@@ -887,6 +887,11 @@ test(
       await t.test(
         'sheet metadata commits relational/XML values together only when all required effects are supported',
         async () => {
+          for (const table of ['rep_cluster_store', 'rep_cluster_approval'])
+            await client.query(`CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING ALL)`);
+          await client.query(`CREATE TEMP SEQUENCE history_rep_cluster_seq; CREATE TEMP SEQUENCE rep_cluster_store_seq;
+            CREATE TRIGGER fixture_manager_history AFTER INSERT OR UPDATE OR DELETE ON pg_temp.rep_cluster
+            FOR EACH ROW EXECUTE FUNCTION public.func_rep_cluster_trigger()`);
           await client.query(
             "UPDATE rep_top SET xml_data=replace(xml_data,'<editDirect>retained-template</editDirect>','<editDirect/>') WHERE rep_top_id=1",
           );
@@ -915,9 +920,13 @@ test(
           await client.query("UPDATE mst_common SET com_value='true' WHERE com_name='EDIT'");
           await assert.rejects(documentSaveSheetMetadata(db, 1, 0, input, 'fixture'), /output/);
           await client.query("UPDATE mst_common SET com_value='false' WHERE com_name='EDIT'");
-          await client.query('UPDATE rep_top SET use_input_history=1 WHERE rep_top_id=1');
+          await client.query(
+            'ALTER TABLE pg_temp.rep_cluster DISABLE TRIGGER fixture_manager_history; UPDATE rep_top SET use_input_history=1 WHERE rep_top_id=1',
+          );
           await assert.rejects(documentSaveSheetMetadata(db, 1, 0, input, 'fixture'), /history/);
-          await client.query('UPDATE rep_top SET use_input_history=0 WHERE rep_top_id=1');
+          await client.query(
+            'ALTER TABLE pg_temp.rep_cluster ENABLE TRIGGER fixture_manager_history; UPDATE rep_top SET use_input_history=0 WHERE rep_top_id=1',
+          );
           assert.deepEqual(await saved(), before);
           const response = await post('/InputReport/EditSheet', {
             'rep_sheets[0].rep_top_id': '1',
@@ -1007,11 +1016,272 @@ test(
                   'rep_sheets[0].sheet_remarks1': 'must roll back',
                 })
               ).status,
-              501,
+              Object.hasOwn(invalid, 'rep_clusters[1].Verified') ? 400 : 501,
             );
             assert.deepEqual(await saved(), before);
             assert.deepEqual((await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=11')).rows[0], sheet);
           }
+        },
+      );
+      await t.test(
+        'sheet value saves commit XML, history, names, labels, thumbnails and sparse sheets together or roll everything back',
+        async () => {
+          const clusterXml = (id: number, type: string, value: string, extra = '') =>
+            `<cluster><clusterId>${id}</clusterId><type>${type}</type><name>Fixture ${id}</name><value>${value}</value><displayValue>${value}</displayValue>${extra}</cluster>`;
+          const xml = `<conmas><top><repTopId>701</repTopId><defTopId>100</defTopId><repTopName>Values</repTopName><editStatus>1</editStatus><useInputHistory>2</useInputHistory><nameRegenerate>1</nameRegenerate><nameParts><part><partId>1</partId><type>inputValue</type><value>1,1</value></part></nameParts><sheets>
+            <sheet><repSheetId>7011</repSheetId><sheetNo>1</sheetNo><repSheetName>First</repSheetName><clusters>${clusterXml(1, 'KeyboardText', 'before')}${clusterXml(2, 'Check', 'false')}${clusterXml(3, 'Select', 'A')}${clusterXml(4, 'MultiSelect', 'A,B')}${clusterXml(5, 'MultipleChoiceNumber', '1')}</clusters></sheet>
+            <sheet><repSheetId>7013</repSheetId><sheetNo>3</sheetNo><repSheetName>Third</repSheetName><clusters>${clusterXml(1, 'KeyboardText', 'third')}</clusters></sheet>
+            </sheets></top></conmas>`;
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,public_status,edit_output,finish_output,use_input_history,use_change_reason,rep_sheet_count,display_sheet_number,background_image_file,xml_data)
+            VALUES(701,701,1,'Values',100,0,1,2,0,0,2,1,2,'1,3',$1,$2)`,
+            [Buffer.from(await background.save()), xml],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_org,rep_top_id) VALUES(701,701);
+            INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(701,10,1,1);
+            INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(7011,701,1,'First'),(7013,701,3,'Third');
+            INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_name,cluster_type,input_value,display_value,input_parameter,edit_user,edit_user_name,edit_time) VALUES
+              (7011,1,'Text','KeyboardText','before','before','MaxLength=20','other','Original editor','2026-01-01'),
+              (7011,2,'Check','Check','false','false','','','','2026-01-01'),
+              (7011,3,'Select','Select','A','Alpha','Items=A,B;Labels=Alpha,Beta;Display=Labels','','','2026-01-01'),
+              (7011,4,'Multi','MultiSelect','A,B','Alpha,Beta','Items=A,B;Labels=Alpha,Beta;Display=Labels','','','2026-01-01'),
+              (7011,5,'Toggle','MultipleChoiceNumber','1','One','Items=1,2;Labels=One,Two','','','2026-01-01'),
+              (7013,1,'Third text','KeyboardText','third','third','','','','2026-01-01');
+            UPDATE rep_cluster SET left_position=.1,right_position=.9,top_position=.1*cluster_id,bottom_position=.1*cluster_id+.08 WHERE rep_sheet_id IN(7011,7013);`);
+          const snapshot = async () => ({
+            top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=701')).rows,
+            sheets: (await client.query('SELECT * FROM rep_sheet WHERE rep_top_id=701 ORDER BY rep_sheet_id')).rows,
+            clusters: (
+              await client.query(
+                'SELECT * FROM rep_cluster WHERE rep_sheet_id IN(7011,7013) ORDER BY rep_sheet_id,cluster_id',
+              )
+            ).rows,
+            history: (
+              await client.query(
+                'SELECT * FROM history_rep_cluster WHERE rep_sheet_id IN(7011,7013) ORDER BY history_id',
+              )
+            ).rows,
+            labels: (await client.query('SELECT * FROM rep_label WHERE rep_top_id=701 ORDER BY mst_label_id')).rows,
+          });
+          const data: Record<string, string | string[]> = {
+            'rep_sheets[0].rep_sheet_id': '7011',
+            'rep_sheets[0].rep_sheet_name': 'First saved',
+          };
+          for (let index = 0; index < 5; index++)
+            Object.assign(data, {
+              [`rep_clusters[${index}].rep_sheet_id`]: '7011',
+              [`rep_clusters[${index}].cluster_id`]: String(index + 1),
+              [`rep_clusters[${index}].cluster_role`]: '1',
+              [`rep_clusters[${index}].ChangeReason`]: 'Correction',
+            });
+          Object.assign(data, {
+            'rep_clusters[0].input_value': 'after',
+            'rep_clusters[1].input_check_value': ['true', 'false'],
+            'rep_clusters[1].comment_value': 'Checked',
+            'rep_clusters[2].input_value': 'B',
+            'rep_clusters[3].multi_input_value': ['B'],
+            'rep_clusters[4].input_value': 'Two',
+          });
+          const before = await snapshot();
+          await assert.rejects(
+            documentSaveSheetMetadata(db, 701, 0, { ...data, 'rep_clusters[0].ChangeReason': '' }, 'fixture'),
+            /reason/,
+          );
+          assert.deepEqual(await snapshot(), before);
+          const response = await post('/InputReport/EditSheet', {
+            ...data,
+            'rep_sheets[0].rep_top_id': '701',
+            'rep_sheets.PageIndex': '0',
+          });
+          assert.equal(response.status, 302);
+          assert.equal(response.headers.get('location'), '/ConMasManager/InputReport/Details?repTopId=701&pageIndex=0');
+          const saved = await snapshot();
+          assert.equal(saved.top[0].rep_top_name, 'after');
+          const image = await sharp(saved.top[0].thumbnail_file).metadata();
+          assert.equal(Math.max(image.width!, image.height!), 350);
+          assert.match(saved.top[0].xml_data, /<value>after<\/value>/);
+          assert.match(saved.sheets[0].xml_data, /<value>after<\/value>/);
+          assert.deepEqual(
+            saved.clusters.slice(0, 5).map((row) => [row.input_value, row.display_value, row.change_reason]),
+            [
+              ['after', 'after', 'Correction'],
+              ['true', 'true', 'Correction'],
+              ['B', 'Beta', 'Correction'],
+              ['B', 'Beta', 'Correction'],
+              ['2', 'Two', 'Correction'],
+            ],
+          );
+          assert.equal(saved.clusters[0].edit_user, 'other');
+          assert.equal(saved.clusters[0].edit_user_name, 'Original editor');
+          assert.equal(saved.clusters[1].edit_user, 'fixture');
+          assert.equal(saved.clusters[1].comment_value, 'Checked');
+          assert(
+            saved.history.some(
+              (row) =>
+                row.cluster_id === 2 &&
+                row.input_value === 'true' &&
+                row.comment_value === 'Checked' &&
+                row.change_reason === 'Correction',
+            ),
+          );
+          assert(saved.labels.length > 0);
+          const failing = {
+            ...db,
+            connect: async () => ({
+              release() {},
+              query: async (sql: string, values?: unknown[]) => {
+                if (sql.startsWith('UPDATE rep_top SET thumbnail_file'))
+                  throw new Error('Fixture thumbnail write failure');
+                return client.query(sql, values);
+              },
+            }),
+          } as unknown as pg.Pool;
+          await assert.rejects(
+            documentSaveSheetMetadata(failing, 701, 0, { ...data, 'rep_clusters[0].input_value': 'retry' }, 'fixture'),
+            /Fixture thumbnail write failure/,
+          );
+          assert.deepEqual(await snapshot(), saved);
+          const sparse = {
+            'rep_sheets[0].rep_sheet_id': '7013',
+            'rep_clusters[0].rep_sheet_id': '7013',
+            'rep_clusters[0].cluster_id': '1',
+            'rep_clusters[0].cluster_role': '1',
+            'rep_clusters[0].input_value': 'third changed',
+            'rep_clusters[0].ChangeReason': 'Correction',
+          };
+          await documentSaveSheetMetadata(db, 701, 1, sparse, 'fixture');
+          const third = await snapshot();
+          assert.equal(third.clusters.at(-1)!.input_value, 'third changed');
+          assert.deepEqual(third.top[0].thumbnail_file, saved.top[0].thumbnail_file);
+          for (const state of ['edit_refer_status=4', 'workflow_lock=1', 'deleted=1']) {
+            await client.query(`UPDATE rep_top SET ${state} WHERE rep_top_id=701`);
+            const locked = await snapshot();
+            await assert.rejects(
+              documentSaveSheetMetadata(
+                db,
+                701,
+                1,
+                { ...sparse, 'rep_clusters[0].input_value': 'rejected' },
+                'fixture',
+              ),
+              /report state/,
+            );
+            assert.deepEqual(await snapshot(), locked);
+            await client.query('UPDATE rep_top SET edit_refer_status=1,workflow_lock=0,deleted=0 WHERE rep_top_id=701');
+          }
+          await client.query(
+            "UPDATE rep_cluster SET change_mail='configured' WHERE rep_sheet_id=7013 AND cluster_id=1",
+          );
+          const notified = await snapshot();
+          await assert.rejects(
+            documentSaveSheetMetadata(db, 701, 1, { ...sparse, 'rep_clusters[0].input_value': 'rejected' }, 'fixture'),
+            /mail delivery/,
+          );
+          assert.deepEqual(await snapshot(), notified);
+        },
+      );
+      await t.test(
+        'numeric/date/time sheet saves persist normalized values, displays and history atomically with omission and validation rollback',
+        async () => {
+          const values = [
+            ['InputNumeric', '1.00', 'Decimal=2;Comma=1;Maximum=2000'],
+            ['CalendarDate', '2026/11/09 13:14:00', 'UseTime=1;DateFormat=yyyy/MM/dd HH:mm'],
+            ['Time', '13:14:59', 'DateFormat=HH:mm'],
+            ['NumberHours', '60', 'TimeFormat=colon;InputType=Formatted;TimeUnit=Hour;Maximum=2'],
+            ['Calculate', '1', 'Decimal=2;Comma=1'],
+            ['TimeCalculate', '3600000', 'TimeCalculateType=1;InputType=Formatted;DateFormat=HH:mm'],
+          ];
+          const clusters = values
+            .map(
+              ([type, value, parameter], index) =>
+                `<cluster><clusterId>${index + 1}</clusterId><type>${type}</type><value>${value}</value><displayValue>${value}</displayValue><inputParameters>${parameter}</inputParameters>${type === 'Calculate' ? '<function>SUM(1,2)</function>' : ''}</cluster>`,
+            )
+            .join('');
+          const xml = `<conmas><top><repTopId>702</repTopId><defTopId>100</defTopId><repTopName>Scalar fixture</repTopName><editStatus>1</editStatus><useInputHistory>2</useInputHistory><sheets><sheet><repSheetId>7023</repSheetId><sheetNo>3</sheetNo><repSheetName>Scalar sheet</repSheetName><clusters>${clusters}</clusters></sheet></sheets></top></conmas>`;
+          await client.query(
+            `INSERT INTO rep_top(rep_top_id,rep_top_org,rev_no,rep_top_name,def_top_id,deleted,edit_refer_status,public_status,edit_output,finish_output,use_input_history,xml_data)
+            VALUES(702,702,1,'Scalar fixture',100,0,1,2,0,0,2,$1)`,
+            [xml],
+          );
+          await client.query(`INSERT INTO rep_current(rep_top_org,rep_top_id) VALUES(702,702);
+            INSERT INTO rep_role(rep_top_id,group_id,role_rep_read,role_rep_update) VALUES(702,10,1,1);
+            INSERT INTO rep_sheet(rep_sheet_id,rep_top_id,rep_sheet_no,rep_sheet_name) VALUES(7023,702,3,'Scalar sheet');`);
+          for (const [index, [type, value, parameter]] of values.entries())
+            await client.query(
+              `INSERT INTO rep_cluster(rep_sheet_id,cluster_id,cluster_type,input_value,display_value,input_parameter)
+              VALUES(7023,$1,$2,$3,$3,$4)`,
+              [index + 1, type, value, parameter],
+            );
+          const snapshot = async () => ({
+            top: (await client.query('SELECT * FROM rep_top WHERE rep_top_id=702')).rows,
+            sheet: (await client.query('SELECT * FROM rep_sheet WHERE rep_sheet_id=7023')).rows,
+            clusters: (await client.query('SELECT * FROM rep_cluster WHERE rep_sheet_id=7023 ORDER BY cluster_id'))
+              .rows,
+            history: (
+              await client.query('SELECT * FROM history_rep_cluster WHERE rep_sheet_id=7023 ORDER BY history_id')
+            ).rows,
+          });
+          const data: Record<string, string> = {
+            'rep_sheets[0].rep_top_id': '702',
+            'rep_sheets[0].rep_sheet_id': '7023',
+            'rep_sheets.PageIndex': '0',
+          };
+          for (let index = 0; index < values.length; index++)
+            Object.assign(data, {
+              [`rep_clusters[${index}].rep_sheet_id`]: '7023',
+              [`rep_clusters[${index}].cluster_id`]: String(index + 1),
+              [`rep_clusters[${index}].cluster_role`]: '1',
+            });
+          Object.assign(data, {
+            'rep_clusters[0].input_value': '1234.565',
+            'rep_clusters[1].input_value_date': '2026/11/10',
+            'rep_clusters[1].input_value_time': '15:16:59',
+            'rep_clusters[2].input_value': '14:15:59',
+            'rep_clusters[3].input_value': '90',
+            'rep_clusters[4].input_value': '1234.565',
+            'rep_clusters[5].input_value': '5400000',
+          });
+          const before = await snapshot();
+          const invalidInputs: Record<string, string>[] = [
+            { 'rep_clusters[0].input_value': '2001' },
+            { 'rep_clusters[1].input_value_date': '2026/11/31' },
+            { 'rep_clusters[1].input_value_time': '' },
+            { 'rep_clusters[2].input_value': '24:00' },
+            { 'rep_clusters[3].input_value': '121' },
+          ];
+          for (const invalid of invalidInputs) {
+            assert.equal((await post('/InputReport/EditSheet', { ...data, ...invalid })).status, 400);
+            assert.deepEqual(await snapshot(), before);
+          }
+          assert.equal((await post('/InputReport/EditSheet', data)).status, 302);
+          const saved = await snapshot();
+          const expected = [
+            ['1234.565', '1,234.57'],
+            ['2026/11/10 15:16:00', '2026/11/10 15:16'],
+            ['14:15:00', '14:15'],
+            ['90', '1:30'],
+            ['1234.565', '1,234.57'],
+            ['5400000', '01:30'],
+          ];
+          assert.deepEqual(
+            saved.clusters.map((row) => [row.input_value, row.display_value]),
+            expected,
+          );
+          assert.equal(saved.history.length - before.history.length, values.length);
+          for (const value of expected)
+            assert(saved.history.some((row) => row.input_value === value[0] && row.display_value === value[1]));
+          for (const stored of [saved.top[0].xml_data, saved.sheet[0].xml_data]) {
+            assert(stored.includes('<function>SUM(1,2)</function>'));
+            for (const [value, display] of expected) {
+              assert(stored.includes(`<value>${value}</value>`));
+              assert(stored.includes(`<displayValue>${display}</displayValue>`));
+            }
+          }
+          await documentSaveSheetMetadata(db, 702, 0, { 'rep_sheets[0].rep_sheet_id': '7023' }, 'fixture');
+          const omitted = await snapshot();
+          assert.deepEqual(omitted.clusters, saved.clusters);
+          assert.deepEqual(omitted.history, saved.history);
+          assert.deepEqual(omitted.top[0].thumbnail_file, before.top[0].thumbnail_file);
         },
       );
       await t.test(

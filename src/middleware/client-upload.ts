@@ -6,6 +6,7 @@ import multer from 'multer';
 import { maxSystemUploadBytes } from './manager/system/upload-body.js';
 import { clientError } from '../services/client-xml.js';
 import { requestFailure } from './request-log.js';
+import { clientParameter } from '../controllers/client-account.js';
 
 // Designer uses Files[0]; tablet controllers select named XML/binary parts from all files.
 export function createNativeUploadBody(
@@ -80,7 +81,26 @@ export function createNativeUploadBody(
   };
 }
 
-export const clientUploadBody = createNativeUploadBody(
+const anonymousTest = (req: Request) => /^\/rests\/test\/(gettest|posttest|uploadtest)\.aspx$/i.test(req.path);
+const putLog = (req: Request) =>
+  /^\/rests\/putlog\.aspx$/i.test(req.path) ||
+  (/^\/rests\/conmasireporter\.aspx$/i.test(req.path) && clientParameter(req, 'command') === 'PutLog');
+const parseClientUpload = createNativeUploadBody(
   maxSystemUploadBytes,
-  (req) => Boolean(req.session.clientAccount) || /^\/rests\/test\/(gettest|posttest|uploadtest)\.aspx$/i.test(req.path),
+  (req) =>
+    Boolean(req.session.clientAccount) ||
+    anonymousTest(req) ||
+    putLog(req) ||
+    /^\/rests\/conmasireporter\.aspx$/i.test(req.path),
 );
+export const clientUploadBody: RequestHandler = (req, res, next) => {
+  parseClientUpload(req, res, (error) => {
+    if (error) return next(error);
+    // A multipart dispatcher can carry command in its form; only PutLog may continue anonymously.
+    if (req.is('multipart/form-data') && !req.session.clientAccount && !anonymousTest(req) && !putLog(req)) {
+      res.send(clientError(5, 'no session.'));
+      return;
+    }
+    next();
+  });
+};

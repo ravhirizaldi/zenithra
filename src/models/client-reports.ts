@@ -4,6 +4,7 @@ import { validClientVersion } from '../config/client.js';
 import { zipBuffer } from '../controllers/manager/system/files.js';
 import { type DefinitionActor, query, queryDocument, rowElement } from './client-definitions.js';
 import { reportApplicantLocked } from './client-report-lock.js';
+import { reportNumberingClusters } from './client-report-numbering.js';
 import {
   type XmlNode,
   child,
@@ -418,6 +419,36 @@ export async function getReportDownload(
         if (first) replace(cluster, 'initValue', text(first[column]));
       }
       await clusterPermissions(client, section, sheet, actor, definition, readOnly >= 1, forceReadOnly);
+    }
+    const numberTargets = reportNumberingClusters(top);
+    if (numberTargets.length) {
+      const saved = definition
+        ? undefined
+        : (
+            await client.query(
+              'SELECT auto_numbering_value,auto_numbering_save_count FROM rep_top WHERE rep_top_id=$1',
+              [topId],
+            )
+          ).rows[0];
+      const settings = optionalField(top, 'useAutoNumbering') === '1' ? child(top, 'autoNumbering') : undefined,
+        saveCount =
+          settings && optionalField(settings, 'useSaveCount') === '1' ? child(settings, 'saveCount') : undefined,
+        count = Number(saved?.auto_numbering_save_count ?? 0);
+      if (!Number.isInteger(count) || count < 0 || count > 2147483647) throw new Error('Invalid numbering save count.');
+      let displayCount = String(count);
+      if (saveCount && optionalField(saveCount, 'zeroPadding') === '1') {
+        const digit = integerField(saveCount, 'digit');
+        if (digit < 1 || digit > 9) throw new Error('Invalid numbering save-count format.');
+        displayCount = displayCount.padStart(digit, '0');
+      }
+      for (const { cluster } of numberTargets) {
+        if (saved?.auto_numbering_value && optionalField(cluster, 'hide') !== '1') {
+          const number = String(saved.auto_numbering_value).replaceAll('{SAVE_COUNT}', displayCount);
+          replace(cluster, 'value', number);
+          replace(cluster, 'displayValue', number);
+        }
+        replace(cluster, 'readOnly', '1');
+      }
     }
     if (lock && !definition && !copy && readOnly < 1) {
       await client.query('BEGIN');

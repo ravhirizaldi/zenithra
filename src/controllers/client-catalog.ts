@@ -9,6 +9,7 @@ import {
   getClientLocalReferenceList,
   getClientLocalReference,
   getClientDocumentInfo,
+  getClientDocumentList,
   unlockClientDocuments,
 } from '../models/client-library.js';
 import { getClientMasterList, getClientCustomMasterLabels, getClientMasterRecords } from '../models/client-masters.js';
@@ -34,6 +35,7 @@ export async function clientCatalogAction(db: pg.Pool, command: string, req: Req
       'GetCustomMasterLabel',
       'GetMasterRecordList',
       'GetDocumentInfo',
+      'GetDocumentList',
     ].includes(command)
   )
     return false;
@@ -61,8 +63,8 @@ export async function clientCatalogAction(db: pg.Pool, command: string, req: Req
       return true;
     }
     const terminal = await clientTerminal(db, account);
-    // Calendar's BaseWebPage clears this terminal's stale master-sync marker before CheckTerminal.
-    if (command === 'GetCalendarList' && terminal.id !== null)
+    // These pages clear this terminal's stale master-sync marker before CheckTerminal.
+    if (['GetCalendarList', 'GetDocumentList'].includes(command) && terminal.id !== null)
       await db.query('DELETE FROM custom_master_synching_terminal WHERE term_id=$1', [terminal.id]);
     if (terminal.code !== 0) {
       res.send(clientError(3));
@@ -120,9 +122,9 @@ export async function clientCatalogAction(db: pg.Pool, command: string, req: Req
         ),
       );
     else if (command === 'GetCustomMasterLabel') res.send(await getClientCustomMasterLabels(db));
-    else if (command === 'GetDocumentInfo')
+    else if (command === 'GetDocumentInfo' || command === 'GetDocumentList')
       res.send(
-        await getClientDocumentInfo(
+        await (command === 'GetDocumentInfo' ? getClientDocumentInfo : getClientDocumentList)(
           db,
           account.userId,
           Object.fromEntries(
@@ -135,6 +137,7 @@ export async function clientCatalogAction(db: pg.Pool, command: string, req: Req
               'word',
               'wordTargetName',
               'wordTargetRemarks',
+              'wordTargetLabelName',
             ].map((name) => [name, parameter(name)]),
           ),
         ),

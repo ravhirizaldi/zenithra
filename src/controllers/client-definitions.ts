@@ -31,6 +31,7 @@ export async function clientDefinitionAction(
       'GetReportDetail',
       'GetDefinitionData',
       'GetDefinitionDetail',
+      'GetDefinitionPreview',
       'UnlockDefinition',
       'RegistDefinition',
     ].includes(command)
@@ -39,6 +40,11 @@ export async function clientDefinitionAction(
   const account = req.session.clientAccount;
   if (!account) {
     res.send(clientError(5, 'no session.'));
+    return true;
+  }
+  if (command === 'GetDefinitionPreview') {
+    // The deployed handler only initializes DefinitionBiz; it never calls its sample loader or writes a preview.
+    res.end();
     return true;
   }
   if (command === 'GetDefinitionUpdateList') {

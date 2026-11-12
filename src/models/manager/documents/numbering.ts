@@ -15,6 +15,7 @@ import {
   type XmlNode,
 } from '../../client-definition-xml.js';
 import { reportNameDate } from '../../client-report-name.js';
+import { reportNumberingClusters } from '../../client-report-numbering.js';
 import { LabelValidationError } from '../labels/index.js';
 import { text as pageText } from '../../../config/manager/documents/resources.js';
 import { documentDetail } from './details.js';
@@ -33,19 +34,6 @@ const flag = (node: XmlNode, name: string, required = false) => {
   if ((required || value) && !['0', '1'].includes(value)) throw invalid();
   return value === '1';
 };
-const clusters = (top: XmlNode) =>
-  children(must(top, 'sheets'), 'sheet').flatMap((sheet) =>
-    children(must(sheet, 'clusters'), 'cluster')
-      .filter(
-        (cluster) =>
-          optionalField(cluster, 'type') === 'KeyboardText' &&
-          optionalField(cluster, 'inputParameters')
-            .split(';')
-            .map((part) => part.split('='))
-            .find((part) => part[0] === 'AutoNumber')?.[1] === '1',
-      )
-      .map((cluster) => ({ sheet, cluster })),
-  );
 
 export function nextNumberReset(reset: XmlNode, previous: Date, now: Date): Date {
   const type = int(reset, 'termType', 1, 3),
@@ -151,7 +139,7 @@ export function numberingParts(top: XmlNode, settings: XmlNode, now: Date, numbe
     .join('');
 }
 
-// SaveTop issues only a missing final-save number; SaveSheet also increments the configured save count.
+// Native create/update follow ReportBiz; Manager Basic/sheet/manual/copy retain their distinct issuance rules.
 export async function documentSaveNumbering(
   db: Database,
   id: number,
@@ -159,12 +147,14 @@ export async function documentSaveNumbering(
   user: string,
   now: Date,
   locale: string,
-  mode: 'basic' | 'sheet' | 'manual' | 'copy' = 'basic',
+  mode: 'basic' | 'sheet' | 'manual' | 'copy' | 'create' | 'update' = 'basic',
+  terminal = hostname(),
 ) {
   const changed = new Set<string>();
   const settings = optionalField(top, 'useAutoNumbering') === '1' ? child(top, 'autoNumbering') : undefined;
-  if (!settings) return { changed, regenerateName: false };
-  const targets = clusters(top);
+  if (!settings) return { changed, regenerateName: false, refreshThumbnail: false, columns: null };
+  const targets = reportNumberingClusters(top),
+    native = mode === 'create' || mode === 'update';
   const nameParts = child(top, 'nameParts');
   const regenerateName =
     optionalField(settings, 'useSaveCount') === '1' &&
@@ -191,9 +181,15 @@ export async function documentSaveNumbering(
     mode === 'manual' ||
     (mode === 'copy'
       ? !inherit && timing === 0
-      : finalSave && optionalField(top, 'editStatus') === '4' && !saved.auto_numbering_value);
+      : ((mode === 'create' && timing === 0) || (finalSave && optionalField(top, 'editStatus') === '4')) &&
+        !saved.auto_numbering_value);
   const useCount = flag(settings, 'useSaveCount');
-  if (!issue && mode !== 'copy' && (mode !== 'sheet' || (!finalSave && !useCount))) return { changed, regenerateName };
+  const refreshThumbnail =
+    native &&
+    ((mode === 'create' && timing === 0) || (finalSave && optionalField(top, 'editStatus') === '4')) &&
+    targets.some(({ sheet }) => integerField(sheet, 'sheetNo') === 1);
+  if (!native && !issue && mode !== 'copy' && (mode !== 'sheet' || (!finalSave && !useCount)))
+    return { changed, regenerateName, refreshThumbnail, columns: null };
   numberingParts(top, settings, now, '0', locale);
   let value = String(saved.auto_numbering_value ?? ''),
     count = Number(saved.auto_numbering_save_count ?? 0);
@@ -207,7 +203,7 @@ export async function documentSaveNumbering(
   const padding = saveSettings ? flag(saveSettings, 'zeroPadding') : false;
   if (padding && !digits) throw invalid();
   const maximumCount = digits && saveSettings ? 10 ** int(saveSettings, 'digit', 1, 9) - 1 : 2147483647;
-  if ((mode === 'sheet' || mode === 'copy') && useCount && count < maximumCount) count++;
+  if ((native || mode === 'sheet' || mode === 'copy') && useCount && count < maximumCount) count++;
   const displayCount = digits && padding ? String(count).padStart(Number(digits), '0') : String(count);
   if (
     targets.length &&
@@ -280,23 +276,32 @@ export async function documentSaveNumbering(
     const number = String((await db.query('SELECT nextval($1::regclass) AS value', [sequence])).rows[0].value);
     value = numberingParts(top, settings, now, number, locale);
   }
-  await db.query(
-    'UPDATE rep_top SET auto_numbering_value=$2,auto_numbering_message=$5,auto_numbering_save_count=$3,auto_numbering_display_save_count=$4 WHERE rep_top_id=$1',
-    [
-      id,
-      value || null,
-      count || null,
-      displayCount,
-      issue || (mode === 'copy' && !inherit) ? null : saved.auto_numbering_message,
-    ],
-  );
-  if (!value && mode !== 'copy') return { changed, regenerateName };
+  const columns = {
+    auto_numbering_value: value || null,
+    auto_numbering_message: issue || (mode === 'copy' && !inherit) ? null : saved.auto_numbering_message,
+    auto_numbering_save_count: count || null,
+    auto_numbering_display_save_count: displayCount,
+  };
+  // ReportBiz persists these columns with its final top update, avoiding extra audit-trigger events.
+  if (!native)
+    await db.query(
+      'UPDATE rep_top SET auto_numbering_value=$2,auto_numbering_message=$5,auto_numbering_save_count=$3,auto_numbering_display_save_count=$4 WHERE rep_top_id=$1',
+      [
+        id,
+        columns.auto_numbering_value,
+        columns.auto_numbering_save_count,
+        displayCount,
+        columns.auto_numbering_message,
+      ],
+    );
+  if ((!value && mode !== 'copy') || (mode === 'update' && !finalSave && !useCount))
+    return { changed, regenerateName, refreshThumbnail, columns };
   for (const { sheet, cluster } of targets) {
     const sheetId = integerField(sheet, 'repSheetId'),
       clusterId = integerField(cluster, 'clusterId');
     const result = await db.query(
       `UPDATE rep_cluster SET input_value=$3,display_value=$3,sys_update_term=$4,sys_update_user=$5,sys_update_time=$6 WHERE rep_sheet_id=$1 AND cluster_id=$2 AND EXISTS(SELECT 1 FROM rep_sheet WHERE rep_sheet_id=$1 AND rep_top_id=$7)`,
-      [sheetId, clusterId, value.replaceAll('{SAVE_COUNT}', displayCount), hostname(), user, now, id],
+      [sheetId, clusterId, value.replaceAll('{SAVE_COUNT}', displayCount), terminal, user, now, id],
     );
     if (result.rowCount !== 1) throw invalid();
     replace(cluster, 'value', value.replaceAll('{SAVE_COUNT}', displayCount));
@@ -309,7 +314,7 @@ export async function documentSaveNumbering(
       integerField(sheet, 'repSheetId'),
       serialize(sheet),
     ]);
-  return { changed, regenerateName };
+  return { changed, regenerateName, refreshThumbnail, columns };
 }
 
 export async function documentManualNumber(db: pg.Pool, id: number, definition: number, user: string, locale: string) {

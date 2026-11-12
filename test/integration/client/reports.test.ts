@@ -6,6 +6,7 @@ import express from 'express';
 import session from 'express-session';
 import pg from 'pg';
 import { XMLParser } from 'fast-xml-parser';
+import { PDFDocument } from 'pdf-lib';
 import { registerClientRoutes } from '../../../src/routes/client.js';
 import { clientSession } from '../../../src/middleware/client-session.js';
 import {
@@ -43,6 +44,7 @@ import { join } from 'node:path';
 import { tmpdir } from 'node:os';
 import { requestLog } from '../../../src/middleware/request-log.js';
 import { reportApplicantLocked } from '../../../src/models/client-report-lock.js';
+import { saveDefinitionNumbering } from '../../../src/models/client-definition-numbering.js';
 import { setTimeout } from 'node:timers/promises';
 
 const enabled = { skip: !process.env.DATABASE_URL },
@@ -88,6 +90,7 @@ async function fixture(run: (db: pg.Pool, connection: pg.PoolClient) => Promise<
       'def_cluster_refer',
       'def_reference',
       'rep_top',
+      'rep_top_option',
       'rep_current',
       'rep_role',
       'rep_lock',
@@ -109,11 +112,13 @@ async function fixture(run: (db: pg.Pool, connection: pg.PoolClient) => Promise<
       'def_report_custom_table',
       'rep_report_custom_table',
       'binder_rep_src',
+      'def_auto_numbering_reset_setting',
+      'log_auto_numbering',
     ]) {
       await connection.query(`CREATE TEMP TABLE ${table} (LIKE public.${table} INCLUDING ALL)`);
     }
     await connection.query(
-      'CREATE TEMP SEQUENCE rep_top_rep_top_id_seq START 100;CREATE TEMP SEQUENCE rep_sheet_rep_sheet_id_seq START 200;CREATE TEMP SEQUENCE mst_label_def_mst_label_id_seq START 1000',
+      'CREATE TEMP SEQUENCE rep_top_rep_top_id_seq START 100;CREATE TEMP SEQUENCE rep_sheet_rep_sheet_id_seq START 200;CREATE TEMP SEQUENCE mst_label_def_mst_label_id_seq START 1000;CREATE TEMP SEQUENCE log_auto_numbering_seq',
     );
     await connection.query(
       'ALTER TABLE pg_temp.rep_sheet ADD FOREIGN KEY (rep_top_id) REFERENCES pg_temp.rep_top(rep_top_id) ON DELETE CASCADE;ALTER TABLE pg_temp.rep_cluster ADD FOREIGN KEY (rep_sheet_id) REFERENCES pg_temp.rep_sheet(rep_sheet_id) ON DELETE CASCADE',
@@ -425,6 +430,236 @@ test(
         await rm(directory, { recursive: true, force: true });
       }
     }),
+);
+
+test(
+  'Designer numbering rules feed Windows create/edit/complete saves, downloads, names, cooperation rows and transactional thumbnails',
+  enabled,
+  async (t) => {
+    for (const [timing, cyclic] of [
+      [0, false],
+      [1, false],
+      [2, false],
+      [0, true],
+    ] as const)
+      await t.test(`numbering timing ${timing}, cyclic ${cyclic}`, async () =>
+        fixture(async (db, connection) => {
+          const directory = await mkdtemp('/tmp/opencode/native-numbering-');
+          let upload: ReportUpload | undefined;
+          const file = async (data: string): Promise<Express.Multer.File> => {
+            const path = join(directory, 'report');
+            await writeFile(path, data);
+            return { fieldname: 'report', path, size: Buffer.byteLength(data) } as Express.Multer.File;
+          };
+          const rule = `<autoNumbering><startValue>7</startValue><increment>2</increment><digit>3</digit><zeroPadding>1</zeroPadding><numberingTiming>${timing}</numberingTiming><numberingCyclicEnabled>${cyclic ? 1 : 0}</numberingCyclicEnabled>${timing === 0 ? '<useSaveCount>1</useSaveCount><saveCount><digit>2</digit><zeroPadding>1</zeroPadding></saveCount>' : ''}<part><partId>1</partId><type>value</type><value>IR-</value></part><part><partId>2</partId><type>autoNumber</type><value/></part>${timing === 0 ? '<part><partId>3</partId><type>saveCount</type><value/></part>' : ''}</autoNumbering>`;
+          const source = xml
+            .replace(
+              '<defTopId>',
+              `<cooperationTable>1</cooperationTable><useAutoNumbering>1</useAutoNumbering>${rule}<nameRegenerate>0</nameRegenerate><nameParts><part><partId>1</partId><type>displayValue</type><value>1,0</value></part></nameParts><defTopId>`,
+            )
+            .replace(
+              /<clusters>[\s\S]*?<\/clusters>/,
+              '<clusters><cluster><sheetNo>1</sheetNo><clusterId>0</clusterId><name>Number</name><type>KeyboardText</type><value/><displayValue/><readOnly>0</readOnly><inputParameters>AutoNumber=1</inputParameters><left>0.1</left><right>0.9</right><top>0.1</top><bottom>0.3</bottom></cluster></clusters>',
+            );
+          const top = (id = '', status = '1') =>
+            `<conmas><top><defTopId>1</defTopId><repTopId>${id}</repTopId><repTopName>submitted name</repTopName><editStatus>${status}</editStatus><thumbnail/><sheets/></top></conmas>`;
+          const stage = async () => {
+            assert.equal(typeof upload, 'object');
+            assert.equal(
+              parser.parse(
+                await stageReportSheet(db, actor, upload!, [
+                  await file(
+                    '<conmas><sheet><defSheetId>10</defSheetId><sheetNo>1</sheetNo><clusters/></sheet></conmas>',
+                  ),
+                ]),
+              ).conmas.error.code,
+              '0',
+            );
+          };
+          const saved = async () =>
+            (await connection.query('SELECT * FROM pg_temp.rep_top WHERE rep_top_id=100')).rows[0];
+          const nextUpload = async (id = '', status = '1') => {
+            await cleanupReportUpload(upload);
+            upload = (await beginReportUpload(db, actor, [await file(top(id, status))])) as ReportUpload;
+            await stage();
+          };
+          try {
+            const pdf = await PDFDocument.create();
+            pdf.addPage([200, 200]);
+            await connection.query('UPDATE pg_temp.def_top SET xml_data=$1,background_image_file=$2', [
+              source,
+              Buffer.from(await pdf.save()),
+            ]);
+            await connection.query('DELETE FROM pg_temp.def_cluster WHERE cluster_id<>0');
+            await connection.query(
+              "UPDATE pg_temp.def_cluster SET input_parameter='AutoNumber=1',left_position=0.1,right_position=0.9,top_position=0.1,bottom_position=0.3",
+            );
+            await connection.query('UPDATE pg_temp.def_role SET role_rep_update=1');
+            await saveDefinitionNumbering(connection, must(root(source), 'top'), 1, 1, actor.userId, new Date());
+            if (cyclic) await connection.query("SELECT setval('pg_temp.rep_auto_numbering_1_1',999,true)");
+            if (timing === 0 && !cyclic)
+              await connection.query(
+                "UPDATE pg_temp.def_auto_numbering_reset_setting SET next_reset_time='2000-01-01',auto_numbering_setting=$1",
+                [
+                  rule.replace(
+                    '</autoNumbering>',
+                    '<reset><termType>1</termType><interval>1</interval></reset></autoNumbering>',
+                  ),
+                ],
+              );
+            const download = (await getReportDownload(db, actor, { topId: '1' }, true, false)) as ReportDownload;
+            assert.equal(parser.parse(download.xml).conmas.top.sheets.sheet.clusters.cluster.readOnly, '1');
+            await nextUpload();
+            assert.equal(
+              parser.parse(
+                await stageReportSheet(db, actor, upload!, [
+                  await file(
+                    '<conmas><sheet><defSheetId>10</defSheetId><sheetNo>1</sheetNo><clusters><cluster><clusterId>0</clusterId><value>forged number</value></cluster></clusters></sheet></conmas>',
+                  ),
+                ]),
+              ).conmas.error.code,
+              '3',
+            );
+            assert.equal(parser.parse(await finishReportUpload(db, actor, upload!)).conmas.error.code, '0');
+            const created = await saved();
+            assert.equal(created.auto_numbering_value, timing === 0 ? 'IR-007{SAVE_COUNT}' : null);
+            assert.equal(created.auto_numbering_display_save_count, timing === 0 ? '01' : '0');
+            if (timing === 0) {
+              assert.equal(created.rep_top_name, 'IR-00701');
+              assert.equal(
+                (await connection.query("SELECT 1 FROM pg_temp.log_auto_numbering WHERE action='AUTO_RESET'")).rowCount,
+                cyclic ? 0 : 1,
+              );
+              assert.equal(created.thumbnail_file.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+              assert.equal(
+                (await connection.query('SELECT cluster_1_0_t FROM pg_temp.report_1 WHERE rep_top_id=100')).rows[0]
+                  .cluster_1_0_t,
+                'IR-00701',
+              );
+            }
+            const read = (await getReportDownload(db, actor, { topId: '100' }, false, false)) as ReportDownload;
+            const number = parser.parse(read.xml).conmas.top.sheets.sheet.clusters.cluster;
+            assert.equal(number.readOnly, '1');
+            assert.equal(number.value, timing === 0 ? 'IR-00701' : '');
+            await nextUpload('100');
+            // A failure after numbering/cooperation persistence must not acknowledge or retain partial effects.
+            const failing = {
+              ...db,
+              connect: async () => ({
+                query: async (sql: string, values?: unknown[]) => {
+                  if (sql.startsWith('DELETE FROM rep_lock')) throw new Error('Private numbered save failure');
+                  return connection.query(sql, values);
+                },
+                release() {},
+              }),
+            } as unknown as pg.Pool;
+            await assert.rejects(finishReportUpload(failing, actor, upload!), /Private numbered save failure/);
+            assert.equal(upload!.result, undefined);
+            assert.deepEqual(await saved(), created);
+            if (timing === 0) {
+              assert.equal(
+                (
+                  await connection.query(
+                    'SELECT input_value FROM pg_temp.rep_cluster WHERE rep_sheet_id=200 AND cluster_id=0',
+                  )
+                ).rows[0].input_value,
+                'IR-00701',
+              );
+              assert.equal(
+                (await connection.query('SELECT cluster_1_0_t FROM pg_temp.report_1 WHERE rep_top_id=100')).rows[0]
+                  .cluster_1_0_t,
+                'IR-00701',
+              );
+            }
+            const results = await Promise.all([
+              finishReportUpload(db, actor, upload!),
+              finishReportUpload(db, actor, upload!),
+            ]);
+            assert(results.every((result) => parser.parse(result).conmas.error.code === '0'));
+            if (timing === 0) {
+              assert.equal((await saved()).rep_top_name, 'IR-00702');
+              assert.equal(
+                (
+                  await connection.query(
+                    'SELECT input_value,sys_update_term FROM pg_temp.rep_cluster WHERE rep_sheet_id=200 AND cluster_id=0',
+                  )
+                ).rows[0].sys_update_term,
+                actor.terminalId,
+              );
+              await connection.query('UPDATE pg_temp.rep_top SET auto_numbering_save_count=99 WHERE rep_top_id=100');
+            }
+            await nextUpload('100', '4');
+            if (timing === 1) {
+              const unnumbered = await saved();
+              await connection.query("SELECT setval('pg_temp.rep_auto_numbering_1_1',999,true)");
+              await assert.rejects(finishReportUpload(db, actor, upload!), /maximum/);
+              assert.deepEqual(await saved(), unnumbered);
+              assert.equal(upload!.result, undefined);
+              await connection.query("SELECT setval('pg_temp.rep_auto_numbering_1_1',7,false)");
+              await connection.query('UPDATE pg_temp.rep_top SET background_image_file=$1 WHERE rep_top_id=100', [
+                Buffer.from('invalid fixture PDF'),
+              ]);
+              const before = await saved();
+              await assert.rejects(finishReportUpload(db, actor, upload!));
+              assert.equal(upload!.result, undefined);
+              assert.deepEqual(await saved(), before);
+              await connection.query('UPDATE pg_temp.rep_top SET background_image_file=$1 WHERE rep_top_id=100', [
+                Buffer.from(await pdf.save()),
+              ]);
+            }
+            assert.equal(parser.parse(await finishReportUpload(db, actor, upload!)).conmas.error.code, '0');
+            const finished = await saved();
+            assert.equal(Number(finished.edit_refer_status), 4);
+            assert.equal(
+              finished.auto_numbering_value,
+              timing === 0 ? 'IR-007{SAVE_COUNT}' : timing === 1 ? 'IR-009' : null,
+            );
+            if (timing === 0) {
+              assert.equal(finished.auto_numbering_save_count, 99);
+              assert.equal(finished.rep_top_name, 'IR-00799');
+              assert.equal(
+                String(
+                  (await connection.query('SELECT last_value FROM pg_temp.rep_auto_numbering_1_1')).rows[0].last_value,
+                ),
+                '7',
+              );
+            }
+            assert.equal(
+              (await connection.query('SELECT last_value,is_called FROM pg_temp.rep_auto_numbering_1_1')).rows[0]
+                .is_called,
+              timing !== 2,
+            );
+            if (timing === 1) {
+              assert.equal(finished.thumbnail_file.subarray(0, 8).toString('hex'), '89504e470d0a1a0a');
+              assert.equal(
+                (await connection.query('SELECT cluster_1_0_t FROM pg_temp.report_1 WHERE rep_top_id=100')).rows[0]
+                  .cluster_1_0_t,
+                'IR-009',
+              );
+            }
+            assert.equal(parser.parse(await finishReportUpload(db, actor, upload!)).conmas.error.code, '0');
+            assert.deepEqual(await saved(), finished);
+            if (timing === 0) {
+              await connection.query(
+                'INSERT INTO pg_temp.rep_cluster_role(rep_sheet_id,cluster_id,group_id) VALUES(200,0,5);INSERT INTO pg_temp.rep_cluster_refer(rep_sheet_id,cluster_id,group_id) VALUES(200,0,5)',
+              );
+              const hidden = (await getReportDownload(db, actor, { topId: '100' }, false, false)) as ReportDownload;
+              assert.equal(parser.parse(hidden.xml).conmas.top.sheets.sheet.clusters.cluster.hide, '1');
+              assert.equal(parser.parse(hidden.xml).conmas.top.sheets.sheet.clusters.cluster.readOnly, '1');
+              await connection.query('UPDATE pg_temp.rep_top SET xml_data=$1 WHERE rep_top_id=100', [
+                finished.xml_data
+                  .replace('<useAutoNumbering>1', '<useAutoNumbering>0')
+                  .replace('<digit>2</digit>', '<digit>inactive</digit>'),
+              ]);
+              assert.equal(typeof (await getReportDownload(db, actor, { topId: '100' }, false, false)), 'object');
+            }
+          } finally {
+            await cleanupReportUpload(upload);
+            await rm(directory, { recursive: true, force: true });
+          }
+        }),
+      );
+  },
 );
 
 test(

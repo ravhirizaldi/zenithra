@@ -14,6 +14,8 @@ import { createReportAutoLabels, updateReportAutoLabels } from './client-report-
 import { checkReportTables, reportTableValue, saveReportTables } from './client-report-tables.js';
 import { reportApplicantLocked } from './client-report-lock.js';
 import { documentAdministratorId } from './manager/documents/details.js';
+import { documentSaveNumbering } from './manager/documents/numbering.js';
+import { documentRefreshThumbnail } from './manager/documents/thumbnail.js';
 import {
   child,
   children,
@@ -301,7 +303,7 @@ export async function beginReportUpload(
   if (integerField(sourceTop, 'defTopId') !== defId) return clientError(2);
   if (!definition && field(sourceTop, 'editStatus') === '4') return clientError(1110, 'Report completed.');
   if (!definition && field(sourceTop, 'readOnly') === '1') return clientError(3);
-  await checkReportSaveFeatures(db, sourceTop, field(top, 'editStatus'));
+  await checkReportSaveFeatures(db, sourceTop, field(top, 'editStatus'), true);
   const directory = await mkdtemp(join(tmpdir(), 'conmas-report-'));
   try {
     const raw = (
@@ -504,7 +506,7 @@ async function commitReportUpload(
     await client.query('SELECT pg_advisory_xact_lock(hashtext($1))', [upload.directory]);
     const current = (
       await client.query(
-        `SELECT xml_data FROM ${upload.definition ? 'def_top' : 'rep_top'} WHERE ${upload.definition ? 'def_top_id' : 'rep_top_id'}=$1 FOR UPDATE`,
+        `SELECT xml_data${upload.definition ? '' : ',auto_numbering_value,auto_numbering_message,auto_numbering_save_count,auto_numbering_display_save_count'} FROM ${upload.definition ? 'def_top' : 'rep_top'} WHERE ${upload.definition ? 'def_top_id' : 'rep_top_id'}=$1 FOR UPDATE`,
         [upload.sourceId],
       )
     ).rows[0];
@@ -542,7 +544,7 @@ async function commitReportUpload(
       await client.query('ROLLBACK');
       return clientError(3);
     }
-    await checkReportSaveFeatures(client, top, field(submitted, 'editStatus'));
+    await checkReportSaveFeatures(client, top, field(submitted, 'editStatus'), true);
     const sheets = children(must(top, 'sheets'), 'sheet');
     if (sheets.some((sheet) => !upload.sheets[field(sheet, 'sheetNo')])) {
       await client.query('ROLLBACK');
@@ -652,10 +654,10 @@ async function commitReportUpload(
       excel_output: optionalField(top, 'excelOutput') || '1',
       can_send_mail_as_attachment: optionalField(top, 'canSendMailAsAttachment') || '1',
       can_open_as_pdf: optionalField(top, 'canOpenAsPdf') || '0',
-      auto_numbering_value: null,
-      auto_numbering_message: null,
-      auto_numbering_save_count: null,
-      auto_numbering_display_save_count: null,
+      auto_numbering_value: current.auto_numbering_value ?? null,
+      auto_numbering_message: current.auto_numbering_message ?? null,
+      auto_numbering_save_count: current.auto_numbering_save_count ?? null,
+      auto_numbering_display_save_count: current.auto_numbering_display_save_count ?? null,
       ...Object.fromEntries([1, 2, 3, 4, 5].map((i) => ['system_key' + i, optionalField(top, 'systemKey' + i)])),
     };
     if (upload.definition) await query(client, sql.top.insert, topParams);
@@ -991,7 +993,19 @@ async function commitReportUpload(
       replace(sheet, 'backgroundImage', '');
       await client.query('UPDATE rep_sheet SET xml_data=$2 WHERE rep_sheet_id=$1', [sheetId, serialize(sheet)]);
     }
-    setReportName(top, now, upload.definition);
+    const numbering = await documentSaveNumbering(
+      client,
+      id,
+      top,
+      actor.userId,
+      now,
+      actor.cultureName || 'en-US',
+      upload.definition ? 'create' : 'update',
+      actor.terminalId,
+    );
+    for (const key of numbering.changed) changed.add(key);
+    setReportName(top, now, upload.definition || numbering.regenerateName);
+    if (numbering.columns) Object.assign(topParams, numbering.columns);
     topParams.rep_top_name = field(top, 'repTopName');
     topParams.xml_data = serialize(document);
     await query(client, sql.top.update, topParams);
@@ -1079,6 +1093,14 @@ async function commitReportUpload(
         (name) => name + '=' + optionalField(top, name),
       ),
     ]);
+    if (numbering.refreshThumbnail)
+      await documentRefreshThumbnail(
+        client,
+        id,
+        integerField(top, 'defTopId'),
+        actor.userId,
+        actor.cultureName || 'en-US',
+      );
     await client.query('COMMIT');
     upload.result = result;
     return upload.result;

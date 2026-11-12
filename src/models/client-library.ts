@@ -5,7 +5,7 @@ import { licenseDate, readLicenseFields } from '../shared/license-counts.js';
 import { root } from '../config/manager.js';
 import { configuredPath } from '../controllers/manager/system/files.js';
 import { clientError } from '../services/client-xml.js';
-import { element, integer, serialize } from './client-definition-xml.js';
+import { element, integer, serialize, type XmlNode } from './client-definition-xml.js';
 
 type Database = Pick<pg.Pool, 'query'>;
 const text = (row: Record<string, unknown>, key: string) => String(row[key] ?? '');
@@ -148,9 +148,103 @@ export async function getClientDocumentInfo(
       "'documentId' must be an integer.",
     ]);
   if (!params.iconType) return clientError(2, "'iconType' is required.");
+  return serialize(element('conmas', [element('localFiles', await documentFiles(db, userId, params, now))]));
+}
+
+export async function getClientDocumentList(
+  db: Database,
+  userId: string,
+  params: Record<string, string>,
+  now = new Date(),
+): Promise<string> {
+  const errors: string[] = [];
+  const specified = (key: string, choices: string[], values = [params[key]]) => {
+    if (!params[key]) return;
+    for (const value of values)
+      if (!choices.includes(value))
+        errors.push(
+          `Invalid value '${value}' specified for '${key}'. It must be ${choices.length === 2 ? `either '${choices[0]}' or '${choices[1]}'` : `one of the following: '${choices.join("', '")}'`}.`,
+        );
+  };
+  specified('libraryType', ['0', '1']);
+  if (params.labelId)
+    for (const value of params.labelId.split(','))
+      if (integer(value) === undefined)
+        errors.push(`Invalid value '${value}' specified for 'labelId'. It must be an integer.`);
+  specified('editStatus', ['1', '4']);
+  specified(
+    'iconType',
+    ['URL', 'PDF', 'EXCEL', 'PowerPoint', 'Word', 'XVL', 'MOVIE', 'PHOTO', 'SOUND', 'OTHERS', 'FD'],
+    params.iconType?.split(','),
+  );
+  specified('wordTargetName', ['true', 'false']);
+  if (errors.length) return clientError(2, [...new Set(errors)]);
+  const mode = params.libraryType === '1' ? 'image' : 'common';
+  if (params.labelId) {
+    const id = integer(params.labelId);
+    if (id === undefined) throw new Error('Invalid document label integer.');
+    if (!(await db.query(`SELECT 1 FROM mst_label_${mode}_document WHERE mst_label_id=$1`, [id])).rowCount)
+      return clientError(8, `'${id}' does not exist as labelId.`);
+  }
+  const labels: XmlNode[] = [];
+  if (!params.word || params.wordTargetLabelName === 'true') {
+    const values: unknown[] = params.labelId ? [integer(params.labelId)] : [];
+    const start = params.labelId ? 'mst_label_id=$1' : 'upper_label_id IS NULL';
+    if (params.word) values.push(documentSearchWord(params.word));
+    const sql = params.word
+      ? `WITH RECURSIVE labels AS (
+        SELECT l.*, '000_' || lpad(diplay_number::text,10,'0') AS sort_key, 0 AS level, ARRAY[mst_label_id] AS visited FROM mst_label_${mode}_document l WHERE ${start}
+        UNION ALL SELECT l.*, p.sort_key || '_' || lpad((p.level+1)::text,3,'0') || '_' || lpad(l.diplay_number::text,10,'0'), p.level+1, p.visited || l.mst_label_id
+        FROM mst_label_${mode}_document l JOIN labels p ON p.mst_label_id=l.upper_label_id WHERE NOT l.mst_label_id=ANY(p.visited))
+        SELECT * FROM labels WHERE convert_full2half(label_name) ILIKE $${values.length} ORDER BY sort_key,mst_label_id`
+      : `SELECT * FROM mst_label_${mode}_document WHERE ${params.labelId ? 'upper_label_id=$1' : 'upper_label_id IS NULL'} ORDER BY diplay_number,mst_label_id`;
+    const rows = (await db.query(sql, values)).rows;
+    for (const row of rows) {
+      const groups = (
+        await db.query(`SELECT group_id FROM ${mode}_document_label_role WHERE mst_label_id=$1`, [row.mst_label_id])
+      ).rows;
+      labels.push(
+        element('localLabel', [
+          ...fields(row, {
+            labelId: 'mst_label_id',
+            iconId: 'label_icon_id',
+            name: params.word ? 'label_name_path' : 'label_name',
+            upperLabelId: 'upper_label_id',
+            displayNumber: 'diplay_number',
+          }),
+          element('group', groups.map((group) => group.group_id).join(',')),
+        ]),
+      );
+    }
+  }
+  return serialize(
+    element('conmas', [
+      element('localLabels', labels),
+      element('localFiles', await documentFiles(db, userId, params, now)),
+    ]),
+  );
+}
+
+function documentSearchWord(word: string): string {
+  return (
+    '%' +
+    word
+      .replace(/[！＃＄％＆（）＊＋，－．／０-９：；＜＝＞？＠Ａ-Ｚ［］＾＿｀ａ-ｚ｛｜｝～]/g, (char) =>
+        String.fromCharCode(char.charCodeAt(0) - 65248),
+      )
+      .replaceAll('　', ' ') +
+    '%'
+  );
+}
+
+async function documentFiles(
+  db: Database,
+  userId: string,
+  params: Record<string, string>,
+  now: Date,
+): Promise<XmlNode[]> {
   const mode = params.libraryType === '1' ? 'image' : 'common',
     admin = userId === 'conmasadmin';
-  const empty = () => serialize(element('conmas', [element('localFiles')]));
   const parsed = (value: string) => {
     const result = integer(value);
     if (result === undefined) throw new Error('Invalid document filter integer.');
@@ -181,43 +275,38 @@ export async function getClientDocumentInfo(
           )
         ).rows.length
       )
-        return empty();
+        return [];
     }
   }
-  if (params.word && params.wordTargetName !== 'true' && params.wordTargetRemarks !== 'true') return empty();
-  const icons = params.iconType.split(',').filter((value) => value.trim());
-  if (!icons.length) throw new Error('Empty document icon filter.');
+  if (params.word && params.wordTargetName !== 'true' && params.wordTargetRemarks !== 'true') return [];
+  const icons = params.iconType ? params.iconType.split(',').filter((value) => value.trim()) : undefined;
+  if (icons && !icons.length) throw new Error('Empty document icon filter.');
   const today = new Date(now);
   today.setHours(0, 0, 0, 0);
-  const values: unknown[] = [userId, id, today, icons],
-    conditions = [
-      'doc.document_id=$2',
-      '(doc.use_end_time IS NULL OR doc.use_end_time>=$3)',
-      'doc.document_type=ANY($4::text[])',
-    ];
+  const values: unknown[] = [userId, today],
+    conditions = ['(doc.use_end_time IS NULL OR doc.use_end_time>=$2)'];
   const bind = (value: unknown) => {
     values.push(value);
     return '$' + values.length;
   };
+  if (params.documentId) conditions.push('doc.document_id=' + bind(parsed(params.documentId)));
+  if (icons) conditions.push('doc.document_type=ANY(' + bind(icons) + '::text[])');
   if (!admin)
     conditions.push(`(doc.document_save_kbn<>2 AND ${role('mst_' + mode + '_document_role')} OR doc.document_save_kbn=2 AND EXISTS
     (SELECT 1 FROM common_document_irfd_role r JOIN mst_group_affiation a ON a.group_id=r.group_id WHERE r.document_id=doc.document_id AND a.user_id=$1 AND (r.role_irfd_read=1 OR r.role_irfd_update=1)))`);
   else conditions.push('$1::text IS NOT NULL');
-  if (labelId !== undefined)
+  if (!params.word && !params.documentId) {
+    conditions.push(
+      `${labelId === undefined ? 'NOT ' : ''}EXISTS (SELECT 1 FROM ${mode}_document_label d WHERE d.document_id=doc.document_id${labelId === undefined ? '' : ' AND d.mst_label_id=' + bind(labelId)})`,
+    );
+  } else if (labelId !== undefined)
     conditions.push(`EXISTS (WITH RECURSIVE labels AS
     (SELECT mst_label_id FROM mst_label_${mode}_document WHERE mst_label_id=${bind(labelId)} UNION
     SELECT l.mst_label_id FROM mst_label_${mode}_document l JOIN labels p ON p.mst_label_id=l.upper_label_id)
     SELECT 1 FROM ${mode}_document_label d JOIN labels l ON l.mst_label_id=d.mst_label_id WHERE d.document_id=doc.document_id)`);
   if (mode === 'common' && params.editStatus) conditions.push('doc.edit_status=' + bind(parsed(params.editStatus)));
   if (params.word) {
-    const word =
-        '%' +
-        params.word
-          .replace(/[！＃＄％＆（）＊＋，－．／０-９：；＜＝＞？＠Ａ-Ｚ［］＾＿｀ａ-ｚ｛｜｝～]/g, (char) =>
-            String.fromCharCode(char.charCodeAt(0) - 65248),
-          )
-          .replaceAll('　', ' ') +
-        '%',
+    const word = documentSearchWord(params.word),
       searches: string[] = [];
     if (params.wordTargetName === 'true') searches.push('convert_full2half(doc.document_name) ILIKE ' + bind(word));
     if (params.wordTargetRemarks === 'true') searches.push('convert_full2half(doc.remarks) ILIKE ' + bind(word));
@@ -227,7 +316,7 @@ export async function getClientDocumentInfo(
     await db.query(
       `SELECT doc.document_id,doc.document_name,doc.document_name_org,doc.document_type,doc.document_save_kbn,
     doc.document_path,doc.document_mobile_save,doc.document_manual_download,doc.document_life_time,doc.is_other_app_open,
-    doc.sys_regist_user,doc.sys_update_user,${mode === 'common' ? 'doc.sys_regist_user_name,doc.sys_update_user_name,doc.edit_status,doc.lock_mode,doc.remarks' : 'NULL::text AS sys_regist_user_name,NULL::text AS sys_update_user_name,NULL::numeric AS edit_status,NULL::numeric AS lock_mode,NULL::text AS remarks'},
+    doc.sys_regist_user,doc.sys_update_user,${mode === 'common' ? 'doc.sys_regist_user_name,doc.sys_update_user_name,doc.edit_status,doc.lock_mode,doc.remarks' : 'NULL::text AS sys_regist_user_name,NULL::text AS sys_update_user_name,NULL::numeric AS edit_status,NULL::numeric AS lock_mode,doc.remarks'},
     TO_CHAR(doc.sys_regist_time,'YYYY/MM/DD HH24:MI:SS') AS created_text,TO_CHAR(doc.sys_update_time,'YYYY/MM/DD HH24:MI:SS') AS updated_text,
     TO_CHAR(doc.use_end_time,'YYYY/MM/DD 23:59:59') AS expire_text FROM mst_${mode}_document doc WHERE ${conditions.join(' AND ')}
     ORDER BY doc.document_update_time DESC,doc.document_id DESC`,
@@ -256,7 +345,7 @@ export async function getClientDocumentInfo(
         )
       ).rows.length > 0;
     const filename =
-      freeDraw && icons.includes('FD')
+      freeDraw && icons?.includes('FD')
         ? (
             await db.query(
               'SELECT irfd_file_name FROM common_document_irfd WHERE document_id=$1 ORDER BY rev_no DESC LIMIT 1',
@@ -299,7 +388,7 @@ export async function getClientDocumentInfo(
       ]),
     );
   }
-  return serialize(element('conmas', [element('localFiles', output)]));
+  return output;
 }
 
 export async function hasClientFreeDrawLicense(

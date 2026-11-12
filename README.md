@@ -36,13 +36,23 @@ Today’s work is **server-side**. Designer, Windows, Android and iPad clients r
 
 ## Where it stands
 
-<sub>Recounted 11 November 2026 · Registration and implementation paths, not a completion score</sub>
+![Migration coverage: ConMasManager 60% registered routes; ConMasWeb / Rests 44% local paths; ConMasAPI / Rests 36% partial paths. Not feature-completion percentages.](.github/assets/migration-progress.svg)
 
-| Surface                         | Current evidence                                                                 | Remaining boundary                                                                                              |
-| :------------------------------ | :------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------- |
-| **Manager** · `/ConMasManager`  | **276 / 461** source action signatures registered; **92** EJS templates/partials | **185** signatures unregistered; 5 of 11 tabs reachable, none complete                                          |
-| **Native REST** · `/ConMasWeb`  | **24 local + 27 partial** mapped commands; 7 local GeneralProcess operations     | **11** mapped commands unimplemented; 1 command scope-excluded; advanced branches remain                        |
-| **Business API** · `/ConMasAPI` | **35 partial** mapped commands; 7 partial GeneralProcess operations              | **62** supplied mapped commands unimplemented; 12 additional mappings not supplied by the original installation |
+<sub>Snapshot · 12 November 2026 · Rounded coverage indicators, not production-readiness scores</sub>
+
+| Counter                      | Calculation                      | What it actually measures                                                                                                  |
+| :--------------------------- | :------------------------------- | :------------------------------------------------------------------------------------------------------------------------- |
+| **ConMasManager · ≈60%**     | 276 ÷ 461 action signatures      | Registered routes, including partial handlers, blocked shells and explicit unsupported responses.                          |
+| **ConMasWeb / Rests · ≈44%** | 27 ÷ 62 in-scope mapped commands | Local paths; another 27 commands are partial. Includes the supplied `GetDefinitionPreview` no-op, not a preview generator. |
+| **ConMasAPI / Rests · ≈36%** | 35 ÷ 97 supplied mapped commands | **Partial** paths only; no fully migrated mapped command is claimed.                                                       |
+
+These are **three different coverage measures**, not an overall completion estimate or comparable feature-parity scores. Percentages are rounded to the nearest whole number. Native excludes one scope-excluded command; business API excludes 12 vendor-unsupplied mappings. `/Rests` is each API's endpoint directory, not another application. Manager registration uses the verified 11 November baseline; command status includes the 12 November increments.
+
+| Surface                         | Current evidence                                                                 | Remaining boundary                                                                                                          |
+| :------------------------------ | :------------------------------------------------------------------------------- | :-------------------------------------------------------------------------------------------------------------------------- |
+| **Manager** · `/ConMasManager`  | **276 / 461** source action signatures registered; **92** EJS templates/partials | **185** signatures unregistered; 5 of 11 tabs reachable, none complete                                                      |
+| **Native REST** · `/ConMasWeb`  | **27 local + 27 partial** mapped commands; 7 local GeneralProcess operations     | **8** mapped commands unimplemented; 4 additional handlers and 1 GeneralProcess operation missing; 1 command scope-excluded |
+| **Business API** · `/ConMasAPI` | **35 partial** mapped commands; 7 partial GeneralProcess operations              | **62** supplied mapped commands unimplemented; 12 additional mappings not supplied by the original installation             |
 
 Manager’s baseline spans **17 controllers / 321 distinct action paths**. Native REST has **63** mapped commands; the business API has **109**, of which **97** have supplied targets. Each API has **8** separately counted GeneralProcess operations. Direct-only pages are additional work, not duplicate commands.
 
@@ -52,12 +62,12 @@ Registered routes include blocked shells and explicit unsupported responses. Loc
 
 - **Documents:** list/detail navigation, Basic/sheet edits, supported scalar/image saves, input history, labels/permissions, normal/forced completion, numbering, approval/rejection and editable revision copies. PDF/standard CSV and stored DocuWorks downloads plus internal Excel repair have local paths; dependent pipelines remain guarded.
 - **Manager tools:** System management/settings, Labels, ordinary Library workflows and CSV Data Output paths.
-- **Native clients:** standard form/report transfers, definition update checks, ordinary report copying and master/catalog/library paths. Report finish commits required data transactionally; history/change reasons, initial-input baselines and applicant locks now have isolated regression coverage.
+- **Native clients:** standard form/report transfers, definition update checks, ordinary report copying and master/catalog/library paths. Report finish commits required data transactionally; Designer-defined automatic numbering now feeds native create/edit/complete saves, read-only downloads, generated names and applicable thumbnails. `GetDocumentList` browsing/search and settings-gated `PutLog` uploads have local paths. `GetDefinitionPreview` matches the supplied authenticated empty response; it generates no preview.
 - **Business integrations:** selected account, list/import/master and shared GeneralProcess paths, with separate sessions and contracts.
 
 ## What remains
 
-- [ ] **Finish native report saves:** numbering, journalizing, binder/pin/deferred work and required output/notification pipelines. Manager numbering does not enable native numbering; unsupported effects fail before success.
+- [ ] **Finish native report saves:** remaining numbering variants, journalizing, binder/pin/deferred work and required output/notification pipelines. Supported automatic numbering is wired; the separate `AutoNumbering` cluster pipeline remains unsupported. Required unsupported effects fail before success.
 - [ ] **Complete Documents:** remaining cluster/application/signature/audio edits, custom/layout CSV and populated Excel exports, approval/completion dependencies, lifecycle effects and PDF audit-trail/layout/font parity. Basic revision copying is not newest-form copying.
 - [ ] **Close Manager gaps:** remaining System, Labels, Library and Data Output branches, permissions/licensing, locale and original-screen parity. Six other tabs remain blocked.
 - [ ] **Finish supplied APIs:** remaining mapped/direct handlers, newest-revision copying, merged PDF, authentication continuations and cross-device compatibility.
@@ -68,7 +78,7 @@ Scope excludes AD/MEID authentication/provider continuations and Manager’s Ext
 
 > **Not a drop-in replacement yet.** Passing tests, HTTP 200 responses and one working device workflow do not establish full behavior, visual parity or production readiness.
 
-Latest affected verification: **130 tests passed**, zero failures/skips; source/test typecheck, targeted lint and whitespace checks passed. Registration inspection used no database calls or listener. No application rebuild/restart, full-suite run or live/browser/device acceptance was performed.
+Latest publication checks: **158 affected tests passed**, zero failures/skips, across 15 test files covering native numbering/save rollback, Designer uploads, library/log/preview behavior and shared Manager regressions. Source/test typecheck, targeted lint/format and public-document link/count/SVG checks passed. The counters measure migration coverage, not test coverage. No application rebuild/restart, full-suite run or live/browser/device acceptance was performed.
 
 ## Explore
 

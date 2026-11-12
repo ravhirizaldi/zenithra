@@ -4,6 +4,8 @@
 
 Base path: **`/ConMasAPI`**. This is a separate application from `/ConMasWeb` and Manager, with its own session, login checks, configuration and command contracts.
 
+Snapshot reviewed **12 November 2026**; implementation counts are unchanged: **35 partial / 62 unimplemented / 12 unavailable** mappings. The README's **35/97 ≈36%** counter measures partial-path coverage of supplied mappings, not completed features. Native numbering, `PutLog`, `GetDocumentList` and the `GetDefinitionPreview` no-op do **not** promote same-named business API entries.
+
 ## URL forms
 
 ```text

@@ -9,6 +9,7 @@ import { clientReportAction } from '../controllers/client-reports.js';
 import { clientFileAction } from '../controllers/client-files.js';
 import { clientVoiceAction } from '../controllers/client-voice.js';
 import { clientCatalogAction } from '../controllers/client-catalog.js';
+import { clientLogAction } from '../controllers/client-log.js';
 import { clientGeneralAction } from '../controllers/client-general.js';
 import { clientError } from '../services/client-xml.js';
 import { clientUploadBody } from '../middleware/client-upload.js';
@@ -79,6 +80,7 @@ export function registerClientRoutes(app: Express, db: pg.Pool | null, store?: s
       res.send(clientError(1));
       return;
     }
+    if (await clientLogAction(db, command, req, res)) return;
     if (await clientAccountAction(db, command, req, res)) return;
     if (await clientDefinitionAction(db, command, req, res)) return;
     if (await clientReportAction(db, command, req, res)) return;

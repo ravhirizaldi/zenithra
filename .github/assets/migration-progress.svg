@@ -1,0 +1,35 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="960" height="254" viewBox="0 0 960 254" role="img" aria-labelledby="title description">
+  <title id="title">Zenithra migration coverage — 12 November 2026</title>
+  <desc id="description">ConMasManager: 276 of 461 source action signatures registered, approximately 60 percent. ConMasWeb / Rests: 27 of 62 in-scope mapped commands have local paths, approximately 44 percent, including the supplied preview no-op. ConMasAPI / Rests: 35 of 97 supplied commands have partial paths, approximately 36 percent. These different measures are not feature-completion or production-readiness percentages.</desc>
+  <rect x="1" y="1" width="958" height="252" rx="18" fill="#faf8f6" stroke="#ded8d4"/>
+  <g font-family="system-ui, -apple-system, 'Segoe UI', sans-serif">
+    <text x="30" y="32" fill="#766b65" font-size="10" font-weight="700" letter-spacing="2">ZENITHRA / MIGRATION COVERAGE</text>
+    <text x="930" y="32" text-anchor="end" fill="#766b65" font-size="10" letter-spacing="1">12 NOV 2026</text>
+    <path d="M320 56V205M640 56V205" stroke="#ded8d4"/>
+    <g transform="translate(30 0)">
+      <text y="76" fill="#332b29" font-size="17" font-weight="650">ConMasManager</text>
+      <text y="135" fill="#743b4a" font-size="52" font-weight="750" letter-spacing="-2">60<tspan font-size="25" letter-spacing="0">%</tspan></text>
+      <text y="158" fill="#766b65" font-size="10" font-weight="700" letter-spacing="1.5">REGISTERED ROUTES</text>
+      <rect y="175" width="260" height="6" rx="3" fill="#e9e2dd"/>
+      <rect y="175" width="156" height="6" rx="3" fill="#743b4a"/>
+      <text y="205" fill="#514540" font-size="12">276 / 461 source action signatures</text>
+    </g>
+    <g transform="translate(350 0)">
+      <text y="76" fill="#332b29" font-size="17" font-weight="650">ConMasWeb / Rests</text>
+      <text y="135" fill="#35665d" font-size="52" font-weight="750" letter-spacing="-2">44<tspan font-size="25" letter-spacing="0">%</tspan></text>
+      <text y="158" fill="#766b65" font-size="10" font-weight="700" letter-spacing="1.5">LOCAL PATHS</text>
+      <rect y="175" width="260" height="6" rx="3" fill="#e9e2dd"/>
+      <rect y="175" width="114.4" height="6" rx="3" fill="#35665d"/>
+      <text y="205" fill="#514540" font-size="12">27 / 62 in-scope mapped commands*</text>
+    </g>
+    <g transform="translate(670 0)">
+      <text y="76" fill="#332b29" font-size="17" font-weight="650">ConMasAPI / Rests</text>
+      <text y="135" fill="#936129" font-size="52" font-weight="750" letter-spacing="-2">36<tspan font-size="25" letter-spacing="0">%</tspan></text>
+      <text y="158" fill="#766b65" font-size="10" font-weight="700" letter-spacing="1.5">PARTIAL PATHS ONLY</text>
+      <rect y="175" width="260" height="6" rx="3" fill="#e9e2dd"/>
+      <rect y="175" width="93.6" height="6" rx="3" fill="#936129"/>
+      <text y="205" fill="#514540" font-size="12">35 / 97 supplied mapped commands</text>
+    </g>
+    <text x="30" y="236" fill="#766b65" font-size="10">Different measures, not feature completion. *Native local paths include the shipped preview no-op.</text>
+  </g>
+</svg>

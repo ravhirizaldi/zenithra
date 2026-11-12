@@ -2,15 +2,15 @@
 
 [Project overview](../../README.md) · [Native-client REST](native-rest.md) · [Business API / WebAPI](business-api.md)
 
-Public migration snapshot: **10 November 2026**. Zenithra preserves the original ASPX-style protocols while replacing server behavior with Node.js. These are **not JSON REST endpoints**, and no `/api/v1` prefix is introduced.
+Public migration snapshot: **12 November 2026**. Zenithra preserves the original ASPX-style protocols while replacing server behavior with Node.js. These are **not JSON REST endpoints**, and no `/api/v1` prefix is introduced.
 
 ## Choose the correct application
 
-| Application           | Dispatcher                                           | Purpose                              | Current mapped-command status                                  |
-| :-------------------- | :--------------------------------------------------- | :----------------------------------- | :------------------------------------------------------------- |
-| Native-client REST    | `/ConMasWeb/Rests/ConMasIReporter.aspx?command=NAME` | Existing Designer and device clients | 24 local paths, 27 partial, 11 unimplemented, 1 scope-excluded |
-| Business API / WebAPI | `/ConMasAPI/Rests/APIExecute.aspx?command=NAME`      | Business integrations                | 35 partial, 62 unimplemented, 12 unavailable mapping targets   |
-| Manager               | `/ConMasManager`                                     | Browser management interface         | Separate web UI; not an alias for either API                   |
+| Application           | Dispatcher                                           | Purpose                              | Current mapped-command status                                 |
+| :-------------------- | :--------------------------------------------------- | :----------------------------------- | :------------------------------------------------------------ |
+| Native-client REST    | `/ConMasWeb/Rests/ConMasIReporter.aspx?command=NAME` | Existing Designer and device clients | 27 local paths, 27 partial, 8 unimplemented, 1 scope-excluded |
+| Business API / WebAPI | `/ConMasAPI/Rests/APIExecute.aspx?command=NAME`      | Business integrations                | 35 partial, 62 unimplemented, 12 unavailable mapping targets  |
+| Manager               | `/ConMasManager`                                     | Browser management interface         | Separate web UI; not an alias for either API                  |
 
 Prepend your configured server origin to the paths in these guides. They are **path examples**, not links to an externally hosted Zenithra service. A same-named command in two applications can have different behavior or be migrated in only one of them.
 
@@ -24,7 +24,9 @@ Prepend your configured server origin to the paths in these guides. They are **p
 | **Unavailable**    | The mapping target was not supplied by the original installation; it is not counted as implemented.                              |
 | **Scope-excluded** | Intentionally outside the migration scope, not an implemented command.                                                           |
 
-The native guide lists **all 50 mapped commands with local/partial implementations**; the business guide lists **all 35 partial mapped commands**. GeneralProcess operations and direct-only diagnostics are separate from those command totals.
+The native guide lists **all 54 mapped commands with local/partial paths**; the business guide lists **all 35 partial mapped commands**. Native local paths include `GetDefinitionPreview`, whose supplied behavior is an authenticated **empty response**, not preview generation. GeneralProcess operations and direct-only diagnostics are separate from those command totals.
+
+The [README counters](../../README.md#where-it-stands) use rounded, explicitly different measures: Manager registration **276/461 ≈60%**, native local paths **27/62 ≈44%** after one scope exclusion, and business API partial paths **35/97 ≈36%** after 12 unavailable mappings. None measures full behavior, visual parity or production readiness. Native still has **13 missing entries**: eight mapped commands, four additional handlers and one GeneralProcess operation, plus remaining branches in 27 partial commands.
 
 ## Requests and sessions
 

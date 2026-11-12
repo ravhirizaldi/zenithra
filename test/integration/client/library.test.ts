@@ -9,6 +9,7 @@ import {
   getClientLocalReferenceList,
   getClientLocalReference,
   getClientDocumentInfo,
+  getClientDocumentList,
   hasClientFreeDrawLicense,
   unlockClientDocuments,
   editClientLibraryDocument,
@@ -245,6 +246,101 @@ test(
       assert.equal(parser.parse(await info()).conmas.localFiles, '');
       await db.query("UPDATE pg_temp.document_lock SET user_id='fixture'");
       assert.deepEqual((await db.query('SELECT * FROM pg_temp.document_lock')).rows, before);
+      assert.equal((await db.query('SELECT count(*) FROM pg_temp.log_library_download')).rows[0].count, '0');
+    }),
+);
+
+test(
+  'native document list preserves root/exact-label browsing, recursive search, validation, metadata and common/image access',
+  enabled,
+  async () =>
+    fixture(async (db) => {
+      await db.query(`INSERT INTO pg_temp.mst_label_common_document (mst_label_id,upper_label_id,label_name,label_name_path,label_id_path,diplay_number,label_icon_id) VALUES
+      (10,NULL,'Root','Root','10',2,1),(11,10,'Child','Root/Child','10/11',1,2),(12,11,'Grandchild','Root/Child/Grandchild','10/11/12',1,3),(20,NULL,'First root','First root','20',1,4);
+      INSERT INTO pg_temp.common_document_label_role (mst_label_id,group_id) VALUES (10,2),(10,3);
+      INSERT INTO pg_temp.mst_common_document (document_id,document_name,document_name_org,document_save_kbn,document_type,document_update_time,sys_regist_time,sys_update_time,edit_status,remarks) VALUES
+      (1,'Root file','one.pdf',0,'PDF','2026-11-01','2026-11-01','2026-11-02',1,'100%'),
+      (2,'Direct file','two.pdf',0,'PDF','2026-11-02','2026-11-01','2026-11-02',4,'Find & keep'),
+      (3,'Nested file','three.pdf',0,'PDF','2026-11-03','2026-11-01','2026-11-02',4,'Find & keep'),
+      (4,'Denied','four.pdf',0,'PDF','2026-11-04','2026-11-01','2026-11-02',1,''),
+      (5,'Expired','five.pdf',0,'PDF','2026-11-05','2026-11-01','2026-11-02',1,''),
+      (6,'FreeDraw','preview.pdf',2,'FD','2026-11-06','2026-11-01','2026-11-02',1,'');
+      UPDATE pg_temp.mst_common_document SET use_end_time='2026-11-07 23:59:59' WHERE document_id=5;
+      INSERT INTO pg_temp.common_document_label (document_id,mst_label_id) VALUES (2,10),(3,12);
+      INSERT INTO pg_temp.mst_common_document_role (document_id,group_id) VALUES (4,2);
+      INSERT INTO pg_temp.common_document_irfd_role (document_id,group_id,role_irfd_read,role_irfd_update) VALUES (6,1,1,0);
+      INSERT INTO pg_temp.common_document_irfd (document_id,rev_no,irfd_file_name) VALUES (6,1,'first.irfd'),(6,2,'latest.irfd');
+      INSERT INTO pg_temp.document_lock (document_id,user_id) VALUES (2,'other');
+      INSERT INTO pg_temp.mst_label_image_document (mst_label_id,label_name,diplay_number) VALUES (10,'Image root',1);
+      INSERT INTO pg_temp.mst_image_document (document_id,document_name,document_save_kbn,document_type,document_update_time,sys_regist_time,sys_update_time,remarks) VALUES (7,'Picture',0,'PHOTO','2026-11-01','2026-11-01','2026-11-02','Image remark');
+      INSERT INTO pg_temp.mst_image_document_role (document_id,group_id) VALUES (7,1)`);
+      const now = new Date(2026, 10, 8, 12);
+      const list = async (params: Record<string, string> = {}, user = 'fixture') =>
+        parser.parse(await getClientDocumentList(db, user, params, now)).conmas;
+      const ids = (result: { localFiles: { localFile?: { localFileId: string } | { localFileId: string }[] } }) =>
+        [result.localFiles.localFile ?? []].flat().map((row) => row.localFileId);
+      const root = await list();
+      assert.deepEqual(ids(root), ['6', '1']);
+      assert.equal(root.error, undefined);
+      assert.deepEqual(
+        root.localLabels.localLabel.map((label: Record<string, string>) => label.labelId),
+        ['20', '10'],
+      );
+      assert.equal(root.localLabels.localLabel[1].group, '2,3');
+      assert.equal(root.localLabels.localLabel[1].upperLabelId, '');
+      assert.equal(root.localFiles.localFile[0].locked, '1');
+      assert.equal(root.localFiles.localFile[0].fileName, 'preview.pdf');
+      const direct = await list({ labelId: '10' });
+      assert.deepEqual(ids(direct), ['2']);
+      assert.equal(direct.localLabels.localLabel.labelId, '11');
+      assert.equal(direct.localFiles.localFile.lockUserName, 'Other fixture');
+      const search = await list({ labelId: '10', word: 'Ｆｉｌｅ', wordTargetName: 'true' });
+      assert.deepEqual(ids(search), ['3', '2']);
+      assert.equal(search.localLabels, '');
+      assert.deepEqual(
+        search.localFiles.localFile.map((row: Record<string, string>) => row.displayNumber),
+        ['1', '1'],
+      );
+      assert.deepEqual(ids(await list({ word: 'Find', wordTargetRemarks: 'true', editStatus: '4' })), ['3', '2']);
+      assert.deepEqual(ids(await list({ word: '%', wordTargetName: 'true', wordTargetRemarks: 'true' })), [
+        '6',
+        '3',
+        '2',
+        '1',
+      ]);
+      const labels = await list({ labelId: '10', word: 'ｃｈｉｌｄ', wordTargetLabelName: 'true' });
+      assert.deepEqual(
+        labels.localLabels.localLabel.map((label: Record<string, string>) => label.name),
+        ['Root/Child', 'Root/Child/Grandchild'],
+      );
+      assert.equal(labels.localFiles, '');
+      assert.equal((await list({ word: 'Root', wordTargetLabelName: 'True' })).localLabels, '');
+      assert.equal((await list({ labelId: '999' })).error.code, '8');
+      const invalid = await list({
+        libraryType: '01',
+        labelId: 'bad,bad',
+        editStatus: '0',
+        iconType: 'pdf,PATH',
+        wordTargetName: 'True',
+      });
+      assert.equal(invalid.error.code, '2');
+      assert.equal(invalid.error.remarks.remark.length, 6);
+      assert.match(invalid.error.remarks.remark[0], /libraryType/);
+      assert.match((await list({ labelId: '2147483648' })).error.remarks.remark, /integer/);
+      assert.deepEqual(ids(await list({ iconType: 'PDF,FD' })), ['6', '1']);
+      assert.equal((await list({ iconType: 'FD' })).localFiles.localFile.fileName, 'latest.irfd');
+      assert.deepEqual(ids(await list({}, 'conmasadmin')), ['6', '4', '1']);
+      const image = await list({ libraryType: '1', iconType: 'PHOTO', editStatus: '4' });
+      assert.equal(image.localLabels.localLabel.name, 'Image root');
+      assert.equal(image.localFiles.localFile.remarks, 'Image remark');
+      assert.equal((await list({ libraryType: '1' }, 'other')).localFiles, '');
+      await db.query(
+        "INSERT INTO pg_temp.mst_common (com_id,com_key,com_name,com_value) VALUES (2,'LIBRARY','IREPORTER_LABEL_ROLE_MODE','1')",
+      );
+      assert.equal((await list({ labelId: '10' })).localFiles, '');
+      assert.deepEqual(ids(await list({ labelId: '10' }, 'conmasadmin')), ['2']);
+      assert.equal((await list({ documentId: '2' })).localFiles.localFile.localFileId, '2');
+      assert.equal((await db.query('SELECT count(*) FROM pg_temp.document_lock')).rows[0].count, '1');
       assert.equal((await db.query('SELECT count(*) FROM pg_temp.log_library_download')).rows[0].count, '0');
     }),
 );
